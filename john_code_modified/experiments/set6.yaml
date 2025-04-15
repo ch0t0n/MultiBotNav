@@ -1,0 +1,49 @@
+grid_size: 50
+field:
+- !!python/tuple
+  - 7.0
+  - 37.0
+- !!python/tuple
+  - 2
+  - 3
+- !!python/tuple
+  - 39
+  - 10
+- !!python/tuple
+  - 42
+  - 11
+- !!python/tuple
+  - 43
+  - 19
+- !!python/tuple
+  - 40
+  - 34
+infected_locations:
+- !!python/tuple
+  - 31.0
+  - 28.0
+- !!python/tuple
+  - 34
+  - 21
+- !!python/tuple
+  - 25
+  - 30
+- !!python/tuple
+  - 9
+  - 17
+- !!python/tuple
+  - 41
+  - 15
+- !!python/tuple
+  - 34
+  - 12
+init_positions:
+- !!python/tuple
+  - 22.0
+  - 11.0
+- !!python/tuple
+  - 33
+  - 14
+- !!python/tuple
+  - 16
+  - 27
