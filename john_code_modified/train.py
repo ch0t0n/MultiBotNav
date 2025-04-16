@@ -14,7 +14,7 @@ if __name__ == "__main__":
     parser.add_argument('--set', required=True, type=int, help='The experiment set to use, from the sets defined in the experiments directory')
     parser.add_argument('--verbose', type=int, choices=[0, 1, 2], default=0, help='The verbosity level: 0 no output, 1 info, 2 debug')
     parser.add_argument('--gamma', type=float, default=0.99, help='The discount factor for the DRL algorithm')
-    parser.add_argument('--steps', type=int, default=1_000_000, help='The amount of steps to train the DRL model for')
+    parser.add_argument('--steps', type=int, default=5_000_000, help='The amount of steps to train the DRL model for')
     parser.add_argument('--num_envs', type=int, default=1, help='The number of parallel environments to run')
     parser.add_argument('--resume', type=parse_bool, default=False, help='If true, loads an existing model to resume training. If false, trains a new model')
     
