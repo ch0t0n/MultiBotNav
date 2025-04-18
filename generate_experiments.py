@@ -15,6 +15,9 @@ if __name__ == '__main__':
     parser.add_argument('--max_size', type=int, default=50, help='The maximum allowed size of the field')
     args = parser.parse_args()
 
+    if args.max_size > 100:
+        raise ValueError('Max size cannot be greater than 100')
+
     # Generate the specified number of experiments
     for _ in range(args.number):
         experiment = {'grid_size': args.max_size}

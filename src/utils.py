@@ -18,28 +18,36 @@ def load_experiment(path, sf):
     config['init_positions'] = [v*sf for v in config['init_positions']]
     return config
 
-# Loads in a trained model
-def load_model(algorithm, st):
-    model_path = f'trained_models/{algorithm}_set{st}.zip'
-    if algorithm == 'A2C':
-        model = A2C.load(model_path, tb_log_name=f'{algorithm}_set{st}')
-    elif algorithm == 'PPO':
-        model = PPO.load(model_path, tb_log_name=f'{algorithm}_set{st}')
-    elif algorithm == 'TRPO':
-        model = TRPO.load(model_path, tb_log_name=f'{algorithm}_set{st}')
-    elif algorithm == 'ARS':
-        model = ARS.load(model_path, tb_log_name=f'{algorithm}_set{st}')
-    elif algorithm == 'CrossQ':
-        model = CrossQ.load(model_path, tb_log_name=f'{algorithm}_set{st}')
-    elif algorithm == 'TQC':
-        model = TQC.load(model_path, tb_log_name=f'{algorithm}_set{st}')
-    return model
-
 # Parses a string into a bool
 def parse_bool(string):
     return bool(distutils.util.strtobool(string))
 
-# convert binary list to decimal
+# Loads in a trained model
+def load_model(algorithm, experiment_set, seed, device, models_dir, verbose, log_dir):
+    model_args = {
+        'path': f'{models_dir}/{algorithm}_set{experiment_set}.zip',
+        'tb_log_name': f'{algorithm}_set{experiment_set}',
+        'device': device,
+        'seed': seed,
+        'verbose': verbose,
+        'tensorboard_log': log_dir,
+    }
+
+    if algorithm == 'A2C':
+        model = A2C.load(**model_args)
+    elif algorithm == 'PPO':
+        model = PPO.load(**model_args)
+    elif algorithm == 'TRPO':
+        model = TRPO.load(**model_args)
+    elif algorithm == 'TQC':
+        model = TQC.load(**model_args)
+    elif algorithm == 'ARS':
+        model = ARS.load(**model_args)
+    else:
+        model = CrossQ.load(**model_args)
+    return model
+
+# Converts a list of binary digits to its decimal equivalent
 def binary_list_to_decimal(bin_list):
     bin = ''
     for b in bin_list:

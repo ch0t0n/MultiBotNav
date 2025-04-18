@@ -1,9 +1,9 @@
 # Optimal Multi-Robot Path Planning For Herbicide Spraying Using Reinforcement Learning
 
-This is the codebase for the ICRA 2025 paper "Optimal Multi-Robot Path Planning For Herbicide Spraying Using Reinforcement Learning", written by Jahid Chowdhury Choton, John Woods, Raja Farrukh Ali, and William Hsu. In this paper, we present a Reinforcement Learning (RL) solution for multi-robot systems used for spraying herbicide. Our contributions include:
+This is the codebase for the IROS 2025 paper "Optimal Multi-Robot Path Planning For Herbicide Spraying Using Reinforcement Learning", written by Jahid Chowdhury Choton, John Woods, Raja Farrukh Ali, and William Hsu. In this paper, we present a Reinforcement Learning (RL) solution for multi-robot systems used for spraying herbicide. Our contributions include:
 
 * Developing a novel, customizable RL environment that represents an agricultural field with 3 spraying robots
-* Analyzing 4 state-of-the-art RL algorithms across 10 different environments
+* Analyzing 6 state-of-the-art RL algorithms across 10 different environments
 * Creating a simultion framework of the environment using the CoppeliaSim robot simulator
 
 ## Setup
@@ -44,34 +44,134 @@ To train an algorithm with the default configuration, run the following command:
 python3 train.py --algorithm A2C --set 1
 ```
 
-The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, and `RecurrentPPO`. The possible values for --`set` depend on the number of sets in the `experiments` directory. Training can be further configured using the following command format:
+The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `DQN`, `ARS`, and `RecurrentPPO `. The possible values for `--set` depend on the number of sets in the `experiments` directory. Training can be further configured using the following command format:
 
 ```
-python3 train.py --algorithm {A2C, PPO, TRPO, RecurrentPPO} --set [set number] --verbose {0 for no output, 1 for info, 2 for debug} --gamma [discount factor] --steps [number of training steps] --num_envs [number of parallel environments] --resume {True for resuming training, False for new model}
+python3 train.py --algorithm {A2C, PPO, TRPO, DQN, ARS, RecurrentPPO} --set [set number] --verbose {0 for no output, 1 for info, 2 for debug} --steps [number of training steps] --num_envs [number of parallel environments] --seed [seed] --log_steps [logging interval] --resume {True for resuming training, False for new model} --device {cpu, cuda}
 ```
 
 ### On Compute Clusters
 
-Slurm scripts for training the model are also provided in the `training_scripts` directory. To run all experiments, use the command:
+Slurm scripts for training the model are also provided in the `slurm_scripts` directory. To run all non-GPU training experiments, use the command:
 
 ```
-sbatch training_scripts/train_all.sh
+sbatch slurm_scripts/train_all.sh
 ```
 
-To run just a single experiment, first configure the experiment in the `training_scripts/train_one.sh` file. Then, run the following command to start it:
+To run all GPU training experiments (currently just RecurrentPPO), use this command:
 
 ```
-sbatch training_scripts/train_one.sh
+sbatch slurm_scripts/train_recurrentppo.sh
+```
+
+To run just a single training experiment, first configure the experiment in the `slurm_scripts/train_one.sh` file. Then, run the following command to start it:
+
+```
+sbatch slurm_scripts/train_one.sh
 ```
 
 ### Viewing Results
 
-Training for 1 million timesteps takes around 1-4 hours, depending on the algorithm. Once complete, the trained model will be saved in the `trained_models` directory.
+Training for 2 million timesteps takes around 2-8 hours, depending on the algorithm. Once complete, the trained model will be saved in the `trained_models` directory.
 
 Logs containg the reward info are also generated as the model trains. To view them, simply run:
 
 ```
-tensorboard --logdir=./logs
+tensorboard --logdir=./training_logs
+```
+
+## Hyperparameter Tuning
+
+### On your local machine
+
+To tune hyperparameters for an algorithm with the default configuration, run the following command:
+
+```
+python3 tune.py --algorithm A2C --set 1
+```
+
+The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `DQN`, `ARS`, and `RecurrentPPO `. The possible values for `--set` depend on the number of sets in the `experiments` directory. Tuning can be further configured using the following command format:
+
+```
+python3 tune.py --algorithm {A2C, PPO, TRPO, DQN, ARS, RecurrentPPO} --set [set number] --trials [number of trials] --steps [number of training steps] --num_envs [number of parallel environments] --num_eval_eps [number of episodes for evaluation] --seed [seed] --log_steps [logging interval] --device {cpu, cuda}
+```
+
+The hyperparameters tuned include `n_step`, `gamma`, `learning_rate`, `ent_coef`, `gae_lambda`, `max_grad_norm`, and `vf_coef`. These are filtered by algorithm so only hyperparameters that apply to that algorithm are tuned.
+
+### On Compute Clusters
+
+Slurm scripts for tuning the hyperparameters are also provided in the `slurm_scripts` directory. To run all non-GPU tuning experiments, use the command:
+
+```
+sbatch slurm_scripts/tune_all.sh
+```
+
+To run all GPU tuning experiments (currently just RecurrentPPO), use this command:
+
+```
+sbatch slurm_scripts/tune_recurrentppo.sh
+```
+
+To run just a single tuning experiment, first configure the experiment in the `slurm_scripts/tune_one.sh` file. Then, run the following command to start it:
+
+```
+sbatch slurm_scripts/tune_one.sh
+```
+
+### Viewing Results
+
+Tuning for 1 million timesteps on 20 trials takes around 12-72 hours, depending on the algorithm. Once complete, the tuned model will be saved in the `tuned_models` directory.
+
+Logs containg the reward info are also generated as the hyperparameters are tuned. To view them, simply run:
+
+```
+tensorboard --logdir=./tuning_logs
+```
+
+## Transfer Learning
+
+### On your local machine
+
+To run transfer learning for an algorithm with the default configuration, run the following command:
+
+```
+python3 transfer.py --algorithm A2C --load_set 1 --train_set 2
+```
+
+The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `DQN`, `ARS`, and `RecurrentPPO `. The possible values for `--load_set` depend on the sets models were tuned on available in the `tuned_models` directory. The possible values for `--train_set` depend on the number of sets in the `experiments` directory, and must be different than the value for `--load_set`. Transfer learning can be further configured using the following command format:
+
+```
+python3 transfer.py --algorithm {A2C, PPO, TRPO, DQN, ARS, RecurrentPPO} --load_set [set number] --train_set [set number] --verbose {0 for no output, 1 for info, 2 for debug} --steps [number of training steps] --num_envs [number of parallel environments] --seed [seed] --log_steps [logging interval] --device {cpu, cuda}
+```
+
+### On Compute Clusters
+
+Slurm scripts for running transfer learning are also provided in the `slurm_scripts` directory. To run all non-GPU transfer learning experiments, use the command:
+
+```
+sbatch slurm_scripts/transfer_all.sh
+```
+
+To run all GPU transfer learning experiments (currently just RecurrentPPO), use this command:
+
+```
+sbatch slurm_scripts/transfer_recurrentppo.sh
+```
+
+To run just a single transfer learning experiment, first configure the experiment in the `slurm_scripts/transfer_one.sh` file. Then, run the following command to start it:
+
+```
+sbatch slurm_scripts/transfer_one.sh
+```
+
+### Viewing Results
+
+Running transfer learning for 2 million timesteps takes around 8-24 hours, depending on the algorithm. Once complete, the tuned model will be saved in the `transfer_models` directory.
+
+Logs containg the reward info are also generated as transfer learning runs. To view them, simply run:
+
+```
+tensorboard --logdir=./transfer_logs
 ```
 
 ## Simulation

@@ -2,14 +2,12 @@
 import copy
 import pygame
 import gymnasium as gym
-import itertools
 from src.utils import binary_list_to_decimal, is_inside_polygon, min_dist
 import numpy as np
-np.random.seed(33) # seeding
 
 class MultiBotNavigator(gym.Env):
     metadata = {'render_modes': ['human', 'print', 'rgb_array'], "render_fps": 4}
-    def __init__(self, render_mode=None, env_config=None, wind_par=[0,0], num_robots=3):
+    def __init__(self, seed=None, render_mode=None, env_config=None, wind_par=[0,0], num_robots=3):
         super(MultiBotNavigator, self).__init__()
         self.config = copy.deepcopy(env_config) # Load the config file
         self.edge_buffer = 10 # Boundary above the max values
@@ -55,7 +53,7 @@ class MultiBotNavigator(gym.Env):
         # to ensure that the environment is rendered at the correct framerate in human-mode. They will remain `None` until human-mode is used for the first time.   
 
         # Reset the environment and start
-        self.reset()
+        self.reset(seed=seed)
     
     def _get_obs(self):
         info = {f'robot{i}': self.robot_positions[i] for i in range(self.num_robots)} # Current position of each robot
@@ -65,6 +63,7 @@ class MultiBotNavigator(gym.Env):
 
     def reset(self, seed=None, options={}):
         # Reset the visited states and counts
+        super().reset(seed=seed)
         self.step_count = 0
         self.visited = set()
         self.infected_locations = copy.deepcopy(self.initial_inf_locations) # Initial infected locations
