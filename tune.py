@@ -5,8 +5,8 @@ import inspect
 import yaml
 import gc
 from datetime import datetime
-from stable_baselines3 import A2C, PPO, DQN
-from sb3_contrib import TRPO, ARS, RecurrentPPO
+from stable_baselines3 import A2C, PPO
+from sb3_contrib import TRPO, ARS, TQC, CrossQ
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import LogEveryNTimesteps
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     # Parse arguments
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--algorithm', type=str, required=True, choices=['A2C', 'PPO', 'TRPO', 'DQN', 'ARS', 'RecurrentPPO'], help='The DRL algorithm to use')
+    parser.add_argument('--algorithm', type=str, required=True, choices=['A2C', 'PPO', 'TRPO', 'TQC', 'ARS', 'CrossQ'], help='The DRL algorithm to use')
     parser.add_argument('--set', required=True, type=int, help='The experiment set to use, from the sets defined in the experiments directory')
     parser.add_argument('--trials', type=int, default=20, help='The number of trials used for tuning')
     parser.add_argument('--steps', type=int, default=1_000_000, help='The amount of steps to train the DRL model for while tuning')
@@ -41,14 +41,14 @@ if __name__ == '__main__':
         global best_reward
 
         # Configure environment
-        env_config = load_experiment(f'experiments/set{args.set}.yaml')
-        vec_env = make_vec_env('ThreeAgentGridworld-v1', env_kwargs={'env_config': env_config, 'seed': args.seed}, n_envs=args.num_envs)
+        env_config = load_experiment(f'experiments/set{args.set}.yaml', sf=10)
+        vec_env = make_vec_env('MultiBotNavigator-v0', env_kwargs={'env_config': env_config, 'seed': args.seed}, n_envs=args.num_envs)
         vec_env.seed(seed=args.seed)
         vec_env.action_space.seed(seed=args.seed)
 
         # Base model args
         model_args = {
-            'policy': 'MlpLstmPolicy' if args.algorithm == 'RecurrentPPO' else 'MlpPolicy',
+            'policy': 'LinearPolicy' if args.algorithm == 'ARS' else 'MlpPolicy',
             'env': vec_env,
             'tensorboard_log': './tuning_logs',
             'seed': args.seed,
@@ -69,12 +69,12 @@ if __name__ == '__main__':
             model = PPO
         elif args.algorithm == 'TRPO':
             model = TRPO
-        elif args.algorithm == 'DQN':
-            model = DQN
+        elif args.algorithm == 'TQC':
+            model = TQC
         elif args.algorithm == 'ARS':
             model = ARS
         else:
-            model = RecurrentPPO
+            model = CrossQ
 
         model_kwargs = inspect.getfullargspec(model).args
         filtered_args = {k:model_args[k] for k in model_args if k in model_kwargs}

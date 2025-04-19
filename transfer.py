@@ -10,7 +10,7 @@ if __name__ == '__main__':
     # Parse arguments
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--algorithm', type=str, required=True, choices=['A2C', 'PPO', 'TRPO', 'DQN', 'ARS', 'RecurrentPPO'], help='The DRL algorithm to use')
+    parser.add_argument('--algorithm', type=str, required=True, choices=['A2C', 'PPO', 'TRPO', 'TQC', 'ARS', 'CrossQ'], help='The DRL algorithm to use')
     parser.add_argument('--load_set', required=True, type=int, help='The experiment set to load, from the sets defined in the experiments directory')
     parser.add_argument('--train_set', required=True, type=int, help='The experiment set to train on, from the sets defined in the experiments directory. Must be different from load_set for transfer learning')
     parser.add_argument('--verbose', type=int, choices=[0, 1, 2], default=0, help='The verbosity level: 0 no output, 1 info, 2 debug')
@@ -28,8 +28,8 @@ if __name__ == '__main__':
         raise ValueError('load_set and train_set must be different for transfer learning')
 
     # Configure environment
-    env_config = load_experiment(f'experiments/set{args.train_set}.yaml')
-    vec_env = make_vec_env('ThreeAgentGridworld-v1', env_kwargs={'env_config': env_config, 'seed': args.seed}, n_envs=args.num_envs)
+    env_config = load_experiment(f'experiments/set{args.train_set}.yaml', sf=10)
+    vec_env = make_vec_env('MultiBotNavigator-v0', env_kwargs={'env_config': env_config, 'seed': args.seed}, n_envs=args.num_envs)
     vec_env.seed(seed=args.seed)
     vec_env.action_space.seed(seed=args.seed)
 

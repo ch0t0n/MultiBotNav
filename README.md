@@ -135,7 +135,7 @@ tensorboard --logdir=./tuning_logs
 To run transfer learning for an algorithm with the default configuration, run the following command:
 
 ```
-python3 transfer.py --algorithm A2C --load_set 1 --train_set 2
+python3 transfer.py --algorithm A2C --set 1
 ```
 
 The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `DQN`, `ARS`, and `RecurrentPPO `. The possible values for `--load_set` depend on the sets models were tuned on available in the `tuned_models` directory. The possible values for `--train_set` depend on the number of sets in the `experiments` directory, and must be different than the value for `--load_set`. Transfer learning can be further configured using the following command format:
