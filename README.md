@@ -1,7 +1,7 @@
 # Optimal Multi-Robot Path Planning For Herbicide Spraying Using Reinforcement Learning
 
-//![til](./two_robots_env1.gif)
-<img src="./two_robots_env1.gif" width="250" height="250"/>
+<!-- ![til](./two_robots_env1.gif) -->
+<img src="./two_robots_env1.gif" width="250"/>
 
 This is the codebase for the IROS 2025 paper "Optimal Multi-Robot Path Planning For Herbicide Spraying Using Reinforcement Learning", written by Jahid Chowdhury Choton, John Woods, Raja Farrukh Ali, and William Hsu. In this paper, we present a Reinforcement Learning (RL) solution for multi-robot systems used for spraying herbicide. Our contributions include:
 
