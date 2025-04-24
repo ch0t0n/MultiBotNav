@@ -1,5 +1,6 @@
 import os
 import argparse
+import yaml
 from datetime import datetime
 from stable_baselines3 import A2C, PPO
 from sb3_contrib import TRPO, ARS, CrossQ, TQC
@@ -20,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=None, help='The random seed to use')
     parser.add_argument('--log_steps', type=int, default=2000, help='The number of steps between each log entry')
     parser.add_argument('--resume', type=parse_bool, default=False, help='If true, loads an existing model to resume training. If false, trains a new model')
+    parser.add_argument('--use_tuned_params', type=parse_bool, default=False, help='If true, uses tuned hyperparameters. If false, uses default hyperparameters')
     parser.add_argument('--device', type=str, choices=['cpu', 'cuda'], default='cpu', help='The device to train on')
     
     args = parser.parse_args()
@@ -38,6 +40,16 @@ if __name__ == "__main__":
         model = load_model(args.algorithm, args.set, args.seed, args.device, 'trained_models', args.verbose, 'training_logs')
         model.set_env(vec_env)
     else:
+        if args.use_tuned_params:
+            with open(f'tuned_hyperparameters/{args.algorithm}_set1.yaml') as file:
+                try:
+                    hyperparameters = yaml.safe_load(file)
+                except yaml.YAMLError as err:
+                    print(err)
+                    hyperparameters = {}
+        else:
+            hyperparameters = {}
+
         model_args = {
             'policy': 'LinearPolicy' if args.algorithm == 'ARS' else 'MlpPolicy',
             'env': vec_env,
@@ -45,6 +57,7 @@ if __name__ == "__main__":
             'tensorboard_log': './training_logs',
             'seed': args.seed,
             'device': args.device,
+            **hyperparameters
         }
 
         if args.algorithm == 'A2C':

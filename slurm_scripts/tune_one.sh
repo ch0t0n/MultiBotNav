@@ -12,10 +12,10 @@
 #SBATCH --gres=gpu:1
 #SBATCH --export=NONE
 
-algorithm="A2C"
+algorithm="CrossQ"
 set=1
 steps=1000000
 
-conda run --no-capture-output -n rl4pag python3 tune.py --algorithm $algorithm --set $set --steps $steps --seed 33 --log_steps 5000
+conda run --no-capture-output -n rl4pag python3 tune.py --algorithm $algorithm --set $set --steps $steps --seed 33 --log_steps 5000 --device "cuda"
 
 wait
