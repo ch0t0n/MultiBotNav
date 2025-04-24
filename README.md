@@ -6,7 +6,7 @@
 <img src="./three_robot_env3.gif" width="400"/>
 
 <div style="display: flex; gap: 10px;">
-    <img src="./two_robots_env1.gif" width="400" />
+    <img src="./two_robots_env1.gif" width="400" height="286" />
     <img src="./three_robot_env3.gif" width="400" />
 </div>
 
