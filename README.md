@@ -1,12 +1,9 @@
 # Efficient Environment Design for Multi-Robot Navigation via Continuous Control
-<!-- ![til](./two_robots_env1.gif) 
-<img src="./two_robots_env1.gif" width="400"/>
-<img src="./three_robot_env3.gif" width="400"/> -->
-
 <div style="display: flex; gap: 10px;">
     <img src="./two_robots_env1.gif" width="400" height="286" />
     <img src="./three_robot_env3.gif" width="400" height="286" />
 </div>
+
 <!--
 This is the codebase for the IROS 2025 paper "Optimal Multi-Robot Path Planning For Herbicide Spraying Using Reinforcement Learning", written by Jahid Chowdhury Choton, John Woods, Raja Farrukh Ali, and William Hsu. In this paper, we present a Reinforcement Learning (RL) solution for multi-robot systems used for spraying herbicide. Our contributions include:
 * Developing a novel, customizable RL environment that represents an agricultural field with 3 spraying robots
