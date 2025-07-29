@@ -1,10 +1,17 @@
-# Optimal Multi-Robot Path Planning For Herbicide Spraying Using Reinforcement Learning
+# Efficient Environment Design for Multi-Robot Navigation via Continuous Control
+<div style="display: flex; gap: 10px;">
+    <img src="./two_robots_env1.gif" width="400" height="286" />
+    <img src="./three_robot_env3.gif" width="400" height="286" />
+</div>
 
+<!--
 This is the codebase for the IROS 2025 paper "Optimal Multi-Robot Path Planning For Herbicide Spraying Using Reinforcement Learning", written by Jahid Chowdhury Choton, John Woods, Raja Farrukh Ali, and William Hsu. In this paper, we present a Reinforcement Learning (RL) solution for multi-robot systems used for spraying herbicide. Our contributions include:
-
 * Developing a novel, customizable RL environment that represents an agricultural field with 3 spraying robots
 * Analyzing 6 state-of-the-art RL algorithms across 10 different environments
 * Creating a simultion framework of the environment using the CoppeliaSim robot simulator
+-->
+
+This is the codebase for the paper titled "Efficient Environment Design for Multi-Robot Navigation via Continuous Control". Here, we developed an MDP-based environment that can be used for multi-robot navigation and path planning.
 
 ## Setup
 
