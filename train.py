@@ -6,7 +6,7 @@ from stable_baselines3 import A2C, PPO
 from sb3_contrib import TRPO, ARS, CrossQ, TQC
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import LogEveryNTimesteps
-from src.utils import load_experiment, load_model, parse_bool
+from src.utils import load_experiment, load_model, parse_bool, filter_args
 
 if __name__ == "__main__":
 
@@ -40,10 +40,23 @@ if __name__ == "__main__":
         model = load_model(args.algorithm, args.set, args.seed, args.device, 'trained_models', args.verbose, 'training_logs')
         model.set_env(vec_env)
     else:
+        if args.algorithm == 'A2C':
+            model_type = A2C
+        elif args.algorithm == 'PPO':
+            model_type = PPO
+        elif args.algorithm == 'TRPO':
+            model_type = TRPO
+        elif args.algorithm == 'TQC':
+            model_type = TQC
+        elif args.algorithm == 'ARS':
+            model_type = ARS
+        else:
+            model_type = CrossQ
+        
         if args.use_tuned_params:
             with open(f'tuned_hyperparameters/{args.algorithm}_set1.yaml') as file:
                 try:
-                    hyperparameters = yaml.safe_load(file)
+                    hyperparameters = filter_args(yaml.safe_load(file), model_type)
                 except yaml.YAMLError as err:
                     print(err)
                     hyperparameters = {}
@@ -60,18 +73,7 @@ if __name__ == "__main__":
             **hyperparameters
         }
 
-        if args.algorithm == 'A2C':
-            model = A2C(**model_args)
-        elif args.algorithm == 'PPO':
-            model = PPO(**model_args)
-        elif args.algorithm == 'TRPO':
-            model = TRPO(**model_args)
-        elif args.algorithm == 'TQC':
-            model = TQC(**model_args)
-        elif args.algorithm == 'ARS':
-            model = ARS(**model_args)
-        else:
-            model = CrossQ(**model_args)
+        model = model_type(**model_args)
 
     # Train model
     start_time = datetime.now()

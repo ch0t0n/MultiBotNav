@@ -4,6 +4,7 @@ from stable_baselines3 import A2C, PPO
 from sb3_contrib import TRPO, ARS, CrossQ, TQC
 import distutils
 import itertools
+import inspect
 
 # Loads in an experiment config file
 def load_experiment(path, sf):
@@ -79,3 +80,8 @@ def min_dist(x):
         dist = np.linalg.norm(p1-p2)
         dists.append(dist)
     return float(np.min(dists))
+
+# Filters out arguments that are not present in a model's constructor
+def filter_args(args, model):
+    model_kwargs = inspect.getfullargspec(model).args
+    return {k:args[k] for k in args if k in model_kwargs}

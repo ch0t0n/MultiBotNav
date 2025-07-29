@@ -1,7 +1,6 @@
 import optuna
 import os
 import argparse
-import inspect
 import yaml
 import gc
 from datetime import datetime
@@ -10,11 +9,7 @@ from sb3_contrib import TRPO, ARS, TQC, CrossQ
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.callbacks import LogEveryNTimesteps
-from src.utils import load_experiment
-
-def filter_args(args, model):
-    model_kwargs = inspect.getfullargspec(model).args
-    return {k:args[k] for k in args if k in model_kwargs}
+from src.utils import load_experiment, filter_args
 
 if __name__ == '__main__':
 
