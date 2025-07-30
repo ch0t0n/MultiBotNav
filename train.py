@@ -33,11 +33,14 @@ if __name__ == "__main__":
     vec_env.seed(seed=args.seed)
     vec_env.action_space.seed(seed=args.seed)
     
-    os.makedirs('training_logs', exist_ok=True)
+    if args.use_tuned_params:
+        os.makedirs('training_best_logs', exist_ok=True)
+    else:
+        os.makedirs('training_default_logs', exist_ok=True)
 
     # Configure model
     if args.resume:
-        model = load_model(args.algorithm, args.set, args.seed, args.device, 'trained_models', args.verbose, 'training_logs')
+        model = load_model(args.algorithm, args.set, args.seed, args.device, 'trained_models', args.verbose, 'training_best_logs' if args.use_tuned_params else 'training_default_logs')
         model.set_env(vec_env)
     else:
         if args.algorithm == 'A2C':
@@ -67,7 +70,7 @@ if __name__ == "__main__":
             'policy': 'LinearPolicy' if args.algorithm == 'ARS' else 'MlpPolicy',
             'env': vec_env,
             'verbose': args.verbose,
-            'tensorboard_log': './training_logs',
+            'tensorboard_log': './training_best_logs' if args.use_tuned_params else './training_default_logs',
             'seed': args.seed,
             'device': args.device,
             **hyperparameters

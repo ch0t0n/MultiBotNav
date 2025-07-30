@@ -207,8 +207,21 @@ We also provide some scripts to aid with plotting results. To plot the layouts o
 python3 plotting/plot_fields.py
 ```
 
-Once the experiments have been run, you can plot individual experiment performance and average algorithm performance with the following command:
+All plots are saved in the `plotting/plots` directory. Once all experiments have been run, you can plot comparison results for each experiment setting:
 
 ```
 python3 plotting/plot_results.py
 ```
+
+You can also plot results for individual settings by providing a flag for each experiment setting you want to plot:
+
+```
+python3 plotting/plot_results.py [-a] [-b] [-c] [-o]
+```
+
+The experiment settings are defined as follows:
+
+- `-a`: Training from scratch with default hyperparameters
+- `-b`: Training from scratch with best hyperparameters
+- `-c`: Transfer learning
+- `-o`: Hyperparameter tuning with Optuna
