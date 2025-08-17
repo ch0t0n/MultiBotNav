@@ -26,7 +26,7 @@ def parse_bool(string):
     return bool(distutils.util.strtobool(string))
 
 # Loads in a trained model
-def load_model(algorithm, experiment_set, seed, device, models_dir, verbose, log_dir):
+def load_model(algorithm, experiment_set, seed, device, models_dir, verbose=0, log_dir=''):
     model_args = {
         'path': f'{models_dir}/{algorithm}_set{experiment_set}.zip',
         'tb_log_name': f'{algorithm}_set{experiment_set}',
