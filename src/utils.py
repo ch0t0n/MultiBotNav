@@ -5,6 +5,8 @@ from sb3_contrib import TRPO, ARS, CrossQ, TQC
 import distutils
 import itertools
 import inspect
+from shapely import Polygon
+import configparser
 
 # Loads in an experiment config file
 def load_experiment(path, sf):
@@ -52,7 +54,7 @@ def load_model(algorithm, experiment_set, seed, device, models_dir, verbose, log
 def binary_list_to_decimal(bin_list):
     bin = ''
     for b in bin_list:
-        bin += str(b)
+        bin += str(int(b))
     dec = int(bin,2)
     return dec
 
@@ -85,3 +87,67 @@ def min_dist(x):
 def filter_args(args, model):
     model_kwargs = inspect.getfullargspec(model).args
     return {k:args[k] for k in args if k in model_kwargs}
+
+# Updates the robot polygon
+def get_robot_polygon(x, y, theta, robot_length, robot_width):
+    # Robot corners relative to center
+    dx = robot_length / 2
+    dy = robot_width / 2
+    corners = np.array([
+        [ dx,  dy],
+        [ dx, -dy],
+        [-dx, -dy],
+        [-dx,  dy]
+    ])
+
+    # Rotation matrix
+    cos_t = np.cos(theta)
+    sin_t = np.sin(theta)
+    R = np.array([[cos_t, -sin_t], [sin_t, cos_t]])
+
+    # Rotate and translate corners
+    rotated = np.dot(corners, R.T) + np.array([x, y])
+    return Polygon(rotated)
+
+# Read set config file
+def read_env_config(config_path):
+    config = configparser.ConfigParser()
+    config.read(config_path) # Read the config file
+    env_params = {}
+
+    # Load screen parameters
+    env_params['SCREEN_WIDTH'] = float(config['SCREEN']['WIDTH'])
+    env_params['SCREEN_HEIGHT'] = float(config['SCREEN']['HEIGHT'])
+
+    # Load initial robot positions
+    env_params['ROBOT_LENGTH'] = float(config['ROBOTS']['LENGTH'])
+    env_params['ROBOT_WIDTH'] = float(config['ROBOTS']['WIDTH'])
+    env_params['MAX_SPEED'] = float(config['ROBOTS']['MAX_SPEED'])
+    env_params['MAX_STEER'] = float(config['ROBOTS']['MAX_STEER'])
+    env_params['NUM_ROBOTS'] = int(config['ROBOTS']['NUM_ROBOTS'])
+    env_params['ROBOT_INIT_CONFIGS'] = []
+    for i in range(env_params['NUM_ROBOTS']):
+        conf = config['ROBOTS'][f'ROBOT_{i+1}']
+        x, y, theta = map(float, conf.split(','))
+        # env_params[f'ROBOT_{i+1}'] = (x,y,theta)
+        env_params['ROBOT_INIT_CONFIGS'].append((x,y,float(np.radians(theta))))
+
+    # Load goal positions
+    env_params['NUM_GOALS'] = int(config['GOALS']['NUM_GOALS'])
+    env_params['GOAL_SIZE'] = float(config['GOALS']['GOAL_SIZE'])
+    env_params['GOAL_POSITIONS'] = []
+    for i in range(env_params['NUM_GOALS']):
+        g_pos = config['GOALS'][f'GOAL_{i+1}']
+        x, y = map(float, g_pos.split(','))
+        # env_params[f'GOAL_{i+1}'] = (x,y)
+        env_params['GOAL_POSITIONS'].append((x,y))
+
+    # Load polygonal obstacles
+    env_params['NUM_OBSTACLES'] = int(config['OBSTACLES']['NUM_OBSTACLES'])
+    env_params['OBSTACLES'] = []
+    for i in range(env_params['NUM_OBSTACLES']):
+        ver_str = config['OBSTACLES'][f'OBSTACLE_{i+1}']
+        points = [tuple(map(int, pt.split(','))) for pt in ver_str.split(';')]
+        # env_params[f'OBSTACLE_{i+1}'] = (x,y)
+        env_params['OBSTACLES'].append(points)    
+    return env_params
