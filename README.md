@@ -1,8 +1,8 @@
 # Efficient Environment Design for Multi-Robot Navigation via Continuous Control
 
 <div style="display: flex; gap: 10px;">
-    <img src="./images/two_robots_env1.gif" width="400" height="286" />
-    <img src="./images/three_robot_env3.gif" width="400" height="286" />
+    <img src="./assets/images/two_robots_env1.gif" width="400" height="286" />
+    <img src="./assets/images/three_robot_env3.gif" width="400" height="286" />
 </div>
 
 This is the codebase for the CoRL 2025 paper titled "Efficient Environment Design for Multi-Robot Navigation via Continuous Control". We developed an MDP-based environment that can be used for multi-robot navigation and path planning.
@@ -45,10 +45,10 @@ To train an algorithm with the default configuration, run the following command:
 python3 train.py --algorithm A2C --set 1
 ```
 
-The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `DQN`, `ARS`, and `RecurrentPPO `. The possible values for `--set` depend on the number of sets in the `experiments` directory. Training can be further configured using the following command format:
+The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `TQC`, `ARS`, and `CrossQ `. The possible values for `--set` depend on the number of sets in the `sets` directory. Training can be further configured using the following command format:
 
 ```
-python3 train.py --algorithm {A2C, PPO, TRPO, DQN, ARS, RecurrentPPO} --set [set number] --verbose {0 for no output, 1 for info, 2 for debug} --steps [number of training steps] --num_envs [number of parallel environments] --seed [seed] --log_steps [logging interval] --resume {True for resuming training, False for new model} --device {cpu, cuda}
+python3 train.py --algorithm {A2C, PPO, TRPO, TQC, ARS, CrossQ} --set [set number] --verbose {0 for no output, 1 for info, 2 for debug} --steps [number of training steps] --num_envs [number of parallel environments] --seed [seed] --log_steps [logging interval] --resume {True for resuming training, False for new model} --device {cpu, cuda}
 ```
 
 ### On Compute Clusters

@@ -6,7 +6,7 @@ from stable_baselines3 import A2C, PPO
 from sb3_contrib import TRPO, ARS, CrossQ, TQC
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import LogEveryNTimesteps
-from src.utils import load_experiment, load_model, parse_bool, filter_args
+from src.utils import read_env_config, load_model, parse_bool, filter_args
 
 if __name__ == "__main__":
 
@@ -28,8 +28,8 @@ if __name__ == "__main__":
     print(args)
     
     # Configure environment
-    env_config = load_experiment(path=f'experiments/set{args.set}.yaml', sf=10)
-    vec_env = make_vec_env('MultiBotNavigator-v0', env_kwargs={'env_config': env_config, 'seed': args.seed}, n_envs=args.num_envs)
+    env_config = read_env_config(f'sets/env{args.set}.ini')
+    vec_env = make_vec_env('MultiRobotEnv-v0', env_kwargs={'env_params': env_config, 'render_mode': None}, n_envs=args.num_envs)
     vec_env.seed(seed=args.seed)
     vec_env.action_space.seed(seed=args.seed)
     

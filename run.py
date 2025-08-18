@@ -3,14 +3,14 @@ import pygame
 import gymnasium as gym
 from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 from src.sim import DroneSimulator
-from src.utils import load_experiment, load_model, parse_bool
+from src.utils import read_env_config, load_model, parse_bool
 
 if __name__ == '__main__':
 
     # Parse arguments
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--path', type='str', required=True, help='The directory to look for trained models in')
+    parser.add_argument('--path', type=str, required=True, help='The directory to look for trained models in')
     parser.add_argument('--algorithm', type=str, required=True, choices=['A2C', 'PPO', 'TRPO', 'ARS', 'CrossQ', 'TQC'], help='The DRL algorithm to use')    
     parser.add_argument('--set', type=int, required=True, help='The experiment set to use, from the sets defined in the experiments directory')
     parser.add_argument('--simulate', type=parse_bool, default=False, help='If true, uses the Coppelia Simulator to show the environment. If false, renders the environment using PyGame')
@@ -23,8 +23,8 @@ if __name__ == '__main__':
     model = load_model(args.algorithm, args.set, args.seed, args.device, args.path)
 
     # Make the environment
-    env_config = load_experiment(f'experiments/set{args.set}.yaml')
-    env = gym.make('MultiRobotEnv-v0', seed=args.seed, render_mode='human', env_config=env_config)
+    env_config = read_env_config(f'sets/env{args.set}.ini')
+    env = gym.make('MultiRobotEnv-v0', render_mode='human', env_params=env_config)
     env.metadata['render_fps'] = 1
     obs, info = env.reset(seed=args.seed)
 
