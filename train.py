@@ -1,11 +1,12 @@
 import os
 import argparse
+import yaml
 from datetime import datetime
 from stable_baselines3 import A2C, PPO
 from sb3_contrib import TRPO, ARS, CrossQ, TQC
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import LogEveryNTimesteps
-from src.utils import load_experiment, load_model, parse_bool
+from src.utils import load_experiment, load_model, parse_bool, filter_args
 
 if __name__ == "__main__":
 
@@ -20,6 +21,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=None, help='The random seed to use')
     parser.add_argument('--log_steps', type=int, default=2000, help='The number of steps between each log entry')
     parser.add_argument('--resume', type=parse_bool, default=False, help='If true, loads an existing model to resume training. If false, trains a new model')
+    parser.add_argument('--use_tuned_params', type=parse_bool, default=False, help='If true, uses tuned hyperparameters. If false, uses default hyperparameters')
     parser.add_argument('--device', type=str, choices=['cpu', 'cuda'], default='cpu', help='The device to train on')
     
     args = parser.parse_args()
@@ -31,34 +33,50 @@ if __name__ == "__main__":
     vec_env.seed(seed=args.seed)
     vec_env.action_space.seed(seed=args.seed)
     
-    os.makedirs('training_logs', exist_ok=True)
+    if args.use_tuned_params:
+        os.makedirs('training_best_logs', exist_ok=True)
+    else:
+        os.makedirs('training_default_logs', exist_ok=True)
 
     # Configure model
     if args.resume:
-        model = load_model(args.algorithm, args.set, args.seed, args.device, 'trained_models', args.verbose, 'training_logs')
+        model = load_model(args.algorithm, args.set, args.seed, args.device, 'trained_models', args.verbose, 'training_best_logs' if args.use_tuned_params else 'training_default_logs')
         model.set_env(vec_env)
     else:
+        if args.algorithm == 'A2C':
+            model_type = A2C
+        elif args.algorithm == 'PPO':
+            model_type = PPO
+        elif args.algorithm == 'TRPO':
+            model_type = TRPO
+        elif args.algorithm == 'TQC':
+            model_type = TQC
+        elif args.algorithm == 'ARS':
+            model_type = ARS
+        else:
+            model_type = CrossQ
+        
+        if args.use_tuned_params:
+            with open(f'tuned_hyperparameters/{args.algorithm}_set1.yaml') as file:
+                try:
+                    hyperparameters = filter_args(yaml.safe_load(file), model_type)
+                except yaml.YAMLError as err:
+                    print(err)
+                    hyperparameters = {}
+        else:
+            hyperparameters = {}
+
         model_args = {
             'policy': 'LinearPolicy' if args.algorithm == 'ARS' else 'MlpPolicy',
             'env': vec_env,
             'verbose': args.verbose,
-            'tensorboard_log': './training_logs',
+            'tensorboard_log': './training_best_logs' if args.use_tuned_params else './training_default_logs',
             'seed': args.seed,
             'device': args.device,
+            **hyperparameters
         }
 
-        if args.algorithm == 'A2C':
-            model = A2C(**model_args)
-        elif args.algorithm == 'PPO':
-            model = PPO(**model_args)
-        elif args.algorithm == 'TRPO':
-            model = TRPO(**model_args)
-        elif args.algorithm == 'TQC':
-            model = TQC(**model_args)
-        elif args.algorithm == 'ARS':
-            model = ARS(**model_args)
-        else:
-            model = CrossQ(**model_args)
+        model = model_type(**model_args)
 
     # Train model
     start_time = datetime.now()

@@ -1,0 +1,7 @@
+ent_coef: 0.0001
+gae_lambda: 0.938
+gamma: 0.974
+learning_rate: 0.0007
+max_grad_norm: 0.674
+n_steps: 5
+vf_coef: 0.632
