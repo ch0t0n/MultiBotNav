@@ -1,8 +1,8 @@
 # Efficient Environment Design for Multi-Robot Navigation via Continuous Control
 
 <p align="center">
-  <img src="./assets/images/two_robots_env1.gif" width="280" height="200">
-  <img src="./assets/images/three_robot_env3.gif" width="280" height="200">
+  <img src="./assets/images/two_robots_env1.gif" width="400" height="200">
+  <img src="./assets/images/three_robot_env3.gif" width="400" height="200">
 </p>
 
 
