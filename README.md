@@ -1,16 +1,10 @@
 # Efficient Environment Design for Multi-Robot Navigation via Continuous Control
 
-<div style="display: flex; gap: 10px;">
-  <div style="width: 100px; height: 55px; overflow: hidden;">
-    <img src="./assets/images/two_robots_env1.gif"
-         style="width: 100%; height: 100%; object-fit: cover;" />
-  </div>
+<p align="center">
+  <img src="./assets/images/two_robots_env1.gif" width="280" height="200">
+  <img src="./assets/images/three_robot_env3.gif" width="280" height="200">
+</p>
 
-  <div style="width: 100px; height: 55px; overflow: hidden;">
-    <img src="./assets/images/three_robot_env3.gif"
-         style="width: 100%; height: 100%; object-fit: cover;" />
-  </div>
-</div>
 
 
 This is the codebase for the paper titled "Efficient Environment Design for Multi-Robot Navigation via Continuous Control". We developed an MDP-based environment that can be used for multi-robot navigation and path planning.
