@@ -5,7 +5,7 @@
     <img src="./assets/images/three_robot_env3.gif" width="400" height="286" />
 </div>
 
-This is the codebase for the CoRL 2025 paper titled "Efficient Environment Design for Multi-Robot Navigation via Continuous Control". We developed an MDP-based environment that can be used for multi-robot navigation and path planning.
+This is the codebase for the paper titled "Efficient Environment Design for Multi-Robot Navigation via Continuous Control". We developed an MDP-based environment that can be used for multi-robot navigation and path planning.
 
 ## Setup
 
