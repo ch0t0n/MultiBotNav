@@ -1,12 +1,12 @@
 # Efficient Environment Design for Multi-Robot Navigation via Continuous Control
 
 <div style="display: flex; gap: 10px;">
-  <div style="width: 400px; height: 286px; overflow: hidden;">
+  <div style="width: 200px; height: 125px; overflow: hidden;">
     <img src="./assets/images/two_robots_env1.gif"
          style="width: 100%; height: 100%; object-fit: cover;" />
   </div>
 
-  <div style="width: 400px; height: 286px; overflow: hidden;">
+  <div style="width: 200px; height: 125px; overflow: hidden;">
     <img src="./assets/images/three_robot_env3.gif"
          style="width: 100%; height: 100%; object-fit: cover;" />
   </div>
