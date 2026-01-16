@@ -36,7 +36,7 @@ class MultiRobotEnv(gym.Env):
 
         # Each robot's state: x, y, theta, v, delta
         obs_high = np.array([self.WIDTH, self.HEIGHT, np.pi, self.MAX_SPEED, self.MAX_STEER] * self.NUM_ROBOTS, dtype=np.float64)
-        obs_high = np.concatenate((obs_high, np.array([2**(len(self.obstacles))-1], dtype=np.float64))) # Adding the binary encoding of obstacles
+        obs_high = np.concatenate((obs_high, np.array([2**(len(self.goal_positions))-1], dtype=np.float64))) # Adding the binary encoding of obstacles
         obs_low = np.array([0, 0, -np.pi, -self.MAX_SPEED, -self.MAX_STEER] * self.NUM_ROBOTS, dtype=np.float64)
         obs_low = np.concatenate((obs_low, np.array([0], dtype=np.float64)))
         self.observation_space = gym.spaces.Box(low=obs_low, high=obs_high, dtype=np.float64)
@@ -105,6 +105,7 @@ class MultiRobotEnv(gym.Env):
                 omega = 0.0 # go straight for a very small delta
 
             theta += omega * self.dt
+            theta = (theta + np.pi) % (2 * np.pi) - np.pi
             x += v * np.cos(theta) * self.dt
             y += v * np.sin(theta) * self.dt
 
