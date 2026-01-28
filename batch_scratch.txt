@@ -1,0 +1,421 @@
+###########################################################
+# LOCAL- Upload files
+###########################################################
+
+wsl
+cd ~/MultiBotNav_JANUARY_24
+
+
+rsync -avzP --delete \
+  --exclude '/failed_runs.jsonl' \
+  --exclude '__pycache__/' \
+  --exclude 'notebooks/' \
+  --exclude 'simulation_env/' \
+  --exclude '.git/' \
+  \
+  --exclude 'logs/***' \
+  --exclude 'plotting/plots/***' \
+  --exclude 'slurm_scripts/slurm_scripts_v2/out/***' \
+  --exclude 'slurm_scripts/slurm_out/***' \
+  --exclude 'status/***' \
+  \
+  /home/james-ubuntu/MultiBotNav_JANUARY_24/ \
+  jameschapman@headnode.beocat.ksu.edu:~/MultiBotNav_JANUARY_24/
+
+cd ~/MultiBotNav_JANUARY_24
+rsync -avzP --delete \
+  --exclude '/failed_runs.jsonl' \
+  --exclude '__pycache__/' \
+  --exclude 'notebooks/' \
+  --exclude 'simulation_env/' \
+  --exclude '.git/' \
+  \
+  --exclude 'logs/***' \
+  --exclude 'plotting/plots/***' \
+  --exclude 'slurm_scripts/slurm_scripts_v2/out/***' \
+  --exclude 'slurm_scripts/slurm_out/***' \
+  --exclude 'status/***' \
+  \
+  /home/james-ubuntu/MultiBotNav_JANUARY_24/ \
+  jameschapman@headnode.beocat.ksu.edu:~/MultiBotNav_JANUARY_25/
+
+cd ~/MultiBotNav_JANUARY_24
+rsync -avzP --delete \
+  --exclude '/failed_runs.jsonl' \
+  --exclude '__pycache__/' \
+  --exclude 'notebooks/' \
+  --exclude 'simulation_env/' \
+  --exclude '.git/' \
+  \
+  --exclude 'logs/***' \
+  --exclude 'plotting/plots/***' \
+  --exclude 'slurm_scripts/slurm_scripts_v2/out/***' \
+  --exclude 'slurm_scripts/slurm_out/***' \
+  --exclude 'status/***' \
+  \
+  /home/james-ubuntu/MultiBotNav_JANUARY_24/ \
+  jameschapman@headnode.beocat.ksu.edu:~/MultiBotNav_JANUARY_27/
+
+
+
+
+ --dry-run 
+
+# Single file/folder
+rsync -avzP \
+  src/utils.py \
+  src/logs/ \
+  jameschapman@headnode.beocat.ksu.edu:~/MultiBotNav_JANUARY_27/src/
+
+# DOWNLOAD !
+rsync -avzP \
+  jameschapman@headnode.beocat.ksu.edu:~/MultiBotNav_Jan_14_v7/ \
+  /home/james-ubuntu/MultiBotNav_Jan_14_v7_from_Beocat/ 
+
+###########################################################
+# Beocat & login
+###########################################################
+ssh jameschapman@headnode.beocat.ksu.edu
+
+1
+srun --pty -n 1 -c 4 --mem=8G -t 09:30:00 bash
+cd ~/MultiBotNav_JANUARY_27
+conda activate rl4pag
+
+
+# Create environment
+conda update -n base -c conda-forge conda
+conda env remove -n rl4pag -y
+conda env create -f environment.yaml
+pip install wandb
+
+(conda env update -f environment.yaml --prune)
+
+###########################################################
+# RUN
+###########################################################
+cd ~/MultiBotNav_JANUARY_27
+conda activate rl4pag
+
+# Training & Tuning
+sbatch slurm_scripts/train_all.sh
+sbatch slurm_scripts/train_gpu.sh
+sbatch slurm_scripts/tune_all.sh
+sbatch slurm_scripts/tune_gpu.sh
+bash slurm_scripts/slurm_scripts_v2/all_training_tuning_v2.sh
+
+(rl4pag) [jameschapman@hero04 MultiBotNav_JANUARY_27]$ sbatch slurm_scripts/train_all.sh
+sbatch slurm_scripts/train_gpu.sh
+sbatch slurm_scripts/tune_all.sh
+sbatch slurm_scripts/tune_gpu.sh
+bash slurm_scripts/slurm_scripts_v2/all_training_tuning_v2.sh
+Submitted batch job 6088767
+Submitted batch job 6088768
+Submitted batch job 6088769
+Submitted batch job 6088771
+Submitted batch job 6088772
+Submitted batch job 6088773
+Submitted batch job 6088774
+Submitted batch job 6088775
+
+# checks ##############################
+conda run --no-capture-output -n rl4pag  python sync_failed_runs_from_slurm.py --dry_run  --print_new
+
+python before_transfer_check.py
+
+python before_train_from_tuned.py
+python check_tuning_trials.py
+python check_tuning_trials_strict.py
+python preflight_train_from_tuned.py
+python inspect_globs.py
+
+python check_status.py tuning --version v2 --failures
+python check_status.py before_train_from_tuned --only v2 --check_runs --suggest_reruns --failures
+python check_status.py before_transfer --only v2 --load_set 1 --check_runs --suggest_reruns --failures
+python check_status.py globs --v2-seed 0 --algo-counts
+python check_status.py failures --tail 25
+python check_status.py sync_failures --print_new          # dry-run scan
+python check_status.py sync_failures --write              # append new entries
+
+
+# Transfer
+sbatch slurm_scripts/transfer_all.sh
+sbatch slurm_scripts/transfer_gpu.sh
+sbatch slurm_scripts/slurm_scripts_v2/transfer_cpu_v2.sh
+sbatch slurm_scripts/slurm_scripts_v2/transfer_gpu_v2.sh
+
+# Train from Tuned Hyperparameters
+sbatch slurm_scripts/train_from_tuned_all.sh
+sbatch slurm_scripts/train_from_tuned_gpu.sh
+sbatch slurm_scripts/slurm_scripts_v2/train_from_tuned_cpu_v2.sh
+sbatch slurm_scripts/slurm_scripts_v2/train_from_tuned_gpu_v2.sh
+
+# Plot ##############################
+for d in logs/{training_default_logs,tuning_logs,transfer_logs,training_best_logs}; do
+  [ -d "$d" ] || continue
+  mkdir -p "$d/old"
+  find "$d" -maxdepth 1 -type d -iname '*old*' ! -path "$d/old" -print -exec mv {} "$d/old/" \;
+done
+
+python plotting/plot_results.py
+python plotting/plot_results_v2.py --seed 0
+python plotting/plot_results_v2.py --seed 1
+python plotting/plot_results_v2.py --seed 2
+
+python plotting/plot_results_v0_capcolors.py
+python plotting/plot_results_v2_capcolors.py
+python plotting/plot_results_v2_capcolors.py --seed 1
+python plotting/plot_results_panel_v0.py
+python plotting/plot_results_panel_v2.py
+python plotting/plot_results_panel_v2.py --seed 1
+
+python tables/generate_table.py
+python tables/generate_table_v2.py --seed 0
+python tables/generate_table_v2.py --seed 1
+python tables/generate_table_v2.py --seed 2
+ do
+
+# globs ##############################
+python inspect_globs.py
+
+# Plot globs
+python plotting/plot_results_glob.py
+python plotting/plot_results_v2_glob.py --seed 0
+python plotting/plot_results_v2_glob.py --seed 1
+python plotting/plot_results_v2_glob.py --seed 2
+
+# Table globs
+python tables/generate_table_glob.py
+python tables/generate_table_v2_glob.py --seed 0
+python tables/generate_table_v2_glob.py --seed 1
+python tables/generate_table_v2_glob.py --seed 2
+
+
+# monitor
+squeue -u "$USER"
+kstat -me
+
+####################################################
+# FRESH START
+####################################################
+
+# DELETE jobs
+scancel -u "$USER"
+sleep 2
+squeue -u "$USER"
+
+
+###### DELETE REPO 
+cd ~ || exit 1
+TARGET="$HOME/MultiBotNav_JANUARY_26"
+if [ -z "$TARGET" ] || [ "$TARGET" = "/" ] || [ "$TARGET" = "$HOME" ]; then
+  echo "[ERROR] Unsafe TARGET='$TARGET' — aborting"
+  exit 1
+fi
+echo "About to delete: $TARGET"
+ls -lah "$TARGET" 2>/dev/null || echo "(directory already missing)"
+rm -rf -- "$TARGET"
+ls -lah "$TARGET" || echo "Deleted: $TARGET"
+
+
+################################################
+### tree stuff
+################################################
+
+# local 
+tree -a --noreport -n -I "logs|__pycache__|notebooks|.git|*.zip|*.tar.gz" > repo_tree.txt
+
+
+# BEOCAT REPO TREE EXPORT Instructions
+cd ~/MultiBotNav_JANUARY_27
+find . \
+  -path './.git' -prune -o \
+  -path './__pycache__' -prune -o \
+  -path './wandb' -prune -o \
+  -path './notebooks' -prune -o \
+  -path './*_old_runs_cancelled_*' -prune -o \
+  -path './training_default_logs*' -prune -o \
+  -path './training_best_logs*' -prune -o \
+  -path './tuning_logs*' -prune -o \
+  -path './transfer_logs*' -prune -o \
+  -path './slurm_scripts/*/slurm_out' -prune -o \
+  -name 'slurm_out' -prune -o \
+  -name '*.zip' -prune -o \
+  -name '*.tar.gz' -prune -o \
+  -name 'repo_tree.txt' -prune -o \
+  -print | sort \
+| awk '
+BEGIN { FS="/" }
+$0=="." { print "."; next }
+{
+  indent=""
+  for (i=2; i<NF; i++) indent=indent "│   "
+  print indent "├── " $NF
+}
+' > repo_tree.txt
+
+################################################
+### Output - Repo Structure
+################################################
+
+<REPO_ROOT>/   (e.g. ~/MultiBotNav)
+.
+├── slurm_scripts/
+│   ├── slurm_scripts_v2/
+│   │   ├── all_training_tuning_v2.sh                 (submits tuning + default training)
+│   │   ├── tuning_cpu_v2.sh
+│   │   ├── tuning_gpu_v2.sh
+│   │   ├── training_cpu_v2.sh                        (DEFAULT training, use_tuned_params=False)
+│   │   ├── training_gpu_v2.sh                        (DEFAULT training, use_tuned_params=False)
+│   │   ├── training_cpu_tuned_v2.sh                  (NEW: TUNED training, use_tuned_params=True)
+│   │   ├── training_gpu_tuned_v2.sh                  (NEW: TUNED training, use_tuned_params=True)
+│   │   ├── submit_train_tuned_v2.sh                  (NEW helper)
+│   │   └── out/
+│   │       ├── tune_cpu_v2_<JOBID>_<TASK>.out
+│   │       ├── tune_cpu_v2_<JOBID>_<TASK>.err
+│   │       ├── tune_gpu_v2_<JOBID>_<TASK>.out
+│   │       ├── tune_gpu_v2_<JOBID>_<TASK>.err
+│   │       ├── train_cpu_v2_<JOBID>_<TASK>.out
+│   │       ├── train_cpu_v2_<JOBID>_<TASK>.err
+│   │       ├── train_gpu_v2_<JOBID>_<TASK>.out
+│   │       ├── train_gpu_v2_<JOBID>_<TASK>.err
+│   │       ├── train_cpu_tuned_v2_<JOBID>_<TASK>.out
+│   │       ├── train_cpu_tuned_v2_<JOBID>_<TASK>.err
+│   │       ├── train_gpu_tuned_v2_<JOBID>_<TASK>.out
+│   │       └── train_gpu_tuned_v2_<JOBID>_<TASK>.err
+│   │
+│   └── (v0 scripts if you keep them...)
+│
+├── logs/
+│   ├── tuning_logs/
+│   │   ├── <ALG>_set<SET>_seed0_2/
+│   │   │   ├── study_config.yaml
+│   │   │   ├── best_model.zip
+│   │   │   ├── best_hyperparameters.yaml            (contains filtered_params)
+│   │   │   ├── tuned_hyperparameters/               (directory exists)
+│   │   │   └── trials/
+│   │   │       ├── trial_000/
+│   │   │       │   ├── trial_config.yaml
+│   │   │       │   ├── episode_metrics.jsonl
+│   │   │       │   ├── tensorboard/
+│   │   │       │   │   ├── progress.csv
+│   │   │       │   │   ├── progress.json
+│   │   │       │   │   ├── log.txt
+│   │   │       │   │   └── events.out.tfevents.*
+│   │   │       │   ├── monitor/
+│   │   │       │   │   └── *.monitor.csv
+│   │   │       │   ├── monitor_eval/
+│   │   │       │   │   └── *.monitor.csv
+│   │   │       │   └── wandb/                        (ONLY if use_wandb=True and wandb_each_trial=True)
+│   │   │       ├── trial_001/
+│   │   │       │   └── ...
+│   │   │       └── trial_019/
+│   │   │           └── ...
+│   │   │
+│   │   └── <ALG>_set<SET>_seed0_2__old_<YYYYMMDD_HHMMSS>/   (if you re-run tuning; auto-backup)
+│   │
+│   ├── training_default_logs/                        (if you still run default training scripts)
+│   │   ├── <ALG>_set<SET>_seed<SEED>_2/
+│   │   │   ├── run_config.yaml
+│   │   │   ├── episode_metrics.jsonl
+│   │   │   ├── tensorboard/
+│   │   │   │   ├── progress.csv
+│   │   │   │   ├── progress.json
+│   │   │   │   ├── log.txt
+│   │   │   │   └── events.out.tfevents.*
+│   │   │   ├── monitor/
+│   │   │   │   └── *.monitor.csv
+│   │   │   ├── checkpoints/
+│   │   │   │   ├── trained_model.zip
+│   │   │   │   └── checkpoint_<N>_steps.zip         (only if checkpoint_freq > 0)
+│   │   │   └── wandb/                                (only if use_wandb=True)
+│   │   └── <RUN>__old_<YYYYMMDD_HHMMSS>/              (if you re-run training; auto-backup)
+│   │
+│   ├── training_best_logs/                           (THIS is where tuned-training goes)
+│   │   ├── <ALG>_set<SET>_seed<SEED>_2/
+│   │   │   ├── run_config.yaml
+│   │   │   ├── episode_metrics.jsonl
+│   │   │   ├── tensorboard/
+│   │   │   │   ├── progress.csv
+│   │   │   │   ├── progress.json
+│   │   │   │   ├── log.txt
+│   │   │   │   └── events.out.tfevents.*
+│   │   │   ├── monitor/
+│   │   │   │   └── *.monitor.csv
+│   │   │   ├── checkpoints/
+│   │   │   │   ├── trained_model.zip
+│   │   │   │   └── checkpoint_<N>_steps.zip         (only if checkpoint_freq > 0)
+│   │   │   └── wandb/                                (only if use_wandb=True)
+│   │   └── <RUN>__old_<YYYYMMDD_HHMMSS>/              (if re-run; auto-backup)
+│   │
+│   └── transfer_logs/                                 (when you later run transfer_v2.py)
+│       ├── <ALG>_from<LOADSET>_to<TRAINSET>_seed<SEED>_2/
+│       │   ├── run_config.yaml
+│       │   ├── episode_metrics.jsonl
+│       │   ├── tensorboard/ (progress.csv/json/log.txt/events...)
+│       │   ├── monitor/ (*.monitor.csv)
+│       │   ├── checkpoints/
+│       │   │   ├── trained_model.zip
+│       │   │   └── checkpoint_<N>_steps.zip          (only if checkpoint_freq > 0)
+│       │   └── wandb/                                 (only if use_wandb=True)
+│       └── <RUN>__old_<YYYYMMDD_HHMMSS>/               (if re-run; auto-backup)
+│
+├── status/
+    └── run_steps.csv                                  (your scan_all_steps output if you write it here)
+
+
+
+
+
+
+
+
+
+
+
+
+
+################################################
+### start
+################################################
+
+conda update -n base -c conda-forge conda
+
+### quieter TF logs
+export TF_CPP_MIN_LOG_LEVEL=2
+export TF_CPP_MIN_LOG_LEVEL=3
+
+export TF_CPP_MIN_LOG_LEVEL=2
+export TF_ENABLE_ONEDNN_OPTS=0
+
+
+### disable oneDNN message
+export TF_ENABLE_ONEDNN_OPTS=0
+
+### Delete identifier files- find . -type f -iname '*zone.identifier*' -print | head
+find . -type f -iname '*zone.identifier*' -exec rm -f -- {} +
+
+Ctrl + Shift + V render markdown
+Ctrl + Shift + E Toggle the Explorer 
+
+*****************************
+Old environment commands
+*****************************
+python train.py --algorithm PPO --set 1 --steps 200000 --num_envs 4 --seed 0
+python train.py --algorithm A2C --set 1 --steps 200000 --num_envs 4 --seed 0
+
+python tune_reward_weights.py --algorithm PPO --set 1 --trials 10 --train_steps 500000 --seeds 0 1 2
+python tune_reward_weights.py --algorithm PPO --set 1 --trials 40 --train_steps 1000000 --seeds 0 1 2 3
+
+python3 train.py --algorithm {A2C, PPO, TRPO, TQC, ARS, CrossQ} --set [set number] --verbose {0 for no output, 1 for info, 2 for debug} --steps [number of training steps] --num_envs [number of parallel environments] --seed [seed] --log_steps [logging interval] --resume {True for resuming training, False for new model} --device {cpu, cuda}
+
+
+
+
+
+
+
+????????????????????????????????????????????????????????????????
+????????????????????????????????????????????????????????????????
+chmod +x slurm_scripts/slurm_scripts_v2/submit_train_tuned_v2.sh
+????????????????????????????????????????????????????????????????
