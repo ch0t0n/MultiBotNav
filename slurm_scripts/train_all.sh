@@ -9,7 +9,10 @@
 #SBATCH --mem=4G
 #SBATCH --time=12:00:00
 #SBATCH --export=NONE
+#SBATCH --output=slurm_scripts/slurm_out/%x_%A_%a.out
+#SBATCH --error=slurm_scripts/slurm_out/%x_%A_%a.err
 
+mkdir -p slurm_scripts/slurm_out
 # Modify these for other experiments
 algorithms=("A2C" "PPO" "TRPO" "ARS")
 sets=(1 2 3 4 5 6 7 8 9 10)
@@ -24,6 +27,6 @@ algorithm=${algorithms[$algorithm_index]}
 set_index=$((index % num_sets))
 set=${sets[$set_index]}
 
-conda run --no-capture-output -n rl4pag python3 train.py --algorithm $algorithm --set $set --verbose 1 --steps 5000000 --log_steps 5000 --seed 33 --use_tuned_params True
+conda run --no-capture-output -n rl4pag python3 train.py --algorithm $algorithm --set $set --verbose 1 --steps 2000000 --log_steps 5000 --seed 33 --use_tuned_params False
 
 wait

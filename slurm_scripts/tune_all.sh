@@ -9,7 +9,10 @@
 #SBATCH --mem=4G
 #SBATCH --time=80:00:00
 #SBATCH --export=NONE
+#SBATCH --output=slurm_scripts/slurm_out/%x_%A_%a.out
+#SBATCH --error=slurm_scripts/slurm_out/%x_%A_%a.err
 
+mkdir -p slurm_scripts/slurm_out
 # Modify these for other experiments
 algorithms=("A2C" "PPO" "TRPO" "ARS")
 sets=(1 2 3 4 5 6 7 8 9 10)

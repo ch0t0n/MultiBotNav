@@ -9,10 +9,12 @@
 #SBATCH --gpus-per-node=1
 #SBATCH --mem=4G
 #SBATCH --time=24:00:00
-#SBATCH --partition=ksu-gen-gpu.q
 #SBATCH --gres=gpu:1
 #SBATCH --export=NONE
+#SBATCH --output=slurm_scripts/slurm_out/%x_%A_%a.out
+#SBATCH --error=slurm_scripts/slurm_out/%x_%A_%a.err
 
+mkdir -p slurm_scripts/slurm_out
 # Modify these for other experiments
 algorithms=("TQC" "CrossQ")
 sets=(2 3 4 5 6 7 8 9 10)
@@ -27,6 +29,6 @@ algorithm=${algorithms[$algorithm_index]}
 set_index=$((index % num_sets))
 set=${sets[$set_index]}
 
-conda run --no-capture-output -n rl4pag python3 transfer.py --algorithm $algorithm --load_set 1 --train_set $set --steps 5000000 --verbose 1 --seed 33 --log_steps 5000 --device "cuda"
+conda run --no-capture-output -n rl4pag python3 transfer.py --algorithm $algorithm --load_set 1 --train_set $set --steps 2000000 --verbose 1 --seed 33 --log_steps 5000 --device "cuda"
 
 wait

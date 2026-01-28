@@ -1,12 +1,37 @@
+import os
 import yaml
 import numpy as np
 from stable_baselines3 import A2C, PPO
-from sb3_contrib import TRPO, ARS, CrossQ, TQC
+from sb3_contrib import TRPO, ARS, CrossQ, TQC, RecurrentPPO
 import distutils
 import itertools
 import inspect
 from shapely import Polygon
 import configparser
+import json
+
+
+# Function to return minimum distance in a list of points
+def compute_min_dist(x):
+    x = np.array(x).astype('float32')
+    dists = []
+    for p1, p2 in itertools.combinations(x, 2):
+        dist = np.linalg.norm(p1-p2)
+        dists.append(dist)
+    return float(np.min(dists))
+
+# Load experiment json file
+def load_experiment_dict_json(json_path):
+    with open(json_path, "r") as f:
+        data = json.load(f)
+    for set_name, cfg in data.items():
+        # Convert field to list of tuples
+        cfg["field"] = [tuple(p) for p in cfg["field"]]
+        # Convert init_positions to NumPy arrays
+        cfg["init_positions"] = [np.array(p, dtype=float) for p in cfg["init_positions"]]
+        # Convert infected_locations to set of tuples
+        cfg["infected_locations"] = [tuple(p) for p in cfg["infected_locations"]]
+    return data
 
 # Loads in an experiment config file
 def load_experiment(path, sf):
@@ -17,7 +42,9 @@ def load_experiment(path, sf):
         config['infected_locations'] = list(map(lambda x: tuple(x), config['infected_locations']))
     # scaling
     config['field'] = [(x*sf, y*sf) for (x,y) in config['field']]
-    config['infected_locations'] = [(x*sf, y*sf) for (x,y) in config['infected_locations']]
+    # old infected_locations line
+    # config['infected_locations'] = [(x*sf, y*sf) for (x,y) in config['infected_locations']]
+    config['infected_locations'] = [(x*sf, y*sf, level) for (x, y, level) in config['infected_locations']]
     config['init_positions'] = [v*sf for v in config['init_positions']]
     return config
 
@@ -26,10 +53,18 @@ def parse_bool(string):
     return bool(distutils.util.strtobool(string))
 
 # Loads in a trained model
-def load_model(algorithm, experiment_set, seed, device, models_dir, verbose=0, log_dir=''):
+def load_model(algorithm, 
+               experiment_set, 
+               seed, 
+               device, 
+               verbose, 
+               log_dir, 
+               trained_model_path,
+               run_name
+):
     model_args = {
-        'path': f'{models_dir}/{algorithm}_set{experiment_set}.zip',
-        'tb_log_name': f'{algorithm}_set{experiment_set}',
+        'path': trained_model_path, # f'{models_dir}/{algorithm}_set{experiment_set}.zip',
+        #'tb_log_name': run_name, # f'{algorithm}_set{experiment_set}',
         'device': device,
         'seed': seed,
         'verbose': verbose,

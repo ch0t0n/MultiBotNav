@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Run all experiments with: sbatch slurm_scripts/transfer_all.sh
+# Run all experiments with: sbatch slurm_scripts/train_from_tuned_all.sh
 
-#SBATCH --array=0-35
+#SBATCH --array=0-39
 #SBATCH --job-name=RL4PAg
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
 #SBATCH --mem=4G
-#SBATCH --time=24:00:00
+#SBATCH --time=12:00:00
 #SBATCH --export=NONE
 #SBATCH --output=slurm_scripts/slurm_out/%x_%A_%a.out
 #SBATCH --error=slurm_scripts/slurm_out/%x_%A_%a.err
@@ -15,7 +15,7 @@
 mkdir -p slurm_scripts/slurm_out
 # Modify these for other experiments
 algorithms=("A2C" "PPO" "TRPO" "ARS")
-sets=(2 3 4 5 6 7 8 9 10)
+sets=(1 2 3 4 5 6 7 8 9 10)
 
 # IMPORTANT: array job length = num_algorithms * num_sets - 1
 num_algorithms=${#algorithms[@]}
@@ -27,6 +27,7 @@ algorithm=${algorithms[$algorithm_index]}
 set_index=$((index % num_sets))
 set=${sets[$set_index]}
 
-conda run --no-capture-output -n rl4pag python3 transfer.py --algorithm $algorithm --load_set 1 --train_set $set --steps 2000000 --verbose 1 --log_steps 5000 --seed 33
+conda run --no-capture-output -n rl4pag python3 train.py --algorithm $algorithm --set $set --verbose 1 --steps 2000000 --log_steps 5000 --seed 33 --use_tuned_params True 
+
 
 wait
