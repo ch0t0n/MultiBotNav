@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('--set', required=True, type=int, help='Experiment set number')
     parser.add_argument('--num_robots', type=int, default=3, help='Number of robots (only used for UAV)')
     parser.add_argument('--verbose', type=int, choices=[0, 1, 2], default=0)
-    parser.add_argument('--steps', type=int, default=2_000_000)
+    parser.add_argument('--steps', type=int, default=1_000_000)
     parser.add_argument('--num_envs', type=int, default=4)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--log_steps', type=int, default=2000)
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     else:  # UAV
         env_json = read_uav_json(
-            r'.\exp_sets\uav\icra_2026_cont_sets.json'
+            r'.\exp_sets\uav\cont_sets.json'
         )[f'set{args.set}']
 
         vec_env = make_vec_env(
@@ -133,16 +133,16 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------
     # Resume or Create Model
     # ------------------------------------------------------------------
+    device = args.device if (args.algorithm.lower()!='crossq') else 'cuda'
     if args.resume:
         model = load_model(
             algorithm=args.algorithm,
             seed=args.seed,
-            device=args.device,
+            device=device,
             verbose=args.verbose,
             trained_model_path=os.path.join(log_path, "checkpoints", "trained_model.zip")
         )
         model.set_env(vec_env)
-
     else:
         model_args = {
             'policy': 'LinearPolicy' if args.algorithm == 'ARS' else 'MlpPolicy',
@@ -150,17 +150,16 @@ if __name__ == "__main__":
             'verbose': args.verbose,
             'tensorboard_log': os.path.join(log_path, "tensorboard"),
             'seed': args.seed,
-            'device': args.device,
+            'device': device,
             **hyperparameters
         }
-
         model = model_type(**model_args)
 
     # ------------------------------------------------------------------
     # Train
     # ------------------------------------------------------------------
     start_time = datetime.now()
-    print(f'Training started on {start_time.ctime()}')
+    print(f'Training started on {start_time.ctime()} in device {device}')
 
     model.set_logger(logger2)
 
