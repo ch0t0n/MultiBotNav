@@ -1,30 +1,43 @@
+import os
 import argparse
 import pygame
 import gymnasium as gym
 from coppeliasim_zmqremoteapi_client import RemoteAPIClient
 from src.sim import DroneSimulator
-from src.utils import read_env_config, load_model, parse_bool
+from src.utils import *
 
 if __name__ == '__main__':
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    os.chdir(script_dir)
 
     # Parse arguments
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--path', type=str, required=True, help='The directory to look for trained models in')
-    parser.add_argument('--algorithm', type=str, required=True, choices=['A2C', 'PPO', 'TRPO', 'ARS', 'CrossQ', 'TQC'], help='The DRL algorithm to use')    
-    parser.add_argument('--set', type=int, required=True, help='The experiment set to use, from the sets defined in the experiments directory')
-    parser.add_argument('--simulate', type=parse_bool, default=False, help='If true, uses the Coppelia Simulator to show the environment. If false, renders the environment using PyGame')
+    # parser.add_argument('--path', type=str, default=r'.\trained_models\wheeled\icra2026_wheeled_env1_3robots_CrossQ.zip', help='The directory to look for trained models in')
+    # parser.add_argument('--robot_type', type=str, choices=['uav', 'wheeled_robot'], default='wheeled_robot', help='The device to run the model on')
+    # parser.add_argument('--num_robots', type=int, default=3, help='Number of robots')
+    parser.add_argument('--path', type=str, default=r'.\trained_models\uav\icra2026_cont_env3_3robots_CrossQ.zip', help='The directory to look for trained models in')
+    parser.add_argument('--robot_type', type=str, choices=['uav', 'wheeled_robot'], default='uav', help='The device to run the model on')
+    parser.add_argument('--num_robots', type=int, default=3, help='Number of robots')
+    parser.add_argument('--algorithm', type=str, choices=['A2C', 'PPO', 'TRPO', 'ARS', 'CrossQ', 'TQC'], default=['CrossQ'], help='The DRL algorithm to use')
+    parser.add_argument('--set', type=int, default=3, help='The experiment set to use, from the sets defined in the experiments directory')
+    parser.add_argument('--simulate', type=parse_bool, default=True, help='If true, uses the Coppelia Simulator to show the environment. If false, renders the environment using PyGame')
     parser.add_argument('--seed', type=int, default=None, help='The random seed to use')
     parser.add_argument('--device', type=str, choices=['cpu', 'cuda'], default='cpu', help='The device to run the model on')
-
+    
     args = parser.parse_args()
 
     # Load the model
-    model = load_model(args.algorithm, args.set, args.seed, args.device, args.path)
+    model = load_model(algorithm=args.algorithm, seed=args.seed, device=args.device, verbose=False, trained_model_path=args.path)
 
     # Make the environment
-    env_config = read_env_config(f'sets/env{args.set}.ini')
-    env = gym.make('MultiRobotEnv-v0', render_mode='human', env_params=env_config)
+    if args.robot_type == 'wheeled_robot':
+        env_config = read_wheeled_config(f'exp_sets/wheeled/env{args.set}.ini')
+        env = gym.make('MultiWheeled-v0', render_mode='human', env_params=env_config)
+    else:
+        env_json = read_uav_json(rf'.\exp_sets\uav\icra_2026_cont_sets.json')[rf'set{args.set}']
+        env = gym.make('MultiUAV-v0', render_mode='human', field_info=env_json, num_robots=args.num_robots)
+
     env.metadata['render_fps'] = 1
     obs, info = env.reset(seed=args.seed)
 
@@ -35,7 +48,7 @@ if __name__ == '__main__':
         defaultIdleFps = sim.getInt32Param(sim.intparam_idle_fps)
         sim.setInt32Param(sim.intparam_idle_fps, 0)
 
-        drone_simulator = DroneSimulator(sim=sim, polygon=env.unwrapped.poly_vertices, scaling_factor=50, height=0.35)
+        drone_simulator = DroneSimulator(sim=sim, polygon=env.unwrapped.poly_vertices, scaling_factor=50, height=0.35, num_robots=args.num_robots)
         drone_simulator.draw_field()
         drone_simulator.set_agent_positions(info=info)
         drone_simulator.set_weed_locations(weed_locations=env.unwrapped.initial_inf_locations)

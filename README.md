@@ -5,225 +5,308 @@
   <img src="./assets/images/three_robot_env3.gif" width="400" height="250">
 </p>
 
+This repository contains the official implementation for the paper:
 
+**Efficient Environment Design for Multi-Robot Navigation via Continuous Control**
 
-This is the codebase for the paper titled "Efficient Environment Design for Multi-Robot Navigation via Continuous Control". We developed an MDP-based environment that can be used for multi-robot navigation and path planning.
+We develop a scalable MDP-based simulation framework for multi-robot navigation and path planning under continuous control. The framework supports:
 
-## Setup
+- Multi-UAV systems  
+- Multi-wheeled robot systems  
+- Parallel training with vectorized environments  
+- Multiple deep reinforcement learning algorithms  
 
-It is recommended to run this codebase on Linux. The necessary packages and libraries needed to run the code are provided in the `environment.yaml` conda file. If you do not have conda installed on your machine, download it [here](https://docs.anaconda.com/miniconda/miniconda-install/). Once it is installed, run the following command to set up the environment:
+---
 
-```
+# Setup
+
+We recommend running this project on Linux.
+
+All required dependencies are provided in `environment.yaml`.
+
+## Create the conda environment
+
+```bash
 conda env create -f environment.yaml
+conda activate <environment_name>
 ```
 
-If you update the environment by installing or removing packages, please update the conda file with the following command:
+If you modify the environment:
 
-```
+```bash
 conda env export --no-builds > environment.yaml
 ```
 
-## Generating Experiments
+---
 
-10 sets of experiments are already provided in this repository, with sets 1-8 having a field size of 50x50 and sets 9-10 having a field size of 100x100. To generate a single 50x50 field size experiment, simply run:
+# Experiment Sets
 
-```
-python3 generate_experiments.py
-```
-
-Newly generated experiments will be placed in the `experiments` directory. Additional experiments with different sizes can be generated using this command format:
+Experiment configurations are stored in:
 
 ```
-python3 generate_experiments.py [number of experiments] --max_size [field size]
+exp_sets/
+    ├── uav/
+    │     └── icra_2026_cont_sets.json
+    └── wheeled/
+          └── envX.ini
 ```
 
-## Training
+- UAV environments are loaded from JSON files.
+- Wheeled robot environments are loaded from `.ini` files.
 
-### On your local machine
+---
 
-To train an algorithm with the default configuration, run the following command:
+# Training
+
+Training supports both UAV and wheeled robot environments.
+
+Supported algorithms:
+
+- `A2C`
+- `PPO`
+- `TRPO`
+- `ARS`
+- `CrossQ`
+- `TQC`
+
+---
+
+## Basic Training
+
+### Train UAV
+
+```bash
+python train.py --algorithm CrossQ --robot_type uav --set 3 --num_robots 3
+```
+
+### Train Wheeled Robot
+
+```bash
+python train.py --algorithm PPO --robot_type wheeled_robot --set 1
+```
+
+---
+
+## Full Training Command
+
+```bash
+python train.py \
+    --algorithm {A2C,PPO,TRPO,ARS,CrossQ,TQC} \
+    --robot_type {uav,wheeled_robot} \
+    --set [set number] \
+    --num_robots [int, UAV only] \
+    --verbose {0,1,2} \
+    --steps [training steps] \
+    --num_envs [parallel envs] \
+    --seed [seed] \
+    --log_steps [logging interval] \
+    --resume {True,False} \
+    --use_tuned_params {True,False} \
+    --device {cpu,cuda}
+```
+
+---
+
+## Logs and Checkpoints
+
+Training logs are saved in:
 
 ```
-python3 train.py --algorithm A2C --set 1
+logs/
+    ├── training_default_logs/
+    └── training_best_logs/
 ```
 
-The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `TQC`, `ARS`, and `CrossQ `. The possible values for `--set` depend on the number of sets in the `sets` directory. Training can be further configured using the following command format:
+Each run creates:
 
 ```
-python3 train.py --algorithm {A2C, PPO, TRPO, TQC, ARS, CrossQ} --set [set number] --verbose {0 for no output, 1 for info, 2 for debug} --steps [number of training steps] --num_envs [number of parallel environments] --seed [seed] --log_steps [logging interval] --resume {True for resuming training, False for new model} --device {cpu, cuda}
+logs/.../<robot>_<algorithm>_setX_seedY_v0/
+    ├── tensorboard/
+    ├── checkpoints/trained_model.zip
+    ├── log.txt
+    ├── progress.csv
+    └── progress.json
 ```
 
-### On Compute Clusters
+---
 
-Slurm scripts for training the model are also provided in the `slurm_scripts` directory. To run all non-GPU training experiments, use the command:
+## View Training Results
+
+```bash
+tensorboard --logdir=logs
+```
+
+Training for 2M timesteps typically takes:
+
+- 2–8 hours (CPU)
+- 1–4 hours (GPU, depending on algorithm)
+
+---
+
+# Resume Training
+
+```bash
+python train.py \
+    --algorithm CrossQ \
+    --robot_type uav \
+    --set 3 \
+    --resume True
+```
+
+---
+
+# Hyperparameter Tuning
+
+Hyperparameter tuning uses `tune.py`.
+
+## Example
+
+```bash
+python tune.py --algorithm PPO --set 1
+```
+
+Tuned hyperparameters are saved in:
 
 ```
+logs/tuning_logs/
+```
+
+To train using tuned parameters:
+
+```bash
+python train.py \
+    --algorithm PPO \
+    --robot_type uav \
+    --set 1 \
+    --use_tuned_params True
+```
+
+---
+
+# Simulation
+
+You must train a model before running simulation.
+
+---
+
+## PyGame Simulation
+
+```bash
+python run.py \
+    --algorithm CrossQ \
+    --robot_type uav \
+    --set 3 \
+    --num_robots 3 \
+    --simulate False
+```
+
+---
+
+## CoppeliaSim Simulation
+
+We use CoppeliaSim for realistic 3D simulation.
+
+### Step 1: Install CoppeliaSim
+
+Download from:  
+https://coppeliarobotics.com/
+
+### Step 2: Open Scene
+
+Open:
+
+```
+simulation_env/drone_test_scene_aug14.ttt
+```
+
+Important:
+- Reopen the scene before every run.
+- Do NOT save changes when closing.
+
+### Step 3: Run Simulation
+
+```bash
+python run.py \
+    --algorithm CrossQ \
+    --robot_type uav \
+    --set 3 \
+    --num_robots 3 \
+    --simulate True
+```
+
+---
+
+# Running on Compute Clusters (Slurm)
+
+Slurm scripts are provided in:
+
+```
+slurm_scripts/
+```
+
+### Run all training jobs
+
+```bash
 sbatch slurm_scripts/train_all.sh
 ```
 
-To run all GPU training experiments (currently just RecurrentPPO), use this command:
+### Run a single job
+
+Edit:
 
 ```
-sbatch slurm_scripts/train_recurrentppo.sh
+slurm_scripts/train_one.sh
 ```
 
-To run just a single training experiment, first configure the experiment in the `slurm_scripts/train_one.sh` file. Then, run the following command to start it:
+Then:
 
-```
+```bash
 sbatch slurm_scripts/train_one.sh
 ```
 
-### Viewing Results
+---
 
-Training for 2 million timesteps takes around 2-8 hours, depending on the algorithm. Once complete, the trained model will be saved in the `trained_models` directory.
+# Plotting
 
-Logs containg the reward info are also generated as the model trains. To view them, simply run:
+To visualize experiment layouts:
 
-```
-tensorboard --logdir=./training_logs
-```
-
-## Hyperparameter Tuning
-
-### On your local machine
-
-To tune hyperparameters for an algorithm with the default configuration, run the following command:
-
-```
-python3 tune.py --algorithm A2C --set 1
+```bash
+python plotting/plot_fields.py
 ```
 
-The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `DQN`, `ARS`, and `RecurrentPPO `. The possible values for `--set` depend on the number of sets in the `experiments` directory. Tuning can be further configured using the following command format:
+To compare results:
 
-```
-python3 tune.py --algorithm {A2C, PPO, TRPO, DQN, ARS, RecurrentPPO} --set [set number] --trials [number of trials] --steps [number of training steps] --num_envs [number of parallel environments] --num_eval_eps [number of episodes for evaluation] --seed [seed] --log_steps [logging interval] --device {cpu, cuda}
-```
-
-The hyperparameters tuned include `n_step`, `gamma`, `learning_rate`, `ent_coef`, `gae_lambda`, `max_grad_norm`, and `vf_coef`. These are filtered by algorithm so only hyperparameters that apply to that algorithm are tuned.
-
-### On Compute Clusters
-
-Slurm scripts for tuning the hyperparameters are also provided in the `slurm_scripts` directory. To run all non-GPU tuning experiments, use the command:
-
-```
-sbatch slurm_scripts/tune_all.sh
+```bash
+python plotting/plot_results.py
 ```
 
-To run all GPU tuning experiments (currently just RecurrentPPO), use this command:
+Optional flags:
 
 ```
-sbatch slurm_scripts/tune_recurrentppo.sh
+-a  Training with default hyperparameters
+-b  Training with best hyperparameters
+-c  Transfer learning
+-o  Hyperparameter tuning
 ```
 
-To run just a single tuning experiment, first configure the experiment in the `slurm_scripts/tune_one.sh` file. Then, run the following command to start it:
+Plots are saved in:
 
 ```
-sbatch slurm_scripts/tune_one.sh
+plotting/plots/
 ```
 
-### Viewing Results
+---
 
-Tuning for 1 million timesteps on 20 trials takes around 12-72 hours, depending on the algorithm. Once complete, the tuned model will be saved in the `tuned_models` directory.
-
-Logs containg the reward info are also generated as the hyperparameters are tuned. To view them, simply run:
+# Project Structure
 
 ```
-tensorboard --logdir=./tuning_logs
+├── train.py
+├── run.py
+├── tune.py
+├── transfer.py
+├── exp_sets/
+├── logs/
+├── slurm_scripts/
+├── plotting/
+└── src/
 ```
-
-## Transfer Learning
-
-### On your local machine
-
-To run transfer learning for an algorithm with the default configuration, run the following command:
-
-```
-python3 transfer.py --algorithm A2C --set 1
-```
-
-The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `DQN`, `ARS`, and `RecurrentPPO `. The possible values for `--load_set` depend on the sets models were tuned on available in the `tuned_models` directory. The possible values for `--train_set` depend on the number of sets in the `experiments` directory, and must be different than the value for `--load_set`. Transfer learning can be further configured using the following command format:
-
-```
-python3 transfer.py --algorithm {A2C, PPO, TRPO, DQN, ARS, RecurrentPPO} --load_set [set number] --train_set [set number] --verbose {0 for no output, 1 for info, 2 for debug} --steps [number of training steps] --num_envs [number of parallel environments] --seed [seed] --log_steps [logging interval] --device {cpu, cuda}
-```
-
-### On Compute Clusters
-
-Slurm scripts for running transfer learning are also provided in the `slurm_scripts` directory. To run all non-GPU transfer learning experiments, use the command:
-
-```
-sbatch slurm_scripts/transfer_all.sh
-```
-
-To run all GPU transfer learning experiments (currently just RecurrentPPO), use this command:
-
-```
-sbatch slurm_scripts/transfer_recurrentppo.sh
-```
-
-To run just a single transfer learning experiment, first configure the experiment in the `slurm_scripts/transfer_one.sh` file. Then, run the following command to start it:
-
-```
-sbatch slurm_scripts/transfer_one.sh
-```
-
-### Viewing Results
-
-Running transfer learning for 2 million timesteps takes around 8-24 hours, depending on the algorithm. Once complete, the tuned model will be saved in the `transfer_models` directory.
-
-Logs containg the reward info are also generated as transfer learning runs. To view them, simply run:
-
-```
-tensorboard --logdir=./transfer_logs
-```
-
-## Simulation
-
-**Note:** Simulation can only be done once you have fully trained a model.
-
-### PyGame
-
-To simulate a trained model in PyGame, run the following command:
-
-```
-python3 run.py --algorithm A2C --set 1 --simulate False
-```
-
-### CoppeliaSim
-
-First, you will need to download the CoppeliaSim robotics simulator [here](https://coppeliarobotics.com/). Once it is installed, open the `simulation_env/drone_test_scene_aug14.ttt` scene in the simulator.
-
-**IMPORTANT:** You will need to reopen the scene each time before running the simulation. Never save changes to the scene file when closing.
-
-To simulate a trained model in CoppeliaSim, run the following command:
-
-```
-python3 run.py --algorithm A2C --set 1 --simulate True
-```
-
-## Plotting
-
-We also provide some scripts to aid with plotting results. To plot the layouts of the provided 10 experiment sets, run the following command:
-
-```
-python3 plotting/plot_fields.py
-```
-
-All plots are saved in the `plotting/plots` directory. Once all experiments have been run, you can plot comparison results for each experiment setting:
-
-```
-python3 plotting/plot_results.py
-```
-
-You can also plot results for individual settings by providing a flag for each experiment setting you want to plot:
-
-```
-python3 plotting/plot_results.py [-a] [-b] [-c] [-o]
-```
-
-The experiment settings are defined as follows:
-
-- `-a`: Training from scratch with default hyperparameters
-- `-b`: Training from scratch with best hyperparameters
-- `-c`: Transfer learning
-- `-o`: Hyperparameter tuning with Optuna

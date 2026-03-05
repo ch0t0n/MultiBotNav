@@ -1,17 +1,16 @@
 import gymnasium as gym
-from src.env import MultiRobotEnv
-from src.env_v2 import MultiRobotEnv_v2
+from src.env import MultiUAV, MultiWheeled
 
 # Register environment
 gym.register(
-    id='MultiRobotEnv-v0', 
-    entry_point=MultiRobotEnv,
+    id='MultiUAV-v0', 
+    entry_point=MultiUAV,
     max_episode_steps=1000
 )
 
 # Register environment
 gym.register(
-    id='MultiRobotEnv-v2', 
-    entry_point=MultiRobotEnv_v2,
+    id='MultiWheeled-v0', 
+    entry_point=MultiWheeled,
     max_episode_steps=1000
 )

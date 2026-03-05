@@ -21,16 +21,16 @@ def compute_min_dist(x):
     return float(np.min(dists))
 
 # Load experiment json file
-def load_experiment_dict_json(json_path):
+def read_uav_json(json_path, sf=10):
     with open(json_path, "r") as f:
         data = json.load(f)
     for set_name, cfg in data.items():
         # Convert field to list of tuples
-        cfg["field"] = [tuple(p) for p in cfg["field"]]
+        cfg["field"] = [tuple((p[0]*sf, p[1]*sf)) for p in cfg["field"]]
         # Convert init_positions to NumPy arrays
-        cfg["init_positions"] = [np.array(p, dtype=float) for p in cfg["init_positions"]]
+        cfg["init_positions"] = [np.array(p, dtype=float)*sf for p in cfg["init_positions"]]
         # Convert infected_locations to set of tuples
-        cfg["infected_locations"] = [tuple(p) for p in cfg["infected_locations"]]
+        cfg["infected_locations"] = [tuple((p[0]*sf, p[1]*sf)) for p in cfg["infected_locations"]]    
     return data
 
 # Loads in an experiment config file
@@ -54,14 +54,11 @@ def parse_bool(string):
 
 # Loads in a trained model
 def load_model(algorithm, 
-               experiment_set, 
                seed, 
                device, 
                verbose, 
-               log_dir, 
                trained_model_path,
-               run_name
-):
+               log_dir='.\logs'):
     model_args = {
         'path': trained_model_path, # f'{models_dir}/{algorithm}_set{experiment_set}.zip',
         #'tb_log_name': run_name, # f'{algorithm}_set{experiment_set}',
@@ -145,7 +142,7 @@ def get_robot_polygon(x, y, theta, robot_length, robot_width):
     return Polygon(rotated)
 
 # Read set config file
-def read_env_config(config_path):
+def read_wheeled_config(config_path):
     config = configparser.ConfigParser()
     config.read(config_path) # Read the config file
     env_params = {}
@@ -186,3 +183,24 @@ def read_env_config(config_path):
         # env_params[f'OBSTACLE_{i+1}'] = (x,y)
         env_params['OBSTACLES'].append(points)    
     return env_params
+
+# Updates the robot polygon
+def get_robot_polygon(x, y, theta, robot_length, robot_width):
+    # Robot corners relative to center
+    dx = robot_length / 2
+    dy = robot_width / 2
+    corners = np.array([
+        [ dx,  dy],
+        [ dx, -dy],
+        [-dx, -dy],
+        [-dx,  dy]
+    ])
+
+    # Rotation matrix
+    cos_t = np.cos(theta)
+    sin_t = np.sin(theta)
+    R = np.array([[cos_t, -sin_t], [sin_t, cos_t]])
+
+    # Rotate and translate corners
+    rotated = np.dot(corners, R.T) + np.array([x, y])
+    return Polygon(rotated)
