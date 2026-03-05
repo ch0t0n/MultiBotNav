@@ -229,9 +229,9 @@ python run.py --path ".\trained_models\uav\cont_env1_2robots_CrossQ.zip" --algor
 
 ---
 
-# Running on Compute Clusters (Slurm)
+# Training on Compute Clusters (Slurm)
 
-Slurm scripts are provided in:
+Slurm scripts are provided in the directory:
 
 ```
 slurm_scripts/
@@ -239,23 +239,26 @@ slurm_scripts/
 
 ### Run all training jobs
 
+Run:
+
 ```bash
 sbatch slurm_scripts/train_all.sh
 ```
 
-### Run a single job
+### Run a single environment
 
-Edit:
-
-```
-slurm_scripts/train_one.sh
-```
-
-Then:
+Edit and run:
 
 ```bash
-sbatch slurm_scripts/train_one.sh
+slurm_scripts/train_one_env.sh
 ```
+
+### Run a single algorithm
+
+Edit and run:
+
+```bash
+slurm_scripts/train_one_alg.sh
 
 ---
 
