@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # Objective
     # ------------------------------------------------------------------
     def objective(trial):
-        nonlocal best_reward
+        global best_reward
 
         # Environment creation
         if args.robot_type == "wheeled_robot":

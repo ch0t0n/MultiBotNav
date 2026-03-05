@@ -157,31 +157,36 @@ python train.py \
 
 # Hyperparameter Tuning
 
-Hyperparameter tuning uses `tune.py`.
+**For UAVs:**
+```bash
+python3 tune.py --algorithm A2C --robot_type uav --set 1 --num_robots 3
+```
 
-## Example
+**For Wheeled Robots:**
+```bash
+python3 tune.py --algorithm A2C --robot_type wheeled_robot --set 1
+```
+
+The currently implemented algorithms are `A2C`, `PPO`, `TRPO`, `TQC`, `ARS`, and `CrossQ`.  
+The `--set` parameter depends on the number of sets in the `exp_sets` directory.  
+The `--num_robots` parameter is only used for UAVs, as wheeled robot experiments have a fixed number of robots in the configuration files.  
+
+Tuning can be further configured using the following command format:
 
 ```bash
-python tune.py --algorithm PPO --set 1
+python3 tune.py \
+    --algorithm {A2C, PPO, TRPO, TQC, ARS, CrossQ} \
+    --robot_type {uav, wheeled_robot} \
+    --set [set number] \
+    --num_robots [number of UAVs, if robot_type is uav] \
+    --trials [number of tuning trials] \
+    --steps [number of training steps per trial] \
+    --num_envs [number of parallel environments] \
+    --num_eval_eps [number of episodes for evaluation] \
+    --seed [random seed] \
+    --log_steps [logging interval] \
+    --device {cpu, cuda}
 ```
-
-Tuned hyperparameters are saved in:
-
-```
-logs/tuning_logs/
-```
-
-To train using tuned parameters:
-
-```bash
-python train.py \
-    --algorithm PPO \
-    --robot_type uav \
-    --set 1 \
-    --use_tuned_params True
-```
-
----
 
 # Simulation
 
