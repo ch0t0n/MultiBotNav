@@ -1,4 +1,4 @@
-# Efficient Environment Design for Multi-Robot Navigation via Continuous Control
+# Formal Analysis on Environment Design for Multi-Robot Navigation using Reinforcement Learning
 
 <p align="center">
   <img src="./assets/images/two_robots_env1.gif" width="400" height="250">
@@ -7,7 +7,7 @@
 
 This repository contains the official implementation for the paper:
 
-**Efficient Environment Design for Multi-Robot Navigation via Continuous Control**
+**Formal Analysis on Environment Design for Multi-Robot Navigation using Reinforcement Learning**
 
 We develop a scalable MDP-based simulation framework for multi-robot navigation and path planning under continuous control. The framework supports:
 
@@ -46,7 +46,7 @@ Experiment configurations are stored in:
 ```
 exp_sets/
     ├── uav/
-    │     └── icra_2026_cont_sets.json
+    │     └── cont_sets.json
     └── wheeled/
           └── envX.ini
 ```
@@ -135,11 +135,6 @@ logs/.../<robot>_<algorithm>_setX_seedY_v0/
 ```bash
 tensorboard --logdir=logs
 ```
-
-Training for 2M timesteps typically takes:
-
-- 2–8 hours (CPU)
-- 1–4 hours (GPU, depending on algorithm)
 
 ---
 
@@ -232,10 +227,11 @@ Important:
 
 ```bash
 python run.py \
+    --path ".\trained_models\uav\icra2026_cont_env1_2robots_CrossQ.zip" \
     --algorithm CrossQ \
     --robot_type uav \
-    --set 3 \
-    --num_robots 3 \
+    --set 1 \
+    --num_robots 2 \
     --simulate True
 ```
 
@@ -273,45 +269,14 @@ sbatch slurm_scripts/train_one.sh
 
 # Plotting
 
-To visualize experiment layouts:
-
-```bash
-python plotting/plot_fields.py
-```
-
-To compare results:
-
-```bash
-python plotting/plot_results.py
-```
-
-Optional flags:
-
-```
--a  Training with default hyperparameters
--b  Training with best hyperparameters
--c  Transfer learning
--o  Hyperparameter tuning
-```
-
-Plots are saved in:
-
-```
-plotting/plots/
-```
+To visualize experiment layouts, please use the notebooks in the `plotting` folder.
 
 ---
 
-# Project Structure
+---
 
-```
-├── train.py
-├── run.py
-├── tune.py
-├── transfer.py
-├── exp_sets/
-├── logs/
-├── slurm_scripts/
-├── plotting/
-└── src/
-```
+# Notebooks
+
+To ease-up the simulation, we provide various notebooks for both UAVs and wheeled robots in the `notebooks` folder.
+
+---
