@@ -15,7 +15,7 @@
 algorithm="A2C"
 robot_type="uav"
 set=1
-steps=1000000
+steps=10000
 
 conda run --no-capture-output -n rl4pag python3 train.py --algorithm $algorithm --set $set --verbose 1 --steps $steps --robot_type $robot_type
 

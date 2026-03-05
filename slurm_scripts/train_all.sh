@@ -3,6 +3,7 @@
 # Submit with:
 # sbatch training_scripts/train_all.sh
 
+#SBATCH --array=0-95
 #SBATCH --job-name=RL4PAG
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
@@ -25,23 +26,15 @@ num_robots=3                        # used only for UAV
 steps=2000000
 num_envs=4
 device="cuda"
-
 use_tuned_params=false
 
 # ------------------------------------------------------------
-# Compute job array size automatically
+# Decode SLURM task index
 # ------------------------------------------------------------
 
 num_algorithms=${#algorithms[@]}
 num_robot_types=${#robot_types[@]}
 num_sets=${#sets[@]}
-total_jobs=$((num_algorithms * num_robot_types * num_sets - 1))
-
-#SBATCH --array=0-$total_jobs
-
-# ------------------------------------------------------------
-# Decode SLURM task index
-# ------------------------------------------------------------
 
 index=$SLURM_ARRAY_TASK_ID
 set_index=$(( index % num_sets ))

@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     else:  # UAV
         env_json = read_uav_json(
-            r'.\exp_sets\uav\cont_sets.json'
+            r'./exp_sets/uav/cont_sets.json'
         )[f'set{args.set}']
 
         vec_env = make_vec_env(
