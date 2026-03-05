@@ -185,26 +185,23 @@ python3 tune.py \
 
 # Simulation
 
-You must train a model before running simulation.
+Train a model before running simulation, or use the pretrained models. 
 
 ---
 
 ## PyGame Simulation
 
+The command `python run.py` will run a trained model using 3 robots in Pygame. For running simulation on a custom trained model, use the following command format:
+
 ```bash
-python run.py \
-    --algorithm CrossQ \
-    --robot_type uav \
-    --set 3 \
-    --num_robots 3 \
-    --simulate False
+python run.py --path ".\trained_models\uav\cont_env1_2robots_CrossQ.zip" --algorithm CrossQ --robot_type uav --set 1 --num_robots 2
 ```
 
 ---
 
 ## CoppeliaSim Simulation
 
-We use CoppeliaSim for realistic 3D simulation.
+We use CoppeliaSim for realistic 3D simulation. 
 
 ### Step 1: Install CoppeliaSim
 
@@ -213,26 +210,21 @@ https://coppeliarobotics.com/
 
 ### Step 2: Open Scene
 
-Open:
+Open the following file in the CoppeliaSim Simulator:
 
 ```
-simulation_env/drone_test_scene_aug14.ttt
+coppeliasim_envs\uav_common_env.ttt
 ```
 
-Important:
+**Important**:
 - Reopen the scene before every run.
 - Do NOT save changes when closing.
 
 ### Step 3: Run Simulation
 
+The command `python run.py --simulate True` will run a trained model using 3 robots in CoppeliaSim. For running simulation on a custom trained model, use the following command format:
 ```bash
-python run.py \
-    --path ".\trained_models\uav\icra2026_cont_env1_2robots_CrossQ.zip" \
-    --algorithm CrossQ \
-    --robot_type uav \
-    --set 1 \
-    --num_robots 2 \
-    --simulate True
+python run.py --path ".\trained_models\uav\cont_env1_2robots_CrossQ.zip" --algorithm CrossQ --robot_type uav --set 1 --num_robots 2 --simulate True
 ```
 
 ---

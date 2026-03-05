@@ -16,12 +16,12 @@ if __name__ == '__main__':
     # parser.add_argument('--path', type=str, default=r'.\trained_models\wheeled\icra2026_wheeled_env1_3robots_CrossQ.zip', help='The directory to look for trained models in')
     # parser.add_argument('--robot_type', type=str, choices=['uav', 'wheeled_robot'], default='wheeled_robot', help='The device to run the model on')
     # parser.add_argument('--num_robots', type=int, default=3, help='Number of robots')
-    parser.add_argument('--path', type=str, default=r'.\trained_models\uav\icra2026_cont_env3_3robots_CrossQ.zip', help='The directory to look for trained models in')
+    parser.add_argument('--path', type=str, default=r'.\trained_models\uav\cont_env3_3robots_CrossQ.zip', help='The directory to look for trained models in')
     parser.add_argument('--robot_type', type=str, choices=['uav', 'wheeled_robot'], default='uav', help='The device to run the model on')
     parser.add_argument('--num_robots', type=int, default=3, help='Number of robots')
-    parser.add_argument('--algorithm', type=str, choices=['A2C', 'PPO', 'TRPO', 'ARS', 'CrossQ', 'TQC'], default=['CrossQ'], help='The DRL algorithm to use')
     parser.add_argument('--set', type=int, default=3, help='The experiment set to use, from the sets defined in the experiments directory')
-    parser.add_argument('--simulate', type=parse_bool, default=True, help='If true, uses the Coppelia Simulator to show the environment. If false, renders the environment using PyGame')
+    parser.add_argument('--algorithm', type=str, choices=['A2C', 'PPO', 'TRPO', 'ARS', 'CrossQ', 'TQC'], default=['CrossQ'], help='The DRL algorithm to use')    
+    parser.add_argument('--simulate', type=parse_bool, default=False, help='If true, uses the Coppelia Simulator to show the environment. If false, renders the environment using PyGame')
     parser.add_argument('--seed', type=int, default=None, help='The random seed to use')
     parser.add_argument('--device', type=str, choices=['cpu', 'cuda'], default='cpu', help='The device to run the model on')
     
@@ -35,7 +35,7 @@ if __name__ == '__main__':
         env_config = read_wheeled_config(f'exp_sets/wheeled/env{args.set}.ini')
         env = gym.make('MultiWheeled-v0', render_mode='human', env_params=env_config)
     else:
-        env_json = read_uav_json(rf'.\exp_sets\uav\icra_2026_cont_sets.json')[rf'set{args.set}']
+        env_json = read_uav_json(rf'.\exp_sets\uav\cont_sets.json')[rf'set{args.set}']
         env = gym.make('MultiUAV-v0', render_mode='human', field_info=env_json, num_robots=args.num_robots)
 
     env.metadata['render_fps'] = 1
@@ -67,7 +67,9 @@ if __name__ == '__main__':
             pygame.event.get()
         total_rewards += reward
         print(f"Obs: {obs}, Reward: {reward}, terminated: {terminated}, total_rewards: {total_rewards}, action: {action}")
+        pygame.time.delay(100)
     print('terminated:', terminated, 'truncated:', truncated)
+    pygame.time.delay(2000)
     
     # Close simulator and environment
     if args.simulate:
