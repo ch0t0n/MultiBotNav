@@ -259,6 +259,7 @@ Edit and run:
 
 ```bash
 slurm_scripts/train_one_alg.sh
+```
 
 ---
 
