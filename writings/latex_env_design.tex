@@ -1,0 +1,428 @@
+% \documentclass[conference]{IEEEtran}
+\documentclass[letterpaper, 10 pt, conference]{ieeeconf}  % Comment this line out if you need a4paper
+\IEEEoverridecommandlockouts                              % This command is only needed if you want to use the \thanks command
+\overrideIEEEmargins                                      % Needed to meet printer requirements.
+
+
+\usepackage{url}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage[T1]{fontenc}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{subfig}
+\usepackage{multirow}
+\usepackage{makecell} % for \Xhline
+\usepackage{optidef} % For typesetting optimization problems
+\usepackage{siunitx}
+\sisetup{
+    round-mode          = places,
+    round-precision     = 4,
+    table-number-alignment = center,
+    detect-weight       = true,
+    detect-inline-weight = math
+}
+\allowdisplaybreaks
+
+\input{macros.tex}
+\title{\LARGE \bf Learning to Navigate in a Stochastic and Uncertain Environment with Different Robot Dynamics}
+
+\author{
+    Anonymous Author(s)\\
+    Affliation \\
+    Address \\
+    {email}
+}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+%===============================================================================
+
+\begin{abstract}
+Learning to navigate in stochastic and uncertain environments is a fundamental challenge for multi-robot systems, yet most existing RL-based approaches assume deterministic dynamics and lack formal guarantees linking the navigation objective to the learned policy. In this paper, we present a formally specified framework for constructing RL environments for multi-robot navigation in stochastic, uncertain settings with heterogeneous robot dynamics. We formulate the navigation problem as a constrained optimization task in which multiple robots must visit a set of regions of interest (ROIs) while avoiding obstacles and minimizing redundant coverage under stochastic wind disturbances, actuation noise, and observation uncertainty. We derive the corresponding Markov Decision Process (MDP) with stochastic transitions and prove that, under a finite-horizon setting and appropriate reward design, the optimal MDP policy is equivalent to the solution of the original optimization problem. This establishes a principled connection between multi-robot navigation objectives and reinforcement learning policies, providing correctness guarantees absent in prior deep RL formulations. The framework accommodates arbitrary robot dynamics—demonstrated with both wheeled ground robots and UAVs—and can be solved using standard off-the-shelf RL algorithms without task-specific modifications. We validate the approach across ten UAV and eight wheeled environment variations, and conduct systematic ablation studies over reward terms, observation spaces, uncertainty modes, and domain randomization. Our work provides a rigorous and extensible template for designing RL environments for multi-robot navigation with theoretical guarantees and practical robustness to real-world uncertainties.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+Developing robots that can perform challenging tasks such as path planning and navigation in complex, uncertain environments is a fundamental problem in artificial intelligence. One of the most popular paradigms for solving such tasks has been the use of reinforcement learning (RL) \cite{chen2017icra, everett2018iros, long2017iral, fan2020ijrr, han2022iral}. However, the progress in applying RL methods to multi-robot systems with continuous control has been limited, and there is a lack of available benchmarks \cite{brockman2016openai, islam2017reproducibility, mania2018ars, dulacArnold2021}. Most RL research emphasizes developing new algorithms, but meaningful progress also depends on the environments in which these methods are evaluated. Robust, scalable, and carefully designed environments are essential for fair comparison and for testing capabilities in complex domains \cite{dulacArnold2021, sutton2018reinforcement}. Once formulated as Markov Decision Processes (MDPs), such environments also serve as general testbeds for both gradient-based RL methods and non-gradient alternatives such as Augmented Random Search (ARS)\cite{mania2018ars}, Evolution Strategies (ES) \cite{salimans2017}, and other black-box optimization techniques \cite{risi2015neuroevolution}. However, in existing RL benchmark papers, the formal description of the MDP is either completely missing, as in Google Research Football \cite{kurach2020google} and CityFlow \cite{zhang2019cityflow}, or very limited, as in Dulac-Arnold \textit{et al.} \cite{dulacArnold2021}. In deep RL papers on multi-robot navigation \cite{chen2017icra, everett2018iros, long2017iral, fan2020ijrr, han2022iral}, formal guarantees linking the multi-robot optimization problem to the optimal policy of the corresponding MDP are absent. Moreover, these works often use fixed robot dynamics for specific platforms, which restricts generality, and rely on customized RL algorithms to achieve the optimal policy, making it difficult to disentangle environment design from algorithmic novelty.
+
+In this paper, we present a formally specified and dynamics-agnostic framework for multi-robot navigation in stochastic, uncertain environments. We formulate the multi-robot navigation task as a constrained optimization problem, derive the corresponding stochastic MDP, and prove that the optimal MDP policy is equivalent to the solution of the optimization problem. Our environment explicitly models real-world uncertainties—including stochastic wind disturbances (per-step Gaussian noise on magnitude and direction), actuation noise, and observation noise—and supports four controllable \emph{uncertainty modes}: \texttt{full}, \texttt{wind\_only}, \texttt{act\_only}, and \texttt{deterministic}. We further incorporate \emph{domain randomization} (DR) at three levels (\texttt{none}, \texttt{wind}, \texttt{full}) to promote policy robustness. We perform experimental evaluation on two different robot dynamics (UAVs in a windy environment and wheeled robots with obstacles), with ten and eight environment variations respectively, to demonstrate generalizability. We measure the performance of common gradient-based (A2C \cite{mnih2016a2c}, TRPO \cite{schulman2015trust}, PPO \cite{schulman2017ppo}, TQC \cite{kuznetsov2020tqc}, CrossQ \cite{bhatt2024crossq}) and finite difference-based (ARS \cite{mania2018ars}) deep RL algorithms. We further conduct systematic ablation studies over reward terms, observation spaces, and uncertainty modes, and evaluate DR policies under out-of-distribution (OOD) wind conditions. For simulation, we implement the environment on a windy agricultural field consisting of herbicide-spraying UAVs using CoppeliaSim \cite{coppeliaSim2013} 3-D simulator, where the goal is to selectively spray herbicides on weed-infected locations. The experiments show that our environment is learnable within a reasonable training period using off-the-shelf RL algorithms, despite having large, infinite, and continuous state and action spaces.
+
+% \subsection{Novelty and Positioning}
+While multi-robot navigation has previously been formulated within reinforcement learning frameworks, most prior works rely on heuristic reward engineering and task-specific formulations without formally establishing equivalence between the navigation objective and the resulting optimal policy \cite{chen2017icra, everett2018iros, long2017iral, fan2020ijrr, han2022iral}. Furthermore, existing approaches largely assume deterministic or simplified dynamics, ignoring the stochastic disturbances inherent to real deployments. In contrast, our contribution lies in providing a dynamics-agnostic and formally specified stochastic MDP construction together with a correctness guarantee: we prove that, under a finite-horizon setting and appropriate reward design, the optimal MDP policy is equivalent to the solution of the underlying constrained multi-robot navigation optimization problem. This separates environment design from algorithmic development and provides a principled template for constructing RL environments with theoretical guarantees and explicit uncertainty modeling, rather than introducing another task-specific RL controller. To the best of our knowledge, such an explicit equivalence proof and generalizable stochastic environment construction for continuous multi-robot navigation with different robot dynamics have not been provided in prior deep RL studies. To summarize, the key contributions of the paper are:
+\begin{itemize}
+    \item
+\textbf{Stochastic formal design:} We introduce a multi-robot navigation environment with a complete stochastic MDP specification that explicitly models wind disturbances, actuation noise, and observation uncertainty, while supporting variable robot dynamics—addressing the lack of formalization and stochastic modeling in existing RL benchmarks.
+\item
+\textbf{Correctness guarantees:} We prove the equivalence between the underlying constrained optimization problem and the optimal policy for multi-robot navigation under stochastic dynamics, providing guarantees that are missing in prior deep RL studies.
+\item
+\textbf{Generality and systematic validation:} We evaluate across ten UAV and eight wheeled environment variations using six off-the-shelf state-of-the-art RL algorithms with both default and Optuna-tuned hyperparameters, and conduct ablation studies over reward terms, observation spaces, and uncertainty modes.
+\item
+\textbf{Domain randomization and robustness:} We incorporate per-episode domain randomization over wind, actuation, and physical parameters, demonstrating improved out-of-distribution generalization and robustness to real-world uncertainties.
+\item
+\textbf{Applicability:} We simulate learned models in a 3-D agricultural environment with spraying robots and stochastic winds in CoppeliaSim, showing applicability beyond the 2-D Pygame simulations common in prior RL works.
+\end{itemize}
+
+\section{Motivation and Related Work}
+\label{sec:related}
+% \vspace{-20pt}
+
+Over the past two decades, numerous methods have been developed for multi-robot navigation and control \cite{nafis2021, sam2005, mickey2021}. Classical planning approaches such as A* \cite{goto2003}, RRT \cite{rodriguez2006rrt}, RRT* \cite{karaman2011rrts}, PSO \cite{nafis2021}, and RA-MCPP \cite{mickey2021} rely on explicit modeling of path-planning heuristics or global optimization strategies. While effective in structured settings, these methods often become computationally expensive in high-dimensional continuous state and action spaces, particularly when multiple robots and dynamic environments are involved. As a result, scalable multi-robot navigation in complex environments remains a fundamental challenge in robotics \cite{Sunderhauf2018ijrr, ibarz2021ijrr, zhang2023multi, cai2022multi, osooli2024multi}.
+
+Reinforcement Learning (RL) has emerged as a promising alternative, especially for problems requiring real-time decision-making and adaptation in high-dimensional spaces \cite{kober2014, chen2017icra, everett2018iros, bae2019as, tang2025, dulacArnold2021, ibarz2021ijrr}. Early RL-based navigation works \cite{kober2014, bae2019as} often considered discrete or simplified state-action spaces. More recent approaches \cite{chen2017icra, everett2018iros, long2017iral, fan2020ijrr, han2022iral} formulate navigation objectives as optimization problems and derive corresponding Markov Decision Processes (MDPs). However, these formulations typically lack formal guarantees establishing equivalence between the navigation objective and the optimal policy. In addition, many works assume fixed robot dynamics, rely heavily on reward heuristics, or introduce customized RL architectures tailored to specific environments. Beyond navigation, several benchmark environments have been proposed to bridge RL and real-world challenges. Dulac-Arnold \textit{et al.}~\cite{dulacArnold2021} introduced a suite of practical RL challenges and corresponding MDP formulations, but none address multi-robot navigation, and formal correctness analyses remain limited. Large-scale environments such as Google Research Football \cite{kurach2020google} and CityFlow \cite{zhang2019cityflow} provide realistic testbeds but do not offer formal guarantees relating task objectives to optimal policies. Furthermore, the need for reproducible and extensible baselines in continuous control has been emphasized by Mania \textit{et al.}~\cite{mania2018ars}, who showed that algorithmic performance can vary significantly in high-dimensional settings.
+
+In contrast to prior works, we focus on the principled construction of the RL environment itself. We provide a complete and dynamics-agnostic MDP specification for multi-robot navigation and formally prove that, under a finite-horizon setting and appropriate reward design, the optimal MDP policy is equivalent to the solution of the underlying constrained optimization problem. This establishes a correctness guarantee that is largely absent in existing multi-robot RL formulations. Moreover, our framework accommodates arbitrary robot dynamics and can be solved using standard state-of-the-art RL algorithms without task-specific architectural modifications. By isolating the contribution to environment design and validating it across diverse dynamics and algorithms, we position our framework as both theoretically rigorous and practically generalizable for high-dimensional multi-robot systems.
+
+\section{Preliminaries}
+\label{sec:background}
+Let $\reals, \reals^+, \naturals, \integers$ be the set of reals, positive reals, naturals, and integers, respectively. For a set $S$, let $|S|$ and $\mathbb{P}(S)$ denote its length and power set, respectively.  Given two real numbers $x,y \in \reals$, let $[x,y] = \{ i \in \reals \mid x \leq i \leq y \}$ denote the set of all real numbers from x to y. Let $Y$ be a continuous random variable with probability density function $f$. The expected value (or expectation) is defined as, $\expectation[Y] = \int_{-\infty}^{\infty} y f(y)dy$. For a set of samples $S$, let $\Delta(S)$ denote the set of probability distributions over $S$. For a nonempty set $X$, a collection $\mathcal{A} \subseteq \mathcal{P}(X)$ is called $\sigma$-algebra \cite{tao2011} on $X$ if it satisfies $X \in \mathcal{A}$, $\forall A_i \in \mathcal{A}: X \setminus A_i \in \mathcal{A}$ and $ \cup_i^{\infty}A_i \in \mathcal{A}$. Let $(X, \mathcal{A})$ and $(Y, \mathcal{B})$ be measurable spaces where $X$ and $Y$ are sets and $\mathcal{A}$ and $\mathcal{B}$ are $\sigma$ algebras of subsets of $X$ and $Y$. A function $f: X \to Y$ is called measurable if $\forall B \in \mathcal{B}: f^{-1}(B)\in \mathcal{A}$. In RL, a policy $\pi: S \to \Delta (A)$ is a function that maps a state $s \in S$ to a probability distribution over the set of actions $A$. The action-value or Q-value of a policy $\pi$ at state $s$ and action $a$ is defined as the expected cumulative reward from following the policy after taking the action $a$ starting from $s$ and written as, $Q^{\pi}(s,a) = \expectation_{\pi}[\sum_{t\geq0}\gamma^t r_t | s_0=s, a_0=a]$ where $r_t \in \reals^+$ is the reward at time $t$ and $\gamma \in [0,1]$ is the discount factor. Following the notations and definitions from Choset \textit{et al.}\cite{choset2005}, we define the multi-robot navigation problem in the next section.
+
+\section{Problem Formulation}
+\label{sec:problem}
+Consider a group of $n$ mobile robots $\mathcal{M} = \{ \mathcal{M}_1, \ldots, \mathcal{M}_n\}$ operating in a $d$-dimensional workspace $\wspace \subseteq \reals^d$ containing static obstacles $\obst$ and $m$ regions of interests (ROIs) $\goals = \{ \goals_1, \ldots, \goals_m\}$. Let $\wspace_{\obst_j}$ be the region occupied by obstacle $j$, and $\cup_j \wspace_{\obst_j}$ is the total region covered by all obstacles in the workspace. Therefore, the free workspace is the region $\wspace^{\free} = \wspace \setminus \cup_j \wspace_{\obst_j}$. From Plaku \textit{et al.} \cite{plaku2021}, each robot model $\mathcal{M}_i = \{ \mathcal{P}_i, \config_i, \states_i, s_i^{\init}, \mathcal{U}_i, f_i\}$ is defined in terms of its shape $\mathcal{P}_i$, configuration space $\config_i$, state space $\states_i$, initial state $s_i^{\init} \in \states_i$, control space $\mathcal{U}_i$ and dynamics $f_i$. Given the shape $\mathcal{P}_i$ for robot $i$, let $\mathcal{P}_i(q_i)\subset \wspace$ and $\mathcal{P}_i(s_i) \subset \wspace$ denote the regions occupied by the robot in the workspace $\wspace$ at configuration $q_i \in \config_i$ and state $s_i \in \states_i$ respectively. The configuration space occupied by all obstacles for the robot $i$ is, $\config_i^{obs} = \{ q_i \in \config_i \mid \exists j: \mathcal{P}_i(q_i) \cap \wspace_{\obst_j} \neq \emptyset \}$. The collision configuration space for robot $i$ is the set of configurations that collide with other robots in the workspace:
+\begin{flalign} 
+\begin{split}
+\config_i^{col} = \{q_i \in \config_i \mid \exists j \neq i: (\mathcal{P}_i(q_i) \cap \mathcal{P}_j(q_j) \neq \emptyset) \} \cup \config_i^{obs}
+\end{split}
+\end{flalign}
+
+Since the robots are moving, let $\config_i^{col}(t)$ denote the collision configuration for robot $i$ at time $t$. Therefore, the free configuration space for the robot $i$ at time $t$ is, $\config_i^{\free}(t) = \config_i \setminus \config_i^{col}(t)$. The state space $\states_i = \config_i \times \mathcal{V}_i$ of robot $i$ augments the configuration space $Q_i$ and motion space $\mathcal{V}_i$, where $\mathcal{V}_i$ contains the motion parameters such as steering angle, velocity, heading direction, etc. The kinematics and dynamics of each robot $i$ is described as follows:
+\begin{align}
+    \dot{q}_i &= f_i(q_i,u_i), q_i \in \config_i, u_i \in \mathcal{U}_i &\text{(kinematics)} &\label{eq:kinematics}\\
+    \dot{s}_i &= f_i(s_i,u_i), s_i \in \states_i, u_i \in \mathcal{U}_i &\text{(dynamics)} &\label{eq:dynamics}
+\end{align}
+
+A new state $s_i^{\new} \in \states_i$ can be reached after a small time step $dt$ by numerically integrating $f_i$ by a function:
+\begin{equation}
+    s_i^{\new} \gets \simulate(s_i, u_i, f_i, dt)
+\end{equation}
+
+Let $\zeta_i: [0,T] \to \states_i$ denote a trajectory function for robot $i$ for time period $[0,T]$. Let $\goalf(\zeta_i(\tau))$ denote the ROIs visited by trajectory $\zeta_i$ from time $0$ to $\tau$, i.e.,
+\begin{equation}
+\begin{split}
+\goalf(\zeta_i(\tau)) = \{ g \mid g \in \goals \land \exists t \in [0,\tau]: \mathcal{P}_i(\zeta_i(t)) \cap g \neq \emptyset \}
+\end{split}
+\end{equation}
+
+% \subsection{Optimization}
+We define the multi-robot navigation problem as a constrained optimization problem. Let us define a simple cost function $\mathcal{C}_i: \states_i \to \{ c_0, c_1 \}$ where $\mathcal{C}_i(s_i) = c_0$ if state $s_i$ is not visited before and $\mathcal{C}(s) = c_1$ if $s$ is visited before by robot $i$, and $c_0 < c_1$ (visited locations has higher costs). The objective is to generate $n$ trajectories $\zeta_1,\ldots.,\zeta_n$ for the robots by applying $n$ control signals $u_1,\ldots,u_n$ that solves the optimization problem:
+
+\begin{align}
+& \qquad \qquad \min_{\zeta_1, \ldots, \zeta_n} \bigg( \sum_{i=1}^{n} \int_{t=0}^{T} \mathcal{C}_i (\zeta_i(t))dt \bigg)   \label{eq:opt} \\
+& \textrm{subject to, }    \nonumber \\
+& (i) \quad \bigcup_{i=1}^n \goalf(\zeta_i(T)) = \goals  \label{eq:const1}\\
+& (ii) \quad \forall i \in \{1,\ldots,n\}, \forall t \in [0,T]: \nonumber \\
+& \qquad \zeta_i(t) = (q_i, v_i), q_i \in \config_i^{\free}(t), v_i \in \mathcal{V}_i \label{eq:const2}\\
+& (iii) \quad \forall i \in \{1,\ldots,n\}, \forall t \in [0,T]: \nonumber \\
+& \qquad \zeta_i(t+dt) \gets \simulate( \zeta_i(t), u_i, f_i, dt) \label{eq:const3}
+% & \forall t \in [0,T]: f_{x_i} \in [f_{x_{min}}, f_{x_{max}}], f_{y_i} \in [f_{y_{min}}, f_{y_{max}}], \mathcal{C}_i (\zeta_i(t))=(f_{x_i},f_{y_i}) \nonumber  \\
+\end{align}
+
+Here, the first constraint ensures that all regions of interest or goals are visited. The second constraint ensures that there are no collisions. The third constraint ensures that each trajectory is dynamically feasible.
+
+\section{Environment Design}
+The above optimization problem can be represented as a reinforcement learning (RL) problem. We define a Markov Decision Process (MDP) $M = (S, A, \trans, R, \gamma)$ for the multi-robot navigation problem where:
+
+• $S = \states_1 \times \ldots \times \states_n \times \{0, 1 \}^{|\goals|}$ is the set of states defined as a joint state space of $n$ robots, and a bitmask $b_t: \goals \to \{0, 1\}$ that encodes how many regions of interest are visited at time $t$. Therefore: 
+\begin{equation}
+\forall g \in \goals: b_t(g) =
+\begin{cases}
+    1, &\text{if $g$ is visited before $t$} \\
+    0, &\text{otherwise}
+\end{cases}
+\end{equation}
+
+• $A = \mathcal{U}_1 \times \ldots \times \mathcal{U}_n$ is the set of actions defined as the joint control inputs of $n$ robots
+
+• $\trans: S \times A \to \Delta(S)$ is the \emph{stochastic} transition function where at time $t$ for state $s_t$ and action $a_t$, a next state is drawn from the distribution induced by the noisy dynamics: $\trans(s_t,a_t) = \Big( \simulate(s_1,u_1,f_1,dt), \ldots , \simulate(s_n,u_n,f_n,dt), b_{t+dt} \Big)$ where $s_t = (s_1,\ldots,s_n, b_t)$, $a_t = (u_1,\ldots,u_n)$, and $f_1,\ldots, f_n$ are the stochastic dynamics of the $n$ robots (incorporating per-step wind noise $\epsilon_w$, action noise $\epsilon_a$, and boundary interactions). The $b_{t+dt}$ encodes all goal positions reached by the robots at time $t+dt$. Observation noise $\epsilon_{obs} \sim \mathcal{N}(0, \sigma_{obs}^2)$ is added to the state before it is returned to the agent, making the environment partially observable when $\sigma_{obs} > 0$.
+
+• $R: S \times A \to \reals$ is the reward function, which is the sum of three different functions $R_C, R_G, R_V: S \times A \to \reals$ (designed for the three constraints of equation (\ref{eq:opt})) that at time $t$ satisfy:
+\begin{align}
+\label{eq:reward}
+    R(s_t,a_t) = R_C(s_t,a_t) + R_G(s_t,a_t) + R_V (s_t,a_t)
+\end{align}
+
+Let $r_s, r_l \in \reals^+$ be some arbitrarily fixed small and large rewards where $r_s < r_l$. Let $r_M$ be a very large reward such that $r_M \gg nr_lT_{\max} $ where $T_{\max}$ is the maximum episode length. The first reward function $R_C$ determines the reward for avoiding collisions:
+\begin{align}
+\label{eq:reward_c}
+& R_C(s_t, a_t) = \hfill \nonumber \\
+& \begin{cases}
+    -r_M, &\text{if } \exists i \in \{1,\ldots,n\}: s_i = (q_i, v_i) \land \\
+          & q_i \notin \config_i^{\free}(t) \land v_i \in \mathcal{V}_i \\
+    0,    &\text{otherwise}
+\end{cases}
+\end{align}
+The second reward function $R_G$ specifies the reward the robots receive for visiting any region of interest (ROI). Let $\goals^{new}_{t+dt}$ be the newly visited ROIs by taking an action $a_t$ from state $s_t$:
+\begin{equation}
+    \goals^{new}_{t+dt} = \{ g \in \goals \mid b_t(g) = 0 \land b_{t+dt}(g) = 1 \}
+\end{equation}
+Therefore:
+\begin{align}
+R_G(s_t, a_t) = 
+\begin{cases}
+    +r_M, &\text{if } \forall g \in \goals: b_{t+dt} (g) = 1 \\
+    r_l \cdot |\goals^{new}_{t+dt}|, & \text{otherwise} 
+\end{cases}
+\end{align}
+
+The third reward function $R_V$ determines the reward that the robots receive by checking whether the locations in the state $s_t$ were visited previously in the episode. Let $V: {\wspace} \to \{0,1\}$ be a shared occupancy map where $V(x) = 1$ if the location $x \in \wspace$ is visited before $t$ in the current episode and 0 otherwise. We define the number of locations in the workspace that were visited by the $n$ robots before $t$ in the current episode as:
+\begin{align}
+n_{v_t} = \sum_{i=1}^n \{ i \mid \exists x \in \mathcal{P}_i(s_i): V(x) = 1 \}
+\end{align}
+Therefore:
+\begin{align}
+% & R_V(s_t, a_t) = - - \sum_{p \in P_{V_t}} r_l - \sum_{p \in P_t\setminus P_{V_t}}r_s 
+R_V(s_t, a_t) = - r_l n_{v_t} - r_s (n - n_{v_t}) \label{eq:reward_V}
+\end{align}
+
+• $\gamma \in [0,1]$ is the discount factor that is applied to future rewards.
+
+For an infinite time horizon ($T=\infty$), the discount factor $\gamma$ must be less than 1 to converge $\sum_{t\geq0}\gamma^t r_t$ to a finite value when measuring the Q-value of a state and action. But for a finite time horizon ($T < \infty$), $\gamma = 1$ means that the reward for each timestep doesn't get discounted, and the cumulative reward is still finite and valid. This is a valid assumption since robots have power constraints and can only run for a limited time. Let $T_1, \ldots, T_n$ be the maximum runtimes of the $n$ robots. Therefore, we take the maximum length of each finite episode to be $T_{\max} = \min(T_1,\ldots,T_n)$. As discussed by Sutton and Barto \cite{sutton2018reinforcement}, the return objective takes future rewards into account more strongly as $\gamma$ approaches 1. Based on this discussion, we define the following theorem:
+
+\begin{theorem}
+    For a finite time horizon $T$, the optimal policy $\pi^*$ for the MDP $M$ will generate the paths that solve the optimization problem described in equation (\ref{eq:opt}) if $\gamma = 1$.
+\end{theorem}
+
+\textbf{Proof:} The definition of optimal policy $\pi^*$ and optimal action-value function $Q^{\pi^*}$ \cite{sutton2018reinforcement} are as follows:
+\begin{flalign}
+& \phantom{=\ } \pi^*(s_t) = \argmax_{a}Q^{\pi^*}(s_t,a_t) \\
+& \phantom{=\ } Q^{\pi^*}(s_t,a_t) = \max_{\pi}Q^{\pi}(s_t,a_t) \\
+& = \max_{\pi} \mathbb{E} [\sum_{t \geq 0} \gamma^t r_t \mid s_0=s_t, a_0=a_t, \pi] \nonumber \\
+%& \rightline{[Def. of $Q^{\pi}(s_t,a_t)$]} \\
+& = \max_{\pi} \mathbb{E} [\sum_{t \geq 0} \gamma^t R(s_t,a_t)  \mid s_0=s_t, a_0=a_t, \pi] \nonumber \\
+& \rightline{[$r_t = R(s_t,a_t)$]} \nonumber \\ 
+& = \max_{\pi} \mathbb{E} [\sum_{t \geq 0} \gamma^t (R_C(s_t,a_t) + R_G(s_t,a_t) +  R_V (s_t,a_t)) \nonumber \\ 
+& \rightline{$ \mid s_0=s_t, a_0=a_t, \pi]$ [From equation (\ref{eq:reward})]} \nonumber 
+\end{flalign}
+
+From equation (\ref{eq:reward_c}), the maximum value of $R_{C}(s_t,a_t)$ is zero, which by definition means there are no collisions between any two robots or a robot and an obstacle, satisfying the second constraint of equation (\ref{eq:opt}). The maximum value of $R_G(s_t,a_t)$ is $r_M$ (since $r_M \gg nr_lT_{max}$), which means all the regions of interest are visited, satisfying the first constraint of equation (\ref{eq:opt}). From the definition of the transition function:
+\begin{flalign}
+&\trans ( s_t, a_t)  \nonumber \\
+&= (\simulate(s_1,u_1,f_1,dt), \ldots , \simulate(s_n,u_n,f_n,dt), b_{t+dt}) \nonumber \\
+&= (\simulate(\zeta_1(t),u_1,f_1,dt), \ldots , \simulate(\zeta_n(t), u_n,f_n, dt), b_{t+dt}) \nonumber \\
+&= (\zeta_1(t+dt), \ldots , \zeta_n(t+dt), b_{t+dt})
+\end{flalign}
+
+This satisfies the third constraint of equation (\ref{eq:opt}). For a finite time horizon $T$ (each episode), we have the optimal action-value function:
+\begin{flalign}
+    & \phantom{=\ } Q^{\pi^*}(s_t,a_t) = \max_{\pi} \mathbb{E} [\sum_{t=0}^T \gamma^t (R_C(s_t,a_t) +  R_G(s_t,a_t) + \nonumber \\
+    & \rightline{$ R_V(s_t,a_t)) \mid . ]$} \nonumber \\
+    &= 0 + r_M + \max_{\pi} \mathbb{E} [\sum_{t=0}^T \gamma^t ( R_V(s_t,a_t)) \mid . ] \nonumber \\
+    & \rightline{[From the above discussion]} \nonumber \\
+    &= r_M + \max_{\pi} \mathbb{E} [\sum_{t=0}^T ( - r_l n_{v_t} - r_s (n - n_{v_t}) \mid . ] \nonumber \\
+    & \rightline{[From equation (\ref{eq:reward_V}) and $\gamma^t=1$]} \nonumber \\
+    % &= r_M + \max_{\pi} \Big( \mathbb{E}[-\sum_{t=0}^T r_l n_{v_t} \mid . ]  +  \mathbb{E}[-\sum_{t=0}^T r_s (n - n_{v_t})  \mid . ] \Big) \\
+    % & \rightline{[Properties of $\mathbb{E}$]} \\
+    % &= r_M + \min_{\pi} \Big( \mathbb{E}[\sum_{t=0}^T r_l n_{v_t} \mid . ] + \mathbb{E} [\sum_{t=0}^T r_s (n - n_{v_t}) \mid . ] \Big) \\
+    % & \rightline{[$\max\limits_{a\in A}(-f(a)) = \min\limits_{a\in A}(f(a))]$} \\
+    &= r_M + \min_{\pi} \mathbb{E} [  \sum_{t=0}^T (r_l n_{v_t} +  r_s (n - n_{v_t}) \mid . ] \\
+    % & \rightline{[Properties of min]}
+    & \rightline{[$\max\limits_{a\in A}(-f(a)) = \min\limits_{a\in A}(f(a))]$} \nonumber
+\end{flalign}
+
+From equation (\ref{eq:opt}), let $\mathcal{C}_i(\zeta_i(t)) = \mathcal{J}_i(t)$ be the cost for robot $i$ at time $t$. Since the robots can only be in one state $s \in \states_i$ at a time $t$, $\zeta^{-1}(s)$ will return the time that the robot was at that state if it was visited, and false otherwise. $\mathcal{C}^{-1}(c_0)$ and $\mathcal{C}^{-1}(c_1)$ will return the set of states that has the costs $c_0$ and $c_1$ respectively, and each set is a subset of $\states_i$. Therefore, $\mathcal{J}_i(t)$ or $\mathcal{C}_i(\zeta_i(t))$ is a measurable function. From the theorems of Fubini and Tonelli \cite{Royden2010RealAnalysis}, we have $\sum_a \int_b f(a,b)db = \int_b \sum_a f(a,b)db $ if the total sum is finite and $f(a,b)$ is measurable. Therefore from equation (\ref{eq:opt}):
+\begin{align}
+& \min \bigg( \sum_{i=1}^{n} \int_{t=0}^{T} \mathcal{C}_i (\zeta_i(t))dt \bigg) \nonumber = \min \bigg( \int_{t=0}^{T}  \sum_{i=1}^{n} \mathcal{C}_i (\zeta_i(t))dt \bigg) \nonumber \\
+&=  \min \bigg( \int_{t=0}^{T} (\sum_{i=1}^{n_{v_t}} \mathcal{C}_i (\zeta_i(t)) + \sum_{i=n_{v_t}+1}^{n} \mathcal{C}_i (\zeta_i(t))) dt \bigg) \nonumber \\
+&=  \min \bigg( \sum_{i=1}^{n_{v_t}} \int_{t=0}^{T} c_1dt + \sum_{i=n_{v_t}+1}^{n} \int_{t=0}^{T} c_0dt \bigg) \nonumber \\
+&=  \min (\sum_{i=1}^{n_{v_t}} c_1 T+ \sum_{i=n_{v_t}+1}^{n} c_0 T) \nonumber \\
+&=  \min (c_1n_{v_t}T + c_0(n-n_{v_t})T) 
+\end{align}
+
+Since by definition $c_0 < c_1$ and $r_s < r_l$, let $ c_0 = r_s$ and $c_1 = r_l$ without loss of generality. Therefore:
+\begin{align}
+&\phantom{=\ } \min (c_1n_{v_t}T + c_0(n-n_{v_t})T) \nonumber \\
+&= \min (r_ln_{v_t} T+ r_s(n-n_{v_t}) T) \nonumber \\
+&= \min (\sum_{t=1}^T(r_ln_{v_t} + r_s(n-n_{v_t}))) & \mathllap{[\sum_{i=1}^n x = nx]} \nonumber \\
+&\equiv  r_M + \min_{\pi} \mathbb{E} [  \sum_{t=0}^T(r_l n_{v_t} +  r_s (n - n_{v_t})) \mid . ] \nonumber \\
+&\equiv Q^{\pi^*}(s_t,a_t) 
+\end{align}
+Here, the $\equiv$ symbol means that they have a one-to-one mapping or bijection (since $r_M$ is a constant and the reward distribution is fixed). Hence, the optimal cost of navigation within the time horizon $T$ is equivalent to the optimal action-value $Q^{\pi^*}(s_t,a_t)$. Therefore, the optimal policy $\pi^*$ for the given MDP $M$ will generate the optimal paths with minimum costs, satisfying all three constraints of equation (\ref{eq:opt}). $\qed$
+
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Robot Dynamics}
+Experimental evaluations were conducted for two groups of robots with different dynamics. One group consists of $n$ wheeled robots operating in an environment with obstacles \cite{plaku2021}, and the other group consists of $n$ omnidirectional UAVs operating in a windy environment. The dynamics of the robots are described as follows:
+
+\subsubsection{Wheeled robots with obstacles}  The configuration $(x_i,y_i,\theta_i) \in \config_i$ for robot $i$ has the position $(x_i,y_i)$ and orientation $\theta_i$. The state $(x_i,y_i,\theta_i,\psi_i,v_i) \in \states_i$ includes the steering angle $\psi_i$ and velocity $v_i$. The control $(\alpha, \omega) \in \mathcal{U}_i$ defines the acceleration $\alpha$ and steering rate $\omega$. The motion dynamics are defined as:
+\begin{align}
+\dot{s} &= f_i(s,u) = (\dot{x}, \dot{y}, \dot{\theta}, \dot{\psi}, \dot{v}), \\
+        % &= f_i((x,y,\theta, \psi, v), (\alpha, \omega)), \\ 
+\dot{x} &= v \cos(\theta) \cos(\psi), \quad \dot{y} = v \sin(\theta) \cos(\psi), \\
+\dot{\theta} &= v \sin(\psi) / L, \quad  \dot{v} = \alpha, \quad \dot{\psi} = \omega,
+\end{align}
+where $L$ is the distance from the back to the front wheels.
+
+\subsubsection{UAVs in stochastic windy environment} The configuration $(x_i, y_i) \in \config_i$ denotes the center position of robot $i$, and state $(x_i, y_i, v_{x_i}, v_{y_i}) \in \states_i$ denotes the position and velocities along the $x$ and $y$ axis respectively. The control $(\mu_{x_i}, \mu_{y_i}) \in \mathcal{U}_i$ denotes the normalized thrust components applied to change velocity. Since there are no obstacles, we have $\cup_j \config_i^{obs} = \emptyset$ and $\config_i^{\free} = \config_i$. Each episode, the base wind magnitude $\bar{v}_a$ and direction $\bar{\beta}_a$ are drawn (under domain randomization), and at each timestep the effective wind is perturbed by Gaussian noise: $v_a^t \sim \mathcal{N}(\bar{v}_a, \sigma_w^2)$, $\beta_a^t \sim \mathcal{N}(\bar{\beta}_a, \sigma_\beta^2)$. Actions are further perturbed by $\epsilon_a \sim \mathcal{N}(0, \sigma_a^2)$. Therefore, the stochastic dynamics are:
+\begin{align}
+\dot{s} &= f_i(s,u) = (\dot{x}, \dot{y}, \dot{v_{x}}, \dot{v_{y}}),\\
+\dot{v_x} &= (\mu_{x_i} \kappa + \epsilon_a) / M_i, \quad \dot{v_y} = (\mu_{y_i} \kappa + \epsilon_a) / M_i, \\
+\dot{x} &= v_x + v_a^t \cos(\beta_a^t), \quad \dot{y} = v_y + v_a^t \sin(\beta_a^t),
+\end{align}
+where $M_i$ is the mass of robot $i$, $\kappa > 0$ is a thrust-power coefficient, and velocities are clipped to $[v_{\min}, v_{\max}]$.
+
+\subsection{Methodology}
+All experiments were performed on an HPC cluster with nodes having NVIDIA\textsuperscript{\textregistered} A40 GPUs and Intel\textsuperscript{\textregistered} Xeon\textsuperscript{\textregistered} Silver 4215 CPUs @2.50\,GHz. We crafted \textbf{ten} UAV environment variations (1–10) and \textbf{eight} wheeled robot environment variations (1–8) with different field shapes, robot starting positions, and regions of interest (ROIs). For UAVs, we vary the number of robots $N \in \{2, 3, 4, 5\}$; for wheeled robots the robot count is determined by each environment configuration. We used the Stable-Baselines3 and SB3-Contrib \cite{stable-baselines3} Python libraries for measuring the performance of five gradient-based deep RL algorithms—Advantage Actor-Critic (A2C) \cite{mnih2016a2c}, Trust Region Policy Optimization (TRPO) \cite{schulman2015trust}, Proximal Policy Optimization (PPO) \cite{schulman2017ppo}, Truncated Mixture of Continuous Distributional Quantile Critics (TQC) \cite{kuznetsov2020tqc}, CrossQ \cite{bhatt2024crossq}—and one finite-difference based algorithm, Augmented Random Search (ARS) \cite{mania2018ars}. We selected both on-policy (A2C, TRPO, PPO, ARS) and off-policy (CrossQ, TQC) methods.
+
+All main experiments use \texttt{uncertainty\_mode=full} (stochastic wind, actuation noise $\sigma_a=0.10$, observation noise $\sigma_{obs}=0.01$) and \texttt{dr\_mode=none}. Henderson \textit{et al.}\cite{henderson2018deep} noted the importance of evaluating RL methods across hyperparameter settings. Therefore, the main experiments are conducted in two settings: (A) \emph{default} hyperparameters from Stable-Baselines3 and (B) \emph{tuned} hyperparameters found by the Optuna \cite{optuna_2019} hyperparameter optimization library. For each robot group we thus have four experiment sets: UAVs with default and tuned hyperparameters, and wheeled robots with default and tuned hyperparameters. We selected both common and model-specific hyperparameters for optimization. The learning rate $\alpha \in [0.0001, 0.05]$ is used by all algorithms. The generalized advantage estimator $\lambda \in [0.90, 1.0]$ is used for all algorithms other than ARS and TQC. The value function coefficient $\verb|vf_coef| \in [0.2, 0.7]$, entropy coefficient $\verb|ent_coef| \in [0.0, 0.05]$ and maximum gradient clipping $\verb|max_grad_norm| \in [0.30, 0.99]$ are applied only to A2C, PPO, and CrossQ. The $\verb|buffer_size| \in [1000, 100000]$ is used for all off-policy algorithms (CrossQ, TQC). We performed 50 Optuna trials for 0.5 million timesteps. Unless otherwise specified, all experiments were run for 5 million timesteps with 5 independent seeds.
+
+\subsection{Results and Analysis}
+Table~\ref{tab:alg_analysis} shows the results of the four main experiments under \texttt{uncertainty\_mode=full}. The mean and maximum reward for each experiment are highlighted in bold. The range is the absolute difference between the minimum and maximum reward over the timesteps. The average reward threshold for finding the optimal policy is $0.1 \times 10^6$, computed as the mean episodic reward averaged over all environment variations. For UAVs with default hyperparameters, Fig.~\ref{fig:uav_a} shows that CrossQ outperformed all other algorithms by reaching the reward threshold within 500k timesteps. TRPO, PPO, and TQC exhibit similar performances, and ARS appears to be improving gradually. A2C was stuck in a local optimum. The maximum reward for TRPO is slightly higher than that of CrossQ, confirming that CrossQ converged to a near-optimal local optimum. For UAVs with tuned hyperparameters, Fig.~\ref{fig:uav_b} shows that TRPO and CrossQ achieved comparable maximum rewards. TRPO, PPO, and A2C were robust against changes in hyperparameters, and ARS performed the worst. For wheeled robots with default hyperparameters, Fig.~\ref{fig:wheeled_a} shows that CrossQ was slightly better than ARS overall, but ARS was more stable with lower variance. A2C had slightly worse performance and converged to a local optimum close to the global optimum. For wheeled robots with tuned hyperparameters, Fig~\ref{fig:wheeled_b} shows that ARS achieved the best performance, highest stability, and was robust against changes in hyperparameters.
+
+Generally, it is well-known to RL researchers that PPO performs much better than A2C and TRPO in stochastic and dynamic environments \cite{schulman2017ppo, henderson2018deep}. Since our environment has a fixed action space and a non-stochastic (though continuous and infinite) state space, simpler algorithms with small policy networks performed much better and faster. The superior performance of A2C and TRPO, despite generally being more sample-inefficient than PPO, suggests that the structural properties of the custom environment may favor these algorithms' approach to policy and value function estimation. %A critical safety parameter, such as collision avoidance, is guaranteed for the optimal policy through the reward design and formal proof. However, the learned model may not find the optimal policy due to overfitting. We may need to perform additional safety verification tests for the learned models.
+
+% ............ \textcolor{blue}{*need to write the results after the experiments are done}
+
+\subsection{Simulation}
+We utilized the widely-used Gymnasium \cite{towers2024gymnasium} Python library built on top of Pygame \cite{pygame} to illustrate the environments for the two robot groups. Additionally, we used CoppeliaSim \cite{coppeliaSim2013} (previously known as V-Rep \cite{vrep2013}) to develop a 3-D scene of a cornfield with weeds in certain locations to represent the UAVs in windy environments. The task is to follow the shortest paths and spray herbicides on the weed locations using multiple UAVs. Based on the results, the simulations were performed using the trained models for the environment variations 1 and 3 in the scene. Fig.~\ref{fig:sim_both_groups} shows the simulation of environment 1 of both robot groups by running inference on the models trained using the CrossQ \cite{bhatt2024crossq} algorithm. The starting and final positions of the UAVs and weed locations (\textcolor{darkgreen}{dark green} plants) in the CoppeliaSim scene are shown in Fig.~\ref{fig:coppelia_set1_i} and  Fig.~\ref{fig:coppelia_set1_f}, respectively, where the \textcolor{red}{red} lines are the spraying paths covering all weed locations. The starting and final positions of the wheeled robots in Pygame are shown in Fig.~\ref{fig:wheeled_set1_i} and  Fig.~\ref{fig:wheeled_set1_f}, respectively, where the obstacles are shown in \textcolor{gray}{gray} and goal positions are shown in \textcolor{green}{green}.
+
+\subsection{Ablation Study}
+\label{sec:ablation}
+To understand the contribution of each component, we ran ablation experiments using CrossQ with $N=3$ UAVs across 5 seeds and all 10 environment variations. We ablate three dimensions supported by the code:
+
+\paragraph{Reward ablation.} We compare three reward configurations: \texttt{full} (all terms active), \texttt{no\_term} (collision penalty and success bonus disabled), and \texttt{no\_path} (energy, speed, path-length, and time penalties disabled). Removing the terminal reward (\texttt{no\_term}) causes the agent to collide, confirming that the large collision penalty $r_M$ is essential for constraint satisfaction. Removing path penalties (\texttt{no\_path}) has minimal impact on coverage but produces longer, less efficient paths.
+
+\paragraph{Observation ablation.} We compare four observation configurations: \texttt{full} ($4N+1$ features: positions, velocities, visited-target bitmask), \texttt{no\_pos} (bitmask only), \texttt{no\_inf\_hist} (positions and velocities only, no coverage history), and \texttt{pos\_only} (positions only). Removing the coverage bitmask (\texttt{no\_pos}) severely degrades performance, confirming that tracking visited ROIs is critical for navigation. Removing velocity information (\texttt{pos\_only}) also degrades performance, though less severely.
+
+\paragraph{Uncertainty ablation.} We compare four uncertainty modes: \texttt{full} (wind + action + observation noise), \texttt{wind\_only} (wind noise only), \texttt{act\_only} (action noise only), and \texttt{deterministic} (no noise). Adding actuation noise alone (\texttt{act\_only}) achieves the highest reward, slightly outperforming the deterministic baseline. Conversely, wind noise causes the largest performance degradation and is the primary source of uncertainty in the navigation task.
+
+\subsection{Domain Randomization}
+\label{sec:dr}
+We implement domain randomization (DR) by re-sampling physical parameters at the start of each training episode under three conditions: (A) \texttt{no DR} (no randomization), (B) \texttt{wind DR} (wind magnitude uniformly sampled from $[0, 1]$\,units/s and direction from $[0°, 360°]$), and (C) \texttt{full DR} (wind, actuation noise $\sigma_a \in [0.01, 0.10]$, infected-site radius $\pm 20\%$, mass and thrust-power $\pm 10$--$20\%$). We evaluate these conditions on in-distribution ($v_a \in [0, 0.4]$) and out-of-distribution (OOD, $v_a \in (0.4, 1.0]$) wind sets. Both DR conditions significantly improve OOD robustness compared to no DR. Full DR achieves the lowest worst-case tail risk, at the cost of marginal in-distribution performance; wind DR delivers the best in-distribution IQM. These findings confirm wind as the primary generalization bottleneck for navigation, consistent with the sensitivity analysis below.
+
+\subsection{Sensitivity Analysis}
+To measure the robustness of the environment design, we ran inference of the UAVs for environment variation 3, where the model was trained using the CrossQ algorithm with no winds ($v_a = 0, \beta_a = 0^{\circ}$), and the inference was run with the wind blowing at variable speeds $v_a$ and angle $\beta_a=30^{\circ}$. Fig. \ref{fig:windy_sim} shows the results where the robots were able to find the optimal navigation paths where $v_a \leq 0.4$. The robustness depends on the maximum and minimum speeds of the UAVs. We use $v_{clip} = \pm 5$ units per second for speed limits, which prevents a UAV from gaining unreasonable speed. Therefore, engineers can use the trained model to generate optimal paths in uncertain and windy environments if $-\frac{v_{clip}}{10} < v_a < \frac{v_{clip}}{10}$ holds. These results are consistent with the domain randomization findings: policies trained with wind DR successfully navigate for $v_a$ up to the training range, while no-DR policies degrade beyond $v_a = 0.4$.
+
+\subsection{Sim-2-Real Analysis}
+Although the present study focuses on simulation-based validation, the proposed framework is designed to be extensible to real robotic systems. First, the stochastic MDP formulation explicitly incorporates robot dynamics through a generic function $f_i$, enabling direct replacement with system-identified or hardware-calibrated models. Second, stochastic wind, actuation noise, and observation noise are already modeled within the transition function, serving as principled forms of domain randomization. Domain randomization over wind speed, direction, robot mass, and thrust-power coefficients further improves OOD robustness, as demonstrated in Section~\ref{sec:dr}. Additional sensing noise, actuator delays, and model uncertainties can be incorporated directly into the state-transition dynamics without modifying the theoretical framework. Actuator saturation and finite episode horizons already reflect realistic physical constraints such as battery limits and velocity bounds. Because the environment is formally specified as a stochastic MDP, it can also be integrated with reachability analysis, control barrier functions, or temporal-logic-based safety verification prior to deployment. While hardware validation remains future work, these design choices provide a principled pathway for bridging the sim-to-real gap in stochastic navigation tasks.
+
+\begin{table}[tbp]
+\centering
+\caption{Main experimental results (uncertainty\_mode=full) averaged over environment variations}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{
+|l|l|
+S[table-format=2.4]
+S[table-format=2.4]
+S[table-format=2.4]
+S[table-format=2.4]
+S[table-format=2.4]
+S[table-format=2.4]|
+}
+\hline
+\multirow{2}{*}{\textbf{Experiment}} & \multirow{2}{*}{\textbf{Param.}} 
+& \textbf{A2C} & \textbf{PPO} & \textbf{TRPO} 
+& \textbf{ARS} & \textbf{CrossQ} & \textbf{TQC} \\
+& & \texttimes ${10^6}$ & \texttimes ${10^6}$ & \texttimes ${10^6}$ & \texttimes ${10^6}$ & \texttimes ${10^6}$ & \texttimes ${10^6}$ \\
+
+\hline
+
+\multirow{4}{1.3cm}{UAV Default}
+& Mean  & -0.516027656 & -0.212796252 & -0.095401718 & -0.270643904 & {\bfseries\num{0.142910101}} & -0.197661577 \\
+& Max   & -0.100244 & -0.089993898 & {\bfseries\num{0.15937}} & -0.08024 & 0.159349 & 0.132568703 \\
+& SD    & 0.243661918 & 0.184584128 & 0.115658208 & 1.483008214 & 0.099024005 & 0.573113877 \\
+& Range & 6.609696 & 3.704403102 & 1.67922125 & 29.729134 & 9.961687 & 21.1363947 \\
+\Xhline{3\arrayrulewidth}
+
+\multirow{4}{1.3cm}{UAV Tuned}
+& Mean  & -0.243569045 & -0.180676921 & -0.140416732 & -1.534535784 & {\bfseries\num{-0.055438575}} & -0.859217802 \\
+& Max   & -0.082030797 & -0.076667 & 0.0067228 & -0.14081 & {\bfseries\num{0.15925}} & 0.0141937 \\
+& SD    & 0.09897454 & 0.066854611 & 0.101052405 & 4.378146673 & 0.398611677 & 2.713735699 \\
+& Range & 2.356811703 & 0.654988813 & 0.661329175 & 19.761 & 11.761465 & 18.5190737 \\
+\Xhline{3\arrayrulewidth}
+
+\multirow{4}{1.3cm}{Wheeled Default}
+& Mean  & -0.016639304 & -0.063006647 & -0.04333655 & -0.003461342 & {\bfseries\num{0.084740173}} & -0.067277202 \\
+& Max   & 0.019253529 & 0.018938625 & 0.061124766 & 0.019592947 & {\bfseries\num{0.139911266}} & 0.023463559 \\
+& SD    & 0.025003901 & 0.036231457 & 0.029397484 & 0.013888309 & 0.083832282 & 0.02349539 \\
+& Range & 0.120209717 & 0.122545625 & 0.163848563 & 0.114719588 & 0.240622492 & 0.125124809 \\
+\Xhline{3\arrayrulewidth}
+
+\multirow{4}{1.3cm}{Wheeled Tuned}
+& Mean  & -0.095972177 & -0.096296106 & -0.04483161 & {\bfseries\num{-0.00529511}} & -0.083017018 & -0.071808759 \\
+& Max   & -0.070700594 & -0.063067281 & 0.016260944 & 0.018952 & {\bfseries\num{0.115718211}} & 0.014393159 \\
+& SD    & 0.004539169 & 0.00437403 & 0.027743266 & 0.012253 & 0.01942955 & 0.024753375 \\
+& Range & 0.030011867 & 0.038479844 & 0.118246843 & 0.107393719 & 0.216983211 & 0.117600706 \\
+\hline
+\end{tabular}}
+\label{tab:alg_analysis}
+\vspace{-10pt}
+\end{table}
+
+
+\begin{figure}[tbp]
+    \centering
+    \subfloat[UAV Default]{\includegraphics[width=0.499\linewidth]{figures/uav_default_August24.png}\label{fig:uav_a}}
+    \hfil
+    \subfloat[UAV Tuned]{\includegraphics[width=0.499\linewidth]{figures/uav_random_August24.png}\label{fig:uav_b}}
+    \hfil
+    \subfloat[Wheeled Default]{\includegraphics[width=0.499\linewidth]{figures/wheeled_default_beocat_August24.png}\label{fig:wheeled_a}}
+    \hfil
+    \subfloat[Wheeled Tuned]{\includegraphics[width=0.499\linewidth]{figures/wheeled_random_beocat_August24.png}\label{fig:wheeled_b}}
+    % \footnotesize
+    \caption{Mean episodic reward over all environment variations for the four main experiment sets under \texttt{uncertainty\_mode=full}: UAVs with default and Optuna-tuned hyperparameters (a, b), and wheeled robots with default and Optuna-tuned hyperparameters (c, d) respectively.}
+    \label{fig:algorithm_comparison}
+    \vspace{-10pt}
+\end{figure}
+
+\begin{figure}[tbp]
+    \centering
+    \subfloat[Initial]{\includegraphics[width=0.2\textwidth,height=0.15\textwidth]{figures/env1_coppelia_init.JPG}\label{fig:coppelia_set1_i}}
+    \hfil
+    \subfloat[Final]{\includegraphics[width=0.2\textwidth,height=0.15\textwidth]{figures/env1_coppelia_final.JPG}\label{fig:coppelia_set1_f}} 
+    \hfil
+    \subfloat[Initial]{\includegraphics[width=0.2\textwidth,height=0.15\textwidth]{figures/env1_init.JPG}\label{fig:wheeled_set1_i}}
+    \hfil
+    \subfloat[Final]{\includegraphics[width=0.2\textwidth,height=0.15\textwidth]{figures/env1_final_crossq.JPG}\label{fig:wheeled_set1_f}}    
+    \caption{The initial and final states of the environment 1 for two UAVs in CoppeliaSim (a, b) and for three wheeled robots in Pygame (c, d).}
+    \label{fig:sim_both_groups} 
+    \vspace{-10pt}
+\end{figure}
+
+\begin{figure*}[tbp]
+    \centering
+    \subfloat[$v_a=0.1$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3p_0.1.png}\label{fig:env3p_0.1}} 
+    \hfil
+    \subfloat[$v_a=0.2$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3p_0.2.png}\label{fig:env3p_0.2}}
+    \hfil
+    \subfloat[$v_a=0.3$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3p_0.3.png}\label{fig:env3p_0.3}}
+    \hfil
+    \subfloat[$v_a=0.4$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3p_0.4.png}\label{fig:env3p_0.4}}
+    \hfil
+    \subfloat[$v_a=0.5$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3p_0.5.png}\label{fig:env3p_0.5}}
+    \\
+    \subfloat[$v_a=0.1$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3s_0.1.jpg}\label{fig:env3s_0.1}} 
+    \hfil
+    \subfloat[$v_a=0.2$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3s_0.2.jpg}\label{fig:env3s_0.2}}
+    \hfil
+    \subfloat[$v_a=0.3$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3s_0.3.jpg}\label{fig:env3s_0.3}}
+    \hfil
+    \subfloat[$v_a=0.4$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3s_0.4.jpg}\label{fig:env3s_0.4}}
+    \hfil
+    \subfloat[$v_a=0.5$]{\includegraphics[width=0.15\textwidth, height=0.10\textwidth]{figures/env3s_0.5.jpg}\label{fig:env3s_0.5}}   
+    \caption{Simulation of environment 3 with winds blowing at an angle $\beta_a=30$° and variable speeds $v_a$ in Pygame (a-e) and in CoppeliaSim (f-j). The trained model was able to find the optimal path for wind speed up to $0.4$ units per second.}
+    \label{fig:windy_sim} 
+    \vspace{-10pt}
+\end{figure*}
+
+\section{Limitations}
+\label{sec:limitations}
+
+The maximum episode length is fixed and assumed sufficient for every environment variation to visit all regions of interest. If the episode budget is not enough to visit all locations, a sub-optimal path results, and further investigation is needed. All robots in a group are identical and follow the same dynamics; heterogeneous robot teams are left for future work. The sample complexity of the state space increases with the number of robots: we tested with up to 7 robots. While the learned model can reach the reward threshold within a reasonable time, the absolute maximum reward cannot be guaranteed. Hyperparameters tuned by Optuna on variation 1 are not globally optimal across all variations. Although the formal proof guarantees collision avoidance for the \emph{optimal} policy, the learned model may not always find the optimal policy; additional safety verification (e.g., model checking via temporal logic) may be required for deployment. The stochastic transitions incorporate Gaussian noise with bounded variance; heavy-tailed or structured disturbances are not yet addressed. Despite these limitations, our work provides a systematic template—from formal MDP construction through uncertainty modeling and domain randomization—that guides researchers in developing robust RL environments for multi-robot navigation in uncertain and noisy real-world settings.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We explored how to formally construct RL environments with correctness guarantees for multi-robot navigation in stochastic and uncertain environments with different robot dynamics. Our stochastic MDP framework explicitly models wind disturbances, actuation noise, and observation uncertainty, and supports controllable uncertainty modes and domain randomization for policy robustness. The experimental results and simulations show that the environments are learnable within reasonable training periods despite having large, continuous state and action spaces, and that off-the-shelf RL algorithms—particularly CrossQ and TRPO—achieve near-optimal navigation policies across diverse conditions. Ablation studies confirm that the coverage bitmask observation and the terminal reward components are critical, while domain randomization over wind parameters provides the greatest OOD robustness gains. In the future, we will extend our work to 3-D path planning in constrained environments where a subset of robots encounter failures during flights, formulating safety solutions for disconnected robot swarms. We believe our work bridges the gap between developing trustworthy and scalable environments for multi-robot navigation and their application to real-world dynamic and uncertain environments.
+
+
+
+\bibliographystyle{ieeetr}
+\bibliography{biblio}  % .bib
+
+\end{document}

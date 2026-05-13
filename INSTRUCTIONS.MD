@@ -1,0 +1,726 @@
+# Learning to Navigate in a Stochastic and Uncertain Environment with Variable Motion Dynamics
+
+This is the codebase for the paper *"Learning to Navigate in a Stochastic and
+Uncertain Environment with Variable Motion Dynamics."*  It supports **two robot
+platforms** with completely different motion dynamics, sharing the same
+training/evaluation pipeline:
+
+| Robot type | Gym ID            | Class           | Dynamics       | Configs                       |
+|-----------:|:------------------|:----------------|:---------------|:------------------------------|
+| `uav`      | `MultiUAV-v0`     | `MultiUAV`      | Newtonian (ax, ay)         | `exp_sets/uav/cont_sets.json` (10 sets) |
+| `wheeled`  | `MultiWheeled-v0` | `MultiWheeled`  | Bicycle (accel, steer-rate) | `exp_sets/wheeled/env*.ini`   (8 sets)  |
+
+**Every experiment is performed for both robot types.**  The CLI scripts
+(`train.py`, `evaluate.py`, `tune.py`, `sensitivity_hp.py`) all accept
+`--robot_type {uav,wheeled}` and the SLURM scripts accept the robot type as
+their first positional argument.
+
+## Setup
+
+It is recommended to run this codebase on Linux. The packages required to run
+the code are listed in `requirements.txt`.  Install with:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Summary (TLDR)
+
+Follow **Part A** to run the experiments on a local machine (this may take a
+long time).  Follow **Part B** if you have access to an HPC cluster with
+SLURM.  A **single-file reference implementation** that bundles both
+environments, the helpers, the gym registration, and the training launcher
+is available at `single_file/example_env_v1.py` — useful for quickly
+inspecting the full pipeline in one place.  Once policies are trained, see
+the **Simulation** section near the end of this document to run the trained
+UAV models inside CoppeliaSim.
+
+---
+
+# Part A — Local Machine (No HPC Cluster)
+
+> **Device note:** Replace `--device cpu` with `--device cuda` anywhere below
+> if you have a CUDA-capable GPU.  CrossQ and TQC benefit the most from a GPU.
+>
+> **Reproduction time warning:** The full grid (3 seeds × 10 UAV sets × 4 robot
+> counts, plus 3 seeds × 8 wheeled sets) takes hundreds of CPU-hours per
+> algorithm.  The commands below show a **minimal single run** for sanity
+> checking and **loop variants** for full coverage — start with the single
+> run and only expand the loops once the pipeline is verified end-to-end.
+
+## A-1. Step 1 — Default Hyperparameters (Local)
+
+### Minimal single run — one for each robot type
+
+```bash
+# UAV, env set 1, 3 robots, seed 42, 2M steps
+python train.py \
+    --algorithm   CrossQ \
+    --robot_type  uav \
+    --set         1 \
+    --num_robots  3 \
+    --seed        42 \
+    --steps       2000000 \
+    --experiment  main \
+    --device      cpu
+
+# Wheeled, env set 1, seed 42 (num_robots is ignored — read from env1.ini)
+python train.py \
+    --algorithm   CrossQ \
+    --robot_type  wheeled \
+    --set         1 \
+    --seed        42 \
+    --steps       2000000 \
+    --experiment  main \
+    --device      cpu
+```
+
+Outputs land in:
+
+```
+logs/main_default/CrossQ_uav_N3_env1_seed42/        ← UAV
+logs/main_default/CrossQ_wheeled_N3_env1_seed42/    ← wheeled
+```
+
+### Loop over both robot types and all algorithms
+
+```bash
+for ROBOT in uav wheeled; do
+  if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; ROBOTS="2 3 4 5"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8";        ROBOTS="3"; fi
+  for ALG in CrossQ TQC PPO A2C TRPO ARS; do
+    for SET in $SETS; do
+      for SEED in 42 123 9999; do
+        for N in $ROBOTS; do
+          python train.py \
+              --algorithm   $ALG \
+              --robot_type  $ROBOT \
+              --set         $SET \
+              --num_robots  $N \
+              --seed        $SEED \
+              --steps       2000000 \
+              --experiment  main \
+              --device      cpu
+        done
+      done
+    done
+  done
+done
+```
+
+---
+
+## A-2. Step 2 — Hyperparameter Tuning (Local)
+
+Tune each algorithm independently for each robot type.  The tuned
+hyperparameters are written to a robot-type-tagged JSON so that UAV and
+wheeled tunings do not overwrite each other.
+
+```bash
+mkdir -p logs/optuna_studies
+
+for ROBOT in uav wheeled; do
+  mkdir -p logs/optuna_studies/$ROBOT
+  for ALG in A2C ARS PPO TRPO CrossQ TQC; do
+    python tune.py \
+        --algorithm   $ALG \
+        --robot_type  $ROBOT \
+        --device      cpu \
+        --n_trials    50 \
+        --tune_steps  500000 \
+        --storage     logs/optuna_studies/${ROBOT}/${ALG}_journal.log \
+        --study_name  ${ALG}_${ROBOT}_tune \
+        --output_json logs/best_hyperparams_${ROBOT}.json
+  done
+done
+```
+
+**What this produces:**
+
+```
+logs/best_hyperparams_uav.json             ← consumed by Step A-3 (UAV)
+logs/best_hyperparams_wheeled.json         ← consumed by Step A-3 (wheeled)
+logs/optuna_studies/<robot>/<ALG>_journal.log
+```
+
+> **Resuming:** Re-run the same `tune.py` command — `load_if_exists=True`
+> picks up where the study left off.
+
+---
+
+## A-3. Step 3 — Tuned Hyperparameters (Local)
+
+Pass `--hyperparams_json` pointing at the matching robot-type JSON.
+
+```bash
+for ROBOT in uav wheeled; do
+  if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; ROBOTS="2 3 4 5"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8";        ROBOTS="3"; fi
+  for ALG in CrossQ TQC PPO A2C TRPO ARS; do
+    for SET in $SETS; do
+      for SEED in 42 123 9999; do
+        for N in $ROBOTS; do
+          python train.py \
+              --algorithm        $ALG \
+              --robot_type       $ROBOT \
+              --set              $SET \
+              --num_robots       $N \
+              --seed             $SEED \
+              --steps            2000000 \
+              --experiment       main \
+              --hyperparams_json logs/best_hyperparams_${ROBOT}.json \
+              --device           cpu
+        done
+      done
+    done
+  done
+done
+```
+
+Outputs land in `logs/main_tuned/<ALG>_<robot>_N<N>_env<SET>_seed<SEED>/`.
+
+---
+
+## A-4 to A-6. Ablation Training — Reward, Observation, Uncertainty (Local)
+
+All three ablations use `train.py` with different `--experiment` and
+`--ablation` flags and fix CrossQ.  For UAV they use N=3; for wheeled the
+N is taken from the env `.ini`.
+
+| Experiment             | `--experiment`        | Valid `--ablation` values                     |
+|------------------------|-----------------------|-----------------------------------------------|
+| Reward ablation        | `ablation_reward`     | `full`, `no_term`, `no_path`                  |
+| Observation ablation   | `ablation_obs`        | `full`, `no_pos`, `no_inf_hist`, `pos_only`   |
+| Uncertainty ablation   | `ablation_uncertainty`| `full`, `wind_only`, `act_only`, `deterministic` |
+
+### Step 4 — Reward ablation
+
+```bash
+for ROBOT in uav wheeled; do
+  if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  for CONDITION in full no_term no_path; do
+    for SET in $SETS; do
+      for SEED in 42 123 9999; do
+        python train.py \
+            --algorithm  CrossQ \
+            --robot_type $ROBOT \
+            --set        $SET \
+            --num_robots 3 \
+            --seed       $SEED \
+            --steps      2000000 \
+            --experiment ablation_reward \
+            --ablation   $CONDITION \
+            --device     cpu
+      done
+    done
+  done
+done
+```
+
+### Step 5 — Observation ablation
+
+```bash
+for ROBOT in uav wheeled; do
+  if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  for OBS in full no_pos no_inf_hist pos_only; do
+    for SET in $SETS; do
+      for SEED in 42 123 9999; do
+        python train.py \
+            --algorithm  CrossQ \
+            --robot_type $ROBOT \
+            --set        $SET \
+            --num_robots 3 \
+            --seed       $SEED \
+            --steps      2000000 \
+            --experiment ablation_obs \
+            --ablation   $OBS \
+            --device     cpu
+      done
+    done
+  done
+done
+```
+
+### Step 6 — Uncertainty ablation
+
+```bash
+for ROBOT in uav wheeled; do
+  if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  for MODE in full wind_only act_only deterministic; do
+    for SET in $SETS; do
+      for SEED in 42 123 9999; do
+        python train.py \
+            --algorithm  CrossQ \
+            --robot_type $ROBOT \
+            --set        $SET \
+            --num_robots 3 \
+            --seed       $SEED \
+            --steps      2000000 \
+            --experiment ablation_uncertainty \
+            --ablation   $MODE \
+            --device     cpu
+      done
+    done
+  done
+done
+```
+
+---
+
+## A-7. Step 7 — Domain Randomization (Local)
+
+Three DR conditions: `none`, `wind`, `full`.  Same robot-type loop:
+
+```bash
+for ROBOT in uav wheeled; do
+  if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; ROBOTS="2 3 4 5"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8";        ROBOTS="3"; fi
+  for DR in none wind full; do
+    for SET in $SETS; do
+      for SEED in 42 123 9999; do
+        for N in $ROBOTS; do
+          python train.py \
+              --algorithm  CrossQ \
+              --robot_type $ROBOT \
+              --set        $SET \
+              --num_robots $N \
+              --seed       $SEED \
+              --steps      2000000 \
+              --experiment dr \
+              --ablation   $DR \
+              --device     cpu
+        done
+      done
+    done
+  done
+done
+```
+
+---
+
+## A-8. Post-Training Evaluation (Local)
+
+Main results (Tables 1 & 2) and the observation ablation (Table 4) are read
+**directly from training NPZ files** — no separate eval pass is required for
+those.  The experiments below do require `evaluate.py`.
+
+### A-8-A. Reward ablation (Table 3)
+
+```bash
+mkdir -p logs/results
+for ROBOT in uav wheeled; do
+  if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  for CONDITION in full no_term no_path; do
+    for SET in $SETS; do
+      for SEED in 42 123 9999; do
+        python evaluate.py \
+            --algorithm  CrossQ \
+            --robot_type $ROBOT \
+            --set        $SET \
+            --num_robots 3 \
+            --seed       $SEED \
+            --experiment ablation_reward \
+            --ablation   $CONDITION \
+            --output_csv logs/results/ablation_reward_${ROBOT}.csv \
+            --n_eval_eps 50
+      done
+    done
+  done
+done
+```
+
+### A-8-B. Uncertainty ablation cross-evaluation matrix (Table 5)
+
+Each policy trained under one noise condition is evaluated under all four:
+
+```bash
+mkdir -p logs/results
+for ROBOT in uav wheeled; do
+  if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  for TRAIN_MODE in full wind_only act_only deterministic; do
+    for EVAL_MODE in full wind_only act_only deterministic; do
+      for SET in $SETS; do
+        for SEED in 42 123 9999; do
+          python evaluate.py \
+              --algorithm              CrossQ \
+              --robot_type             $ROBOT \
+              --set                    $SET \
+              --num_robots             3 \
+              --seed                   $SEED \
+              --experiment             ablation_uncertainty \
+              --ablation               $TRAIN_MODE \
+              --eval_uncertainty_mode  $EVAL_MODE \
+              --output_csv             logs/results/ablation_uncertainty_${ROBOT}.csv \
+              --n_eval_eps             50
+        done
+      done
+    done
+  done
+done
+```
+
+### A-8-C. Domain randomization — in-distribution & OOD (Table 7)
+
+```bash
+mkdir -p logs/results
+for ROBOT in uav wheeled; do
+  if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; ROBOTS="2 3 4 5"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8";        ROBOTS="3"; fi
+  for DR in none wind full; do
+    for SET in $SETS; do
+      for SEED in 42 123 9999; do
+        for N in $ROBOTS; do
+          python evaluate.py \
+              --algorithm     CrossQ --robot_type $ROBOT \
+              --set $SET --num_robots $N --seed $SEED \
+              --experiment dr --ablation $DR \
+              --eval_wind_min 0.0 --eval_wind_max 0.5 \
+              --output_csv logs/results/dr_inDist_${ROBOT}.csv \
+              --n_eval_eps 50
+
+          python evaluate.py \
+              --algorithm     CrossQ --robot_type $ROBOT \
+              --set $SET --num_robots $N --seed $SEED \
+              --experiment dr --ablation $DR \
+              --eval_wind_min 0.5 --eval_wind_max 2.0 \
+              --output_csv logs/results/dr_OOD_${ROBOT}.csv \
+              --n_eval_eps 50
+        done
+      done
+    done
+  done
+done
+```
+
+### A-8-D. Wind sweep (Figure 4)
+
+```bash
+mkdir -p logs/results
+wind_mins=(0.0 0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8)
+wind_maxs=(0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0)
+
+for ROBOT in uav wheeled; do
+  for DR in none full; do
+    for BIN in 0 1 2 3 4 5 6 7 8 9; do
+      for SEED in 42 123 9999; do
+        python evaluate.py \
+            --algorithm     CrossQ \
+            --robot_type    $ROBOT \
+            --set           1 \
+            --num_robots    3 \
+            --seed          $SEED \
+            --experiment    dr \
+            --ablation      $DR \
+            --eval_wind_min ${wind_mins[$BIN]} \
+            --eval_wind_max ${wind_maxs[$BIN]} \
+            --output_csv    logs/results/wind_sweep_${ROBOT}.csv \
+            --n_eval_eps    50
+      done
+    done
+  done
+done
+```
+
+---
+
+## A-9. Aggregate Results and Generate Table CSVs (Local)
+
+```bash
+python analyze_results.py --robot_type uav     --log_root logs --results_dir logs/results
+python analyze_results.py --robot_type wheeled --log_root logs --results_dir logs/results
+```
+
+## A-10. Generate All Figures (Local)
+
+```bash
+# Generates UAV-tagged and wheeled-tagged figures side by side
+python plot_figures.py --robot_type both \
+    --log_root logs --results_dir logs/results --figures_dir figures
+```
+
+## A-11. Hyperparameter Sensitivity (Table 6, Local)
+
+```bash
+for ROBOT in uav wheeled; do
+  for ALG in A2C ARS PPO TRPO CrossQ TQC; do
+    python sensitivity_hp.py \
+        --algorithm  $ALG \
+        --robot_type $ROBOT \
+        --results_dir logs/results
+  done
+  python sensitivity_hp.py --robot_type $ROBOT --write_latex_only --results_dir logs/results
+done
+```
+
+---
+
+## Tips for Local Runs
+
+| Goal | Suggestion |
+|---|---|
+| Smoke-test end-to-end quickly | Use `--steps 50000` and one seed/set |
+| Speed up CPU training | Increase `--num_envs` to match your CPU cores |
+| Use a GPU | Set `--device cuda`; most helpful for CrossQ and TQC |
+| Resume interrupted tuning | Re-run the same `tune.py` command (`load_if_exists=True` continues) |
+| Avoid re-running finished evals | `evaluate.py` skips rows already present in the output CSV |
+
+---
+
+# Part B — HPC Cluster (SLURM)
+
+All commands assume your working directory is the project root.  Every
+SLURM script takes the robot type as its **first positional argument**
+(default `uav`).  Submit each step twice — once for `uav`, once for
+`wheeled`.
+
+## B-1. Step 1 — Default Hyperparameters
+
+```bash
+# UAV  (1 alg × 10 sets × 4 N × 3 seeds = 120 jobs)
+sbatch --array=0-119 slurm/step1_crossq_default.sh uav
+# UAV  (5 algs × 10 sets × 4 N × 3 seeds = 600 jobs)
+sbatch --array=0-599 slurm/step1_others_default.sh uav
+
+# Wheeled  (1 alg × 8 sets × 1 N × 3 seeds = 24 jobs)
+sbatch --array=0-23  slurm/step1_crossq_default.sh wheeled
+# Wheeled  (5 algs × 8 sets × 1 N × 3 seeds = 120 jobs)
+sbatch --array=0-119 slurm/step1_others_default.sh wheeled
+```
+
+**Output layout:**
+```
+logs/main_default/{ALG}_{robot}_N{N}_env{SET}_seed{SEED}/
+    best_model/best_model.zip
+    eval_logs/evaluations.npz
+    *.csv  (SB3 training log)
+```
+
+## B-2. Step 2 — Optuna Hyperparameter Tuning
+
+```bash
+sbatch --array=0-299 slurm/step2_tune_hyperparameters.sh uav
+sbatch --array=0-299 slurm/step2_tune_hyperparameters.sh wheeled
+```
+
+**Output:** `logs/best_hyperparams_uav.json`, `logs/best_hyperparams_wheeled.json`,
+journal logs under `logs/optuna_studies/{uav,wheeled}/`.
+
+## B-3. Step 3 — Tuned Hyperparameters
+
+```bash
+sbatch --array=0-119 slurm/step3_crossq_tuned.sh uav
+sbatch --array=0-599 slurm/step3_others_tuned.sh uav
+
+sbatch --array=0-23  slurm/step3_crossq_tuned.sh wheeled
+sbatch --array=0-119 slurm/step3_others_tuned.sh wheeled
+```
+
+## B-4–6. Ablation Training — Reward, Observation, Uncertainty
+
+The merged script accepts the experiment as `arg1` and robot type as `arg2`.
+
+```bash
+# UAV  (4 conditions × 10 sets × 3 seeds = 120 jobs each)
+sbatch --array=0-119 slurm/step4_5_6_ablations.sh ablation_reward       uav
+sbatch --array=0-119 slurm/step4_5_6_ablations.sh ablation_obs          uav
+sbatch --array=0-119 slurm/step4_5_6_ablations.sh ablation_uncertainty  uav
+
+# Wheeled  (4 conditions × 8 sets × 3 seeds = 96 jobs each)
+sbatch --array=0-95  slurm/step4_5_6_ablations.sh ablation_reward       wheeled
+sbatch --array=0-95  slurm/step4_5_6_ablations.sh ablation_obs          wheeled
+sbatch --array=0-95  slurm/step4_5_6_ablations.sh ablation_uncertainty  wheeled
+```
+
+> The reward and obs ablations each have 3 and 4 conditions respectively; the
+> uncertainty ablation has 4.  The maximum grid size for the merged script is
+> driven by `ablation_obs` / `ablation_uncertainty` (4 conditions); the smaller
+> reward grid is a strict subset and is launched with the same array bounds.
+
+## B-7. Step 7 — Domain Randomization
+
+```bash
+sbatch --array=0-359 slurm/step7_dr.sh uav      # 3 × 10 × 4 × 3 = 360
+sbatch --array=0-71  slurm/step7_dr.sh wheeled  # 3 ×  8 × 1 × 3 =  72
+```
+
+## B-8. Post-Training Evaluation
+
+`eval_ablations.sh` accepts experiment as `arg1` and robot type as `arg2`.
+
+### B-8-A. Reward ablation (Table 3)
+
+```bash
+sbatch --array=0-89 slurm/eval_ablations.sh ablation_reward uav      # 90 jobs
+sbatch --array=0-71 slurm/eval_ablations.sh ablation_reward wheeled  # 72 jobs
+```
+
+Merge per-job CSVs (one merge per robot type):
+
+```bash
+for ROBOT in uav wheeled; do
+    OUT="logs/results/ablation_reward_${ROBOT}.csv"
+    SRC="logs/results/tmp/ablation_reward_${ROBOT}"
+    first_file=$(ls ${SRC}/*/set*/result_*.csv | head -n 1)
+    head -n 1 "$first_file" > "$OUT"
+    tail -n +2 -q ${SRC}/*/set*/result_*.csv >> "$OUT"
+    echo "Merged -> $OUT"
+done
+```
+
+### B-8-B. Uncertainty ablation cross-eval matrix (Table 5)
+
+```bash
+sbatch --array=0-479 slurm/eval_ablations.sh ablation_uncertainty uav      # 4×4×10×3 = 480
+sbatch --array=0-383 slurm/eval_ablations.sh ablation_uncertainty wheeled  # 4×4× 8×3 = 384
+```
+
+Merge:
+
+```bash
+for ROBOT in uav wheeled; do
+    OUT="logs/results/ablation_uncertainty_${ROBOT}.csv"
+    SRC="logs/results/tmp/ablation_uncertainty_${ROBOT}"
+    first_file=$(ls ${SRC}/train_*_eval_*/set*/result_*.csv | head -n 1)
+    head -n 1 "$first_file" > "$OUT"
+    tail -n +2 -q ${SRC}/train_*_eval_*/set*/result_*.csv >> "$OUT"
+    echo "Merged -> $OUT"
+done
+```
+
+### B-8-C. Domain randomization eval (Table 7)
+
+```bash
+sbatch --array=0-359 slurm/eval_ablations.sh dr uav      # 3×10×4×3 = 360
+sbatch --array=0-71  slurm/eval_ablations.sh dr wheeled  # 3× 8×1×3 =  72
+```
+
+Merge in-distribution / OOD:
+
+```bash
+for ROBOT in uav wheeled; do
+    for KIND in inDist OOD; do
+        OUT="logs/results/dr_${KIND}_${ROBOT}.csv"
+        SRC="logs/results/tmp/dr_${ROBOT}"
+        first_file=$(ls ${SRC}/*/*/${KIND}_*.csv | head -n 1)
+        head -n 1 "$first_file" > "$OUT"
+        tail -n +2 -q ${SRC}/*/*/${KIND}_*.csv >> "$OUT"
+        echo "Merged -> $OUT"
+    done
+done
+```
+
+### B-8-D. Wind sweep (Figure 4)
+
+```bash
+sbatch --array=0-59 slurm/eval_wind_sweep.sh uav      # 2×10×3 = 60
+sbatch --array=0-59 slurm/eval_wind_sweep.sh wheeled  # 2×10×3 = 60
+```
+
+> `eval_wind_sweep.sh` appends directly to `logs/results/wind_sweep_<robot>.csv`
+> (guarded by `fcntl` file locking in `evaluate.py`).  No merge step required.
+
+### B-8-E. Hyperparameter sensitivity (Table 6, optional)
+
+```bash
+sbatch --array=0-5 slurm/step8_sensitivity_hp.sh uav
+sbatch --array=0-5 slurm/step8_sensitivity_hp.sh wheeled
+
+# After all jobs finish, regenerate the LaTeX rows:
+python sensitivity_hp.py --robot_type uav     --write_latex_only --results_dir logs/results
+python sensitivity_hp.py --robot_type wheeled --write_latex_only --results_dir logs/results
+```
+
+## B-9. Aggregate Results
+
+```bash
+python analyze_results.py --robot_type uav     --log_root logs --results_dir logs/results
+python analyze_results.py --robot_type wheeled --log_root logs --results_dir logs/results
+```
+
+## B-10. Generate Figures
+
+```bash
+python plot_figures.py --robot_type both \
+    --log_root logs --results_dir logs/results --figures_dir figures
+```
+
+---
+
+## Summary of SLURM Job Counts
+
+| Step | Script                       | UAV jobs | Wheeled jobs |
+|------|------------------------------|---------:|-------------:|
+| 1a   | step1_crossq_default.sh      |     120  |       24     |
+| 1b   | step1_others_default.sh      |     600  |      120     |
+| 2    | step2_tune_hyperparameters.sh|     300  |      300     |
+| 3a   | step3_crossq_tuned.sh        |     120  |       24     |
+| 3b   | step3_others_tuned.sh        |     600  |      120     |
+| 4–6  | step4_5_6_ablations.sh ×3    |    3×120 |     3×96     |
+| 7    | step7_dr.sh                  |     360  |       72     |
+| 8a   | eval_ablations.sh reward     |      90  |       72     |
+| 8b   | eval_ablations.sh uncertainty|     480  |      384     |
+| 8c   | eval_ablations.sh dr         |     360  |       72     |
+| 8d   | eval_wind_sweep.sh           |      60  |       60     |
+| 8e   | step8_sensitivity_hp.sh      |       6  |        6     |
+
+> **Re-submission safety:** `evaluate.py` skips a run when the matching row
+> already exists in the output CSV (matched on algorithm, robot_type,
+> experiment, ablation, num_robots, env_set, seed, eval_wind_min,
+> eval_wind_max, eval_uncertainty_mode), so re-submitting failed array
+> indices never produces duplicate rows.
+
+---
+
+## Dependency Graph (submit in order)
+
+```
+Step 1 (default train, both robots)
+    -> analyze_results.py --robot_type <r>   -> Tab. 1 (reads NPZ directly)
+       plot_figures.py    --robot_type both  -> Fig. 1
+
+Step 2 (tune, both robots) -> Step 3 (tuned train)
+    -> analyze_results.py --robot_type <r>   -> Tab. 2
+       plot_figures.py    --robot_type both  -> Fig. 2, 3
+
+Steps 4-6 (ablations, both robots)
+    -> eval_ablations.sh (reward, uncertainty) per robot
+            -> merge CSVs -> analyze_results.py -> Tab. 3, 4, 5
+       (obs ablation needs no separate eval — read from NPZ)
+
+Step 7 (DR, both robots)
+    -> eval_ablations.sh (dr) per robot -> merge -> Tab. 7
+    -> eval_wind_sweep.sh per robot -> plot_figures.py -> Fig. 4, 5
+
+Step 2 -> (optional) step8_sensitivity_hp.sh (both robots) -> Tab. 6
+```
+
+---
+
+# Simulation
+
+## CoppeliaSim (UAV only)
+
+First, download and install the CoppeliaSim robotics simulator from
+<https://coppeliarobotics.com/>.  Open the scene file
+`simulation/sim_envs/coppeliasim_scene_for_spraying_v3.ttt` in the
+simulator, then follow the instructions in
+`simulation/new_env_sim_v3.ipynb`.
+
+For the sim-to-real **observation gap** experiment (Table 8) on the UAV
+platform, run:
+
+```bash
+python sim2real.py
+```
+
+This loads `logs/main_default/CrossQ_uav_N3_env1_seed42/best_model/best_model.zip`
+and runs 50 episodes per perturbation condition.  Edit `TRAINED_MODEL_PATH`
+inside the script if your model lives elsewhere.
+
+> **IMPORTANT:** Reopen the CoppeliaSim scene each time before running the
+> simulation.  Never save changes to the scene file when closing.
