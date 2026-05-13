@@ -6,7 +6,7 @@
 #
 # Grid:
 #   uav     → 5 algs × 10 sets × 4 robot counts × 3 seeds = 600 jobs
-#   wheeled → 5 algs ×  8 sets × 1 robot count  × 3 seeds = 120 jobs
+#   wheeled → 5 algs × 10 sets × 1 robot count  × 3 seeds = 150 jobs
 #
 # Index layout (innermost → outermost):
 #   seed_idx  = index % 3
@@ -16,7 +16,7 @@
 #
 # Submit:
 #   sbatch --array=0-599 step1_others_default.sh uav
-#   sbatch --array=0-119 step1_others_default.sh wheeled
+#   sbatch --array=0-149 step1_others_default.sh wheeled
 #
 # IMPORTANT: Before you launch all jobs, verify the Python path:
 #   /homes/choton/miniconda3/envs/robot_env/bin/python --version
@@ -44,7 +44,7 @@ if [ "$ROBOT_TYPE" == "uav" ]; then
     sets=(1 2 3 4 5 6 7 8 9 10)
     robots=(2 3 4 5)
 else
-    sets=(1 2 3 4 5 6 7 8)
+    sets=(1 2 3 4 5 6 7 8 9 10)
     robots=(3)
 fi
 

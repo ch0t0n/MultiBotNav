@@ -3,22 +3,21 @@
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
-import random
-import numpy as np
 import copy
 import json
 import configparser                  # [NEW] .ini config files for wheeled robot envs
 from datetime import datetime
-import multiprocessing as mp
-from shapely import Polygon, Point # shapely — used in MultiWheeled for collision geometry
-import pygame
+import numpy as np
 import gymnasium as gym
+import pygame
 import torch
+import random
+import multiprocessing as mp
+from shapely import Polygon, Point      # shapely — used in MultiWheeled for collision geometry
 from stable_baselines3.common.callbacks import LogEveryNTimesteps, EvalCallback, CallbackList
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.logger import configure
 from sb3_contrib import CrossQ
-
 
 # ================================
 # Utility / Helper Functions
@@ -76,11 +75,7 @@ def get_robot_polygon(x, y, theta, robot_length, robot_width):
     return Polygon(rotated)
 
 def read_uav_json(json_path, sf=1):
-    """Load UAV field-info dicts from JSON, applying a scale factor sf.
-
-    Default sf=1 keeps the JSON's 0-100 coordinate range as-is; pass
-    a different sf only if you need to rescale the world.
-    """
+    """Load UAV field-info dicts from JSON, applying a scale factor sf."""
     with open(json_path, "r") as f:
         data = json.load(f)
     for set_name, cfg in data.items():
@@ -92,7 +87,6 @@ def read_uav_json(json_path, sf=1):
 def read_wheeled_configs(config_dir):
     """
     Scan config_dir for .ini files (env1.ini, env2.ini, …) and load each one.
-
     Files are sorted lexicographically so env1 → set1, env2 → set2, etc.
     Returns a dict {"set1": env_params_1, "set2": env_params_2, …} so that
     train_single_env() can access configs with the same set_key pattern used
@@ -157,14 +151,14 @@ def read_env_config(config_path):
 # ================================
 # Environment Classes
 # ================================
+
 class MultiUAV(gym.Env):
     """
     Multi-UAV path-planning environment.
     Robots visit every infected/target location (binary coverage, no spraying).
     """
-
     metadata = {'render_modes': ['human', 'rgb_array'], "render_fps": 60}
-
+    
     def __init__(
         self,
         field_info,
@@ -181,9 +175,7 @@ class MultiUAV(gym.Env):
     ):
         super().__init__()
 
-        if wind_par is None:
-            wind_par = [0, 0]
-
+        # ── Validate experiment parameters ──────────────────────────
         assert uncertainty_mode in ("full", "wind_only", "act_only", "deterministic"), \
             f"Unknown uncertainty_mode: {uncertainty_mode}"
         assert dr_mode in ("none", "wind", "full"), \
@@ -193,55 +185,60 @@ class MultiUAV(gym.Env):
         assert obs_mode in ("full", "no_pos", "no_inf_hist", "pos_only"), \
             f"Unknown obs_mode: {obs_mode}"
         assert render_mode is None or render_mode in self.metadata["render_modes"]
-
+        
+        # Store experiment flags
         self.reward_ablation  = reward_ablation
         self.obs_mode         = obs_mode
         self.uncertainty_mode = uncertainty_mode
         self.dr_mode          = dr_mode
         self.max_steps        = max_steps
 
-        # Field geometry
-        self.field_info    = copy.deepcopy(field_info)
-        self.poly_vertices = self.field_info['field']
-        xs, ys             = zip(*self.poly_vertices)
-        self.min_x, self.max_x = float(np.min(xs)), float(np.max(xs))
-        self.min_y, self.max_y = float(np.min(ys)), float(np.max(ys))
-        self.world_width   = self.max_x - self.min_x
-        self.world_height  = self.max_y - self.min_y
+        # ── Field info ──────────────────────────────────────────────
+        self.field_info    = copy.deepcopy(field_info)          # Deep copy to prevent mutating original field data
+        self.poly_vertices = self.field_info['field']           # Extract polygon vertices defining the boundary
+        xs, ys             = zip(*self.poly_vertices)           # Unzip coordinates into separate X and Y tuples
+        self.min_x, self.max_x = float(np.min(xs)), float(np.max(xs)) # Find min/max X for bounding box
+        self.min_y, self.max_y = float(np.min(ys)), float(np.max(ys)) # Find min/max Y for bounding box
+        self.world_width   = self.max_x - self.min_x            # Calculate total width of the environment
+        self.world_height  = self.max_y - self.min_y            # Calculate total height of the environment
 
-        # Auto-scale render window
+        # ── Rendering setup ─────────────────────────────────────────
+        # Auto-scale render window to fit the target screen size
         scale_x = target_screen_size / self.world_width
         scale_y = target_screen_size / self.world_height
-        self.render_scale  = min(scale_x, scale_y) * 0.90
-        self.screen_width  = int(self.world_width  * self.render_scale) + 40
-        self.screen_height = int(self.world_height * self.render_scale) + 40
-        self.offset_x      = (self.screen_width  - self.world_width  * self.render_scale) / 2
-        self.offset_y      = (self.screen_height - self.world_height * self.render_scale) / 2
+        self.render_scale  = min(scale_x, scale_y) * 0.90       # Scale down slightly (90%) to leave margins
+        self.screen_width  = int(self.world_width  * self.render_scale) + 40  # Screen width with padding
+        self.screen_height = int(self.world_height * self.render_scale) + 40  # Screen height with padding
+        self.offset_x      = (self.screen_width  - self.world_width  * self.render_scale) / 2 # Center X offset
+        self.offset_y      = (self.screen_height - self.world_height * self.render_scale) / 2 # Center Y offset
 
-        # Robot physical params
-        self.num_robots   = num_robots
+        # ── Robot params ────────────────────────────────────────────
+        self.num_robots   = num_robots                          # Total number of UAVs
         self.init_robot_positions = np.array(
-            self.field_info['init_positions'][:num_robots], dtype=np.float32)
-        self.robot_size   = 10
-        self.mass         = 1.0
-        self.thrust_power = 0.5
-        self.max_speed    =  5.0
-        self.min_speed    = -5.0
-        self.robot_colors = [
+            self.field_info['init_positions'][:num_robots], dtype=np.float32) # Fetch initial positions
+        self.robot_size   = 1.0                                 # Base robot visual/collision size
+        self.mass         = 1.0                                 # UAV mass (overridden by DR full)
+        self.thrust_power = 0.5                                 # Action scaling multiplier (overridden by DR full)
+        self.max_speed    =  5.0                                # Maximum allowable speed
+        self.min_speed    = -5.0                                # Minimum allowable speed
+        self.robot_colors = [                                   # Color palette for differentiating robots
             (255, 0,   0), (0, 200,   0), (0,   0, 255),
             (255, 128, 0), (128, 0, 255), (255, 0, 255), (128, 128, 128),
         ]
 
-        # Infected / target locations
-        self.initial_inf_locations  = [tuple(loc) for loc in self.field_info['infected_locations']]
-        self._nominal_infected_size = 10
+        # ── Infection / Target params ───────────────────────────────
+        self.initial_inf_locations  = [tuple(loc) for loc in self.field_info['infected_locations']] # Target coordinates
+        self._nominal_infected_size = 1.0                       # Base radius for successful visitation
         self.infected_size          = self._nominal_infected_size
-        self.infected_length        = len(self.initial_inf_locations)
+        self.infected_length        = len(self.initial_inf_locations) # Total number of targets
 
-        # Base wind
+        # ── Base wind (mean) magnitude and direction ────────────────
+        if wind_par is None: # Load wind parameters if not provided
+            wind_par = [0, 0]
         self.base_wind_mag, self.base_wind_dir = float(wind_par[0]), float(wind_par[1])
 
-        # Noise stds — driven by uncertainty_mode
+        # ── Noise stds — set by uncertainty_mode ────────────────────
+        # These are the *nominal* values; DR "full" may override at the start of each episode.
         _noise = {
             "full":          dict(wind=0.20, wind_dir=5.0, action=0.10, obs=0.01),
             "wind_only":     dict(wind=0.20, wind_dir=5.0, action=0.00, obs=0.00),
@@ -249,22 +246,26 @@ class MultiUAV(gym.Env):
             "deterministic": dict(wind=0.00, wind_dir=0.0, action=0.00, obs=0.00),
         }[uncertainty_mode]
 
-        self.wind_noise_std      = _noise["wind"]
-        self.wind_dir_noise_std  = _noise["wind_dir"]
-        self.action_noise_std    = _noise["action"]
-        self.obs_noise_std       = _noise["obs"]
-        self.init_position_noise = 0.5
+        self.wind_noise_std      = _noise["wind"]               # Wind magnitude volatility
+        self.wind_dir_noise_std  = _noise["wind_dir"]           # Wind direction volatility
+        self.action_noise_std    = _noise["action"]             # Volatility applied to UAV control inputs
+        self.obs_noise_std       = _noise["obs"]                # Sensor noise added to state observations
+        self.init_position_noise = 0.5                          # Jitter added to spawn coordinates
 
-        # Nominal values for DR restore
+        # ── Nominal values for DR restore ───────────────────────────
         self._nominal_action_noise_std = _noise["action"]
         self._nominal_mass             = 1.0
         self._nominal_thrust_power     = 0.5
 
-        # Action space: (ax, ay) per robot
+        # ── Action space: (ax, ay) per robot ────────────────────────
+        # Each robot's action has the following:
+        #   1. a_x = Force component (or thrust) along x-axis
+        #   2. a_y = Force component (or thrust) along y-axis
+        # Therefore, total actions = 2 * num_robots
         self.action_space = gym.spaces.Box(
             low=-1.0, high=1.0, shape=(num_robots, 2), dtype=np.float32)
 
-        # Observation space — size depends on obs_mode
+        # ── Observation space — depends on obs_mode ─────────────────
         # "full"        positions(2N) + velocities(2N) + visited_decimal(1) = 4N+1
         # "no_pos"      visited_decimal(1)  [remove all kinematics]
         # "no_inf_hist" positions(2N) + velocities(2N) = 4N
@@ -277,15 +278,21 @@ class MultiUAV(gym.Env):
         self.render_mode = render_mode
         self.screen      = None
         self.clock       = None
-        self.reset()
+        self.reset() # Initialise state
 
+    # ── coordinate conversion ────────────────────────────────────────
     def world_to_screen(self, pos):
+        """Converts physical world coordinates to PyGame screen coordinates."""
         x = (pos[0] - self.min_x) * self.render_scale + self.offset_x
         y = (pos[1] - self.min_y) * self.render_scale + self.offset_y
         return int(x), int(y)
 
+    # ── observation builder ──────────────────────────────────────────
     def _get_obs(self):
+        """Constructs the state array based on the selected observation mode."""
+        # Convert the binary list of visited locations into a single float for the neural network
         infected_decimal = float(binary_list_to_decimal(list(self.infected_dict.values())))
+        
         if self.obs_mode == "full":
             state = np.concatenate([self.robot_positions.flatten(),
                                     self.robot_velocities.flatten(),
@@ -299,31 +306,42 @@ class MultiUAV(gym.Env):
             state = self.robot_positions.flatten().copy()
 
         state = state.astype(np.float32)
+        
+        # Add observation noise if specified
         if self.obs_noise_std > 0:
             state += np.random.normal(0, self.obs_noise_std, size=state.shape).astype(np.float32)
 
+        # Package cleanly formatted info dictionary
         info = {f'robot{i}': self.robot_positions[i].copy() for i in range(self.num_robots)}
         return state, info
 
+    # ── reset ────────────────────────────────────────────────────────
     def reset(self, seed=None, options=None):
+        """Resets the environment for a new episode."""
         super().reset(seed=seed)
 
-        # Domain randomisation
+        # ── Domain randomization — re-sample base params each episode ─
         if self.dr_mode == "none":
+            # Standard: add small episode-level noise to the nominal wind
             self.wind_mag         = self.base_wind_mag + np.random.normal(0, self.wind_noise_std)
             self.wind_dir         = self.base_wind_dir + np.random.normal(0, self.wind_dir_noise_std)
+            # Restore nominal physical params (may have been overridden last episode)
             self.action_noise_std = self._nominal_action_noise_std
             self.infected_size    = self._nominal_infected_size
             self.mass             = self._nominal_mass
             self.thrust_power     = self._nominal_thrust_power
+            
         elif self.dr_mode == "wind":
+            # Randomise wind speed and direction uniformly
             self.wind_mag         = float(np.random.uniform(0.0, 1.0))
             self.wind_dir         = float(np.degrees(np.random.uniform(0.0, 2 * np.pi)))
             self.action_noise_std = self._nominal_action_noise_std
             self.infected_size    = self._nominal_infected_size
             self.mass             = self._nominal_mass
             self.thrust_power     = self._nominal_thrust_power
+            
         elif self.dr_mode == "full":
+            # Randomise all physical parameters significantly to improve policy robustness
             self.wind_mag         = float(np.random.uniform(0.0, 1.0))
             self.wind_dir         = float(np.degrees(np.random.uniform(0.0, 2 * np.pi)))
             self.action_noise_std = float(np.random.uniform(0.01, 0.10))
@@ -332,93 +350,100 @@ class MultiUAV(gym.Env):
             self.mass             = float(np.random.uniform(0.90, 1.10))
             self.thrust_power     = 0.5 * float(np.random.uniform(0.80, 1.20))
 
-        # Starting position jitter
+        # ── Randomise starting positions ─────────────────────────────
         self.robot_positions = (
             self.init_robot_positions
             + np.random.normal(0, self.init_position_noise, self.init_robot_positions.shape)
         ).astype(np.float32)
 
+        # ── Initialise dynamic state ─────────────────────────────────
         self.step_count         = 0
-        self.visited            = set()
-        self.infected_locations = list(copy.deepcopy(self.initial_inf_locations))
-        self.infected_dict      = {loc: 0 for loc in self.initial_inf_locations}
+        self.visited            = set()                                 # Cells currently visited to track exploration
+        self.infected_locations = list(copy.deepcopy(self.initial_inf_locations)) # Remaining targets
+        self.infected_dict      = {loc: 0 for loc in self.initial_inf_locations}  # 0=unvisited, 1=visited
         self.robot_velocities   = np.zeros((self.num_robots, 2), dtype=np.float32)
-        self.trajectories       = [[] for _ in range(self.num_robots)]
-        self.total_path_length  = 0.0
-        self.prev_positions     = self.robot_positions.copy()
+        
+        # ── Episode counters ─────────────────────────────────────────
+        self.trajectories       = [[] for _ in range(self.num_robots)]  # Breadcrumbs for rendering
+        self.total_path_length  = 0.0                                   # Accumulator for distance travelled
+        self.prev_positions     = self.robot_positions.copy()           # Memory of previous step for path diff
 
         return self._get_obs()
 
+    # ── step ─────────────────────────────────────────────────────────
     def step(self, actions):
+        """Advances the simulation by one timestep."""
         self.step_count += 1
         terminated, truncated = False, False
         rewards = 0.0
 
-        # Per-step stochastic wind
+        # ── Stochastic wind for this step ────────────────────────────
+        # Wind changes dynamically every frame based on noise standard deviation
         wind_mag = self.wind_mag + np.random.normal(0, self.wind_noise_std)
         wind_dir = self.wind_dir + np.random.normal(0, self.wind_dir_noise_std)
         theta_w  = np.radians(wind_dir)
         wind     = np.array([wind_mag * np.cos(theta_w), wind_mag * np.sin(theta_w)],
                             dtype=np.float32)
 
-        for i in range(self.num_robots):
-            ax_raw, ay_raw = actions[i]
+        for i in range(self.num_robots):                        # For each robot
+            ax_raw, ay_raw = actions[i]                         # Get raw neural net outputs
+
+            # Action noise + scaling
             ax = ax_raw * self.thrust_power + np.random.normal(0, self.action_noise_std)
             ay = ay_raw * self.thrust_power + np.random.normal(0, self.action_noise_std)
 
+            # Velocity update (Newtonian dynamics F=ma -> a=F/m)
             self.robot_velocities[i] += np.array([ax, ay]) / self.mass + wind
             self.robot_velocities[i]  = np.clip(self.robot_velocities[i], self.min_speed, self.max_speed)
 
-            new_pos = self.robot_positions[i] + self.robot_velocities[i]
-            if is_inside_polygon(new_pos, self.poly_vertices):
-                self.robot_positions[i] = new_pos
+            # Position update
+            new_pos = self.robot_positions[i] + self.robot_velocities[i] # Predict next position
+            if is_inside_polygon(new_pos, self.poly_vertices):           # Check if new position is inside the field
+                self.robot_positions[i] = new_pos                        # Move to the new location
             else:
-                rewards -= 50                           # boundary penalty — unchanged vs reference env
-                self.robot_velocities[i][:] = 0
+                rewards -= 50                                            # Boundary penalty — unchanged vs reference env
+                self.robot_velocities[i][:] = 0                          # Set robot velocities to zero (crash into wall)
 
+            # ── Per-robot movement penalties ─────────────────
             if self.reward_ablation != "no_path":
-                rewards -= 0.1 * (ax ** 2 + ay ** 2)   # energy penalty — unchanged
-                rewards -= 0.3 * float(np.linalg.norm(self.robot_velocities[i]))  # speed penalty — unchanged
+                rewards -= 0.1 * (ax ** 2 + ay ** 2)                     # Energy penalty (encourages efficient control)
+                rewards -= 0.3 * float(np.linalg.norm(self.robot_velocities[i]))  # Speed penalty (Penalize high speeds)
 
-            # ── Coverage shaping: reward exploration, penalise revisits ──────────
-            # FIX: original penalised both new (-10) and revisited (-100) cells,
-            # which contradicts a coverage task and causes large negative drift.
-            # Now: small positive reward for visiting new cells, moderate penalty
-            # only for revisiting — magnitudes scaled to match reference env.
             # ── Coverage shaping ─────────────────────────────────────────────────────
+            # Encourage exploring new areas by mapping continuous space to a grid (round to 1 decimal)
             pos_key = tuple(np.round(self.robot_positions[i], 1))
             if pos_key in self.visited:
-                rewards -= 30        # revisit deterrent (was -100; 20× reduction prevents runaway)
+                rewards -= 30        # Revisit deterrent (prevents loitering in one spot)
             else:
-                rewards += 3      # exploration bonus (was -10; flipped — penalising new cells
-                                    #                    discourages the coverage objective)
+                rewards += 3         # Exploration bonus (encourages sweeping the field)
             self.visited.add(pos_key)
 
             # ── Target coverage ──────────────────────────────────────────────────
-            # FIX: +10,000 per target caused large training spikes. Reduced to +200
-            # so that visiting all targets contributes ~+1,000–2,000 total —
-            # meaningful but not dominating; same order of magnitude as reference env.
+            # Check if the robot successfully flew over an active target
             for inf_loc in list(self.infected_locations):
                 if np.linalg.norm(self.robot_positions[i] - np.array(inf_loc)) <= self.infected_size:
-                    self.infected_locations.remove(inf_loc)
-                    self.infected_dict[inf_loc] = 1
-                    rewards += 1000      # was +10,000 — 50× reduction
+                    self.infected_locations.remove(inf_loc)              # Mark target as cleared
+                    self.infected_dict[inf_loc] = 1                      # Update dictionary for network observation
+                    rewards += 1000                                      # Big reward for successfully visiting a target
 
+            # Trajectory buffer (rendering only)
             self.trajectories[i].append(self.robot_positions[i].copy())
-            if len(self.trajectories[i]) > 200:
+            if len(self.trajectories[i]) > 200:                          # Limit memory of breadcrumbs to 200 ticks
                 self.trajectories[i].pop(0)
 
-        # Path length
-        step_dist = np.linalg.norm(self.robot_positions - self.prev_positions, axis=1)
+        # ── Path length computation ──────────────────────────────────
+        step_dist = np.linalg.norm(self.robot_positions - self.prev_positions, axis=1) # True travel distance
         step_path = float(np.sum(step_dist))
         self.total_path_length += step_path
         self.prev_positions     = self.robot_positions.copy()
 
+        # ── Global time and path penalties ───────────────────────────
         if self.reward_ablation != "no_path":
-            rewards -= 1.0 * step_path     # path-length penalty — unchanged
-            rewards -= 2.0                  # time penalty — unchanged
+            rewards -= 1.0 * step_path     # Path-length penalty (encourages shortest route)
+            rewards -= 2.0                 # Time penalty (encourages fast completion)
 
         # Distance shaping to nearest unvisited target (always active) — unchanged
+        # Provides dense gradient pointing robots towards remaining targets
         if self.infected_locations:
             target_arr = np.array(self.infected_locations, dtype=np.float32)
             dists_mat  = np.linalg.norm(
@@ -427,22 +452,27 @@ class MultiUAV(gym.Env):
 
         # ── Terminal signals ──────────────────────────────────────────────────────
         term_cond = ""
+        
+        # Win condition: All targets visited
         if len(self.infected_locations) == 0:
             if self.reward_ablation != "no_term":
-                rewards += 5000      # FIX: was +100,000 — matches reference env success bonus
+                rewards += 5000      # Matches reference env success bonus
             term_cond  = "visited_all"
             terminated = True
 
+        # Lose condition: Robots crashed into each other
         if self.num_robots > 1 and compute_min_dist(self.robot_positions) < self.robot_size:
             if self.reward_ablation != "no_term":
-                rewards -= 5000     # FIX: was -100,000 — 2× success bonus, matches reference env
+                rewards -= 5000     # Crash penalty
             term_cond  = "collision"
             terminated = True
 
+        # Truncation: Hit max time steps
         truncated = self.step_count >= self.max_steps
         if truncated:
             term_cond = "max_steps"
 
+        # Generate observations and metadata
         obs, info = self._get_obs()
         info.update({
             "step_count":        self.step_count,
@@ -453,8 +483,11 @@ class MultiUAV(gym.Env):
         return obs, rewards, terminated, truncated, info
 
     def render(self):
+        """Displays the environment graphically using PyGame."""
         if self.render_mode != "human":
             return
+            
+        # Initialize PyGame window safely on first call
         if self.screen is None:
             pygame.init()
             pygame.display.init()
@@ -462,35 +495,51 @@ class MultiUAV(gym.Env):
             pygame.display.set_caption("Multi-UAV Path Planning")
             self.clock = pygame.time.Clock()
 
+        # Clear background to white
         self.screen.fill((255, 255, 255))
+        
+        # Draw the boundary polygon
         scaled_poly = [self.world_to_screen(p) for p in self.poly_vertices]
         pygame.draw.polygon(self.screen, (255, 255, 0), scaled_poly)
 
+        # Draw trajectory tails behind each robot
         for i in range(self.num_robots):
             if len(self.trajectories[i]) > 1:
                 pygame.draw.lines(self.screen, (150, 150, 150), False,
                                   [self.world_to_screen(p) for p in self.trajectories[i]], 2)
 
-        r_px = max(3, int(self.robot_size * self.render_scale / 2))
+        # ── Rendering Scaling Fix ────────────────────────────────────────────────
+        # Using a much larger baseline multiplier to match Code 1's visibility intent.
+        # Ensure robots and targets aren't shrunken by dynamic screen scaling.
+        r_px = int(self.robot_size * self.render_scale)
+        
+        # Draw Robots
         for i in range(self.num_robots):
             pygame.draw.circle(self.screen, self.robot_colors[i % len(self.robot_colors)],
                                self.world_to_screen(self.robot_positions[i]), r_px)
 
-        inf_px = max(3, int(self.infected_size * self.render_scale / 2))
+        inf_px = int(self.infected_size * self.render_scale)
+        
+        # Draw unvisited targets (Cyan)
         for loc in self.infected_locations:
             pygame.draw.circle(self.screen, (0, 220, 220), self.world_to_screen(loc), inf_px)
+            
+        # Draw visited targets (Dark Gray)
         for loc, vis in self.infected_dict.items():
             if vis:
                 pygame.draw.circle(self.screen, (80, 80, 80), self.world_to_screen(loc), inf_px)
 
+        # Swap display buffers and tick framerate
         pygame.display.flip()
         self.clock.tick(self.metadata["render_fps"])
 
     def close(self):
+        """Cleanly shuts down the PyGame window."""
         if self.screen is not None:
             pygame.display.quit()
             pygame.quit()
             self.screen = None
+
 
 class MultiWheeled(gym.Env):
     """Multi-wheeled-robot path-planning (bicycle-model kinematics)."""
@@ -500,15 +549,15 @@ class MultiWheeled(gym.Env):
         env_params,
         render_mode=None,
         wind_par=None,
+        max_steps=1000,
+        target_screen_size=800,
+        # ── experiment control ──────────────────────────────────────
         uncertainty_mode="full",
         dr_mode="none",
         reward_ablation="full",
-        obs_mode="full",
-        max_steps=1000,
-        target_screen_size=800,
+        obs_mode="full"        
     ):
         super().__init__()
-
         if wind_par is None:
             wind_par = [0, 0]
 
@@ -834,6 +883,8 @@ class MultiWheeled(gym.Env):
 # ================================
 # Gym Registration
 # ================================
+# [FIX 4] Only one registration block; the duplicate inside main() has been removed.
+# Both envs registered here so make_vec_env can find them by ID.
 if 'MultiUAV-v0' not in gym.envs.registry:
     gym.register(id='MultiUAV-v0',     entry_point=MultiUAV,     max_episode_steps=1000)
 if 'MultiWheeled-v0' not in gym.envs.registry:
@@ -884,8 +935,8 @@ def train_single_env(env_id, config, seed=42):
     else:
         raise ValueError(f"Unknown robot_type: '{robot_type}'. Choose 'uav' or 'wheeled'.")
 
-    vec_env = make_vec_env(gym_id, env_kwargs=env_kwargs, n_envs=num_envs, seed=seed)
-    eval_env = make_vec_env(gym_id, env_kwargs=env_kwargs, n_envs=1,       seed=seed)
+    vec_env = make_vec_env(gym_id, env_kwargs=env_kwargs, n_envs=num_envs, seed=seed, monitor_dir=None)
+    eval_env = make_vec_env(gym_id, env_kwargs=env_kwargs, n_envs=1,       seed=seed, monitor_dir=None)
 
     callback = CallbackList([
         LogEveryNTimesteps(n_steps=10000),
@@ -914,12 +965,13 @@ def train_single_env(env_id, config, seed=42):
     eval_env.close()
     print(f"[DONE]  Training env {env_id}, seed {seed}, robot_type {robot_type}")
 
+
 # ================================
 # Main Launcher
 # ================================
 def main():
     # ── CONFIG ─────────────────────────────────────────────────────────────
-    version    = "3"
+    version    = "7"
     robot_type = "uav"       # [NEW] change to "wheeled" to train MultiWheeled
     # seeds      = [0, 42, 123, 2024, 9999]
     seeds      = [42]
@@ -970,6 +1022,7 @@ def main():
                 p.start()
             for p in procs:
                 p.join()
+
 
 if __name__ == "__main__":
     mp.set_start_method("spawn", force=True)   # required for PyTorch + SB3

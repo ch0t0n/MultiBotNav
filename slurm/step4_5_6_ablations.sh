@@ -6,16 +6,16 @@
 # Pass the experiment as arg1, robot type as arg2 (default: uav).
 #
 #   sbatch --array=0-119 step4_5_6_ablations.sh ablation_reward uav
-#   sbatch --array=0-95  step4_5_6_ablations.sh ablation_reward wheeled
+#   sbatch --array=0-89  step4_5_6_ablations.sh ablation_reward wheeled
 #   sbatch --array=0-119 step4_5_6_ablations.sh ablation_obs uav
-#   sbatch --array=0-95  step4_5_6_ablations.sh ablation_obs wheeled
+#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_obs wheeled
 #   sbatch --array=0-119 step4_5_6_ablations.sh ablation_uncertainty uav
-#   sbatch --array=0-95  step4_5_6_ablations.sh ablation_uncertainty wheeled
+#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_uncertainty wheeled
 #
 # Fixed: CrossQ, N=3 (or env-defined for wheeled), 2M timesteps
 # Grid:
 #   uav     -> 4 conditions x 10 env sets x 3 seeds = 120 jobs
-#   wheeled -> 4 conditions x  8 env sets x 3 seeds =  96 jobs
+#   wheeled -> 4 conditions x 10 env sets x 3 seeds = 120 jobs  (3 cond x 10 x 3 = 90 for ablation_reward)
 #
 # Index layout (innermost -> outermost):
 #   seed_idx = index % 3
@@ -47,7 +47,7 @@ num_seeds=${#seeds[@]}
 if [ "$ROBOT_TYPE" == "uav" ]; then
     sets=(1 2 3 4 5 6 7 8 9 10)
 else
-    sets=(1 2 3 4 5 6 7 8)
+    sets=(1 2 3 4 5 6 7 8 9 10)
 fi
 num_sets=${#sets[@]}
 

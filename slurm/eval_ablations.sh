@@ -13,19 +13,19 @@
 #
 # Usage (arg1=experiment, arg2=robot_type, default arg2=uav):
 #   sbatch --array=0-89  eval_ablations.sh ablation_reward      uav
-#   sbatch --array=0-71  eval_ablations.sh ablation_reward      wheeled
+#   sbatch --array=0-89  eval_ablations.sh ablation_reward      wheeled
 #   sbatch --array=0-479 eval_ablations.sh ablation_uncertainty uav
-#   sbatch --array=0-383 eval_ablations.sh ablation_uncertainty wheeled
+#   sbatch --array=0-479 eval_ablations.sh ablation_uncertainty wheeled
 #   sbatch --array=0-359 eval_ablations.sh dr                   uav
-#   sbatch --array=0-71  eval_ablations.sh dr                   wheeled
+#   sbatch --array=0-89  eval_ablations.sh dr                   wheeled
 #
 # Grid sizes:
 #   ablation_reward       uav  : 3 cond × 10 sets × 3 seeds      =  90 jobs
-#   ablation_reward       wheel: 3 cond ×  8 sets × 3 seeds      =  72 jobs
+#   ablation_reward       wheel: 3 cond × 10 sets × 3 seeds      =  90 jobs
 #   ablation_uncertainty  uav  : 4 train × 4 eval × 10 sets × 3 seeds = 480 jobs
-#   ablation_uncertainty  wheel: 4 train × 4 eval ×  8 sets × 3 seeds = 384 jobs
+#   ablation_uncertainty  wheel: 4 train × 4 eval × 10 sets × 3 seeds = 480 jobs
 #   dr                    uav  : 3 dr × 10 sets × 4 robots × 3 seeds  = 360 jobs
-#   dr                    wheel: 3 dr ×  8 sets × 1 robot  × 3 seeds  =  72 jobs
+#   dr                    wheel: 3 dr × 10 sets × 1 robot  × 3 seeds  =  90 jobs
 # ============================================================
 
 #SBATCH --job-name=eval_ablation
@@ -52,7 +52,7 @@ index=$SLURM_ARRAY_TASK_ID
 if [ "$ROBOT_TYPE" == "uav" ]; then
     sets=(1 2 3 4 5 6 7 8 9 10)
 else
-    sets=(1 2 3 4 5 6 7 8)
+    sets=(1 2 3 4 5 6 7 8 9 10)
 fi
 num_sets=${#sets[@]}
 

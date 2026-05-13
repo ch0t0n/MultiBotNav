@@ -113,7 +113,7 @@ def load_eval_npz(log_root: str, version_fragment: str,
 
 def _default_n_sets(robot_type: str) -> int:
     """Return the number of env sets for the given robot type."""
-    return 10 if robot_type == "uav" else 8
+    return 10
 
 
 def load_learning_curves_for_n(log_root: str, version_fragment: str,
@@ -123,7 +123,7 @@ def load_learning_curves_for_n(log_root: str, version_fragment: str,
     Aggregate learning curves across all env sets (1–n_sets) and seeds.
     Returns dict: algorithm → (timesteps, mean_rewards, std_rewards)
 
-    If n_sets is None, it is chosen based on robot_type: 10 for UAV, 8 for wheeled.
+    If n_sets is None, it defaults to 10 for all robot types.
     """
     if n_sets is None:
         n_sets = _default_n_sets(robot_type)

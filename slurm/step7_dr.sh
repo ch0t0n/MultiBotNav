@@ -11,7 +11,7 @@
 #
 # Grid:
 #   uav     → 3 DR × 10 env sets × 4 robot counts × 3 seeds = 360 jobs
-#   wheeled → 3 DR ×  8 env sets × 1 robot count  × 3 seeds =  72 jobs
+#   wheeled → 3 DR × 10 env sets × 1 robot count  × 3 seeds =  90 jobs
 #
 # Index layout (innermost → outermost):
 #   seed_idx  = index %  num_seeds
@@ -21,7 +21,7 @@
 #
 # Submit:
 #   sbatch --array=0-359 step7_dr.sh uav
-#   sbatch --array=0-71  step7_dr.sh wheeled
+#   sbatch --array=0-89  step7_dr.sh wheeled
 # ============================================================
 
 #SBATCH --array=0-359
@@ -49,7 +49,7 @@ if [ "$ROBOT_TYPE" == "uav" ]; then
     sets=(1 2 3 4 5 6 7 8 9 10)
     robots=(2 3 4 5)
 else
-    sets=(1 2 3 4 5 6 7 8)
+    sets=(1 2 3 4 5 6 7 8 9 10)
     robots=(3)
 fi
 

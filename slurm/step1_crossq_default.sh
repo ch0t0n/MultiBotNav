@@ -6,7 +6,7 @@
 #
 # Grid:
 #   uav     → 1 alg × 10 sets × 4 robot counts × 3 seeds = 120 jobs
-#   wheeled → 1 alg ×  8 sets × 1 robot count  × 3 seeds =  24 jobs
+#   wheeled → 1 alg × 10 sets × 1 robot count  × 3 seeds =  30 jobs
 #
 # Index layout (innermost → outermost):
 #   seed_idx  = index % 3
@@ -16,7 +16,7 @@
 #
 # Submit:
 #   sbatch --array=0-119 step1_crossq_default.sh uav
-#   sbatch --array=0-23  step1_crossq_default.sh wheeled
+#   sbatch --array=0-29  step1_crossq_default.sh wheeled
 # ============================================================
 
 #SBATCH --array=0-119
@@ -44,7 +44,7 @@ if [ "$ROBOT_TYPE" == "uav" ]; then
     sets=(1 2 3 4 5 6 7 8 9 10)
     robots=(2 3 4 5)
 else
-    sets=(1 2 3 4 5 6 7 8)
+    sets=(1 2 3 4 5 6 7 8 9 10)
     robots=(3)
 fi
 

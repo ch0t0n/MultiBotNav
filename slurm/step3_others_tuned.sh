@@ -4,11 +4,11 @@
 #
 # Grid:
 #   uav     → 5 algs × 10 sets × 4 robot counts × 3 seeds = 600 jobs
-#   wheeled → 5 algs ×  8 sets × 1 robot count  × 3 seeds = 120 jobs
+#   wheeled → 5 algs × 10 sets × 1 robot count  × 3 seeds = 150 jobs
 #
 # Submit:
 #   sbatch --array=0-599 step3_others_tuned.sh uav
-#   sbatch --array=0-119 step3_others_tuned.sh wheeled
+#   sbatch --array=0-149 step3_others_tuned.sh wheeled
 # ============================================================
 
 #SBATCH --array=0-599
@@ -33,7 +33,7 @@ if [ "$ROBOT_TYPE" == "uav" ]; then
     sets=(1 2 3 4 5 6 7 8 9 10)
     robots=(2 3 4 5)
 else
-    sets=(1 2 3 4 5 6 7 8)
+    sets=(1 2 3 4 5 6 7 8 9 10)
     robots=(3)
 fi
 

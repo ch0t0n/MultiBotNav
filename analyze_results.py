@@ -38,7 +38,7 @@ SEEDS      = [42, 123, 9999]
 # Per-robot env sets and num_robots columns
 ENV_SETS_BY_ROBOT = {
     "uav":     list(range(1, 11)),
-    "wheeled": list(range(1, 9)),
+    "wheeled": list(range(1, 11)),
 }
 ROBOT_COUNTS_BY_ROBOT = {
     "uav":     [2, 3, 4, 5],
