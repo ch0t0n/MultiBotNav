@@ -12,7 +12,7 @@ experiment in the paper is run for **both** of them.
 | Robot type  | Gym ID            | Class           | Dynamics                          | Configs                                  | Action     |
 |------------:|:------------------|:----------------|:----------------------------------|:-----------------------------------------|:-----------|
 | `uav`       | `MultiUAV-v0`     | `MultiUAV`      | Newtonian point-mass with wind     | `exp_sets/uav/cont_sets.json` (10 sets)  | (ax, ay)   |
-| `wheeled`   | `MultiWheeled-v0` | `MultiWheeled`  | Bicycle kinematics with wind drift | `exp_sets/wheeled/env*.ini`   (8 sets)   | (accel, δ̇) |
+| `wheeled`   | `MultiWheeled-v0` | `MultiWheeled`  | Bicycle kinematics with wind drift | `exp_sets/wheeled/env*.ini`   (10 sets)  | (accel, δ̇) |
 
 Both environments support the same experimental knobs:
 
@@ -37,7 +37,7 @@ learning_to_navigate/
 │   └── __init__.py             ← registers MultiUAV-v0 and MultiWheeled-v0
 ├── exp_sets/
 │   ├── uav/cont_sets.json      ← 10 UAV field configurations
-│   └── wheeled/env{1..8}.ini   ← 8 wheeled-robot configurations
+│   └── wheeled/env{1..10}.ini  ← 10 wheeled-robot configurations
 ├── train.py                    ← unified training (--robot_type uav|wheeled)
 ├── tune.py                     ← Optuna distributed tuning
 ├── evaluate.py                 ← post-training evaluation

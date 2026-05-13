@@ -8,7 +8,7 @@ training/evaluation pipeline:
 | Robot type | Gym ID            | Class           | Dynamics       | Configs                       |
 |-----------:|:------------------|:----------------|:---------------|:------------------------------|
 | `uav`      | `MultiUAV-v0`     | `MultiUAV`      | Newtonian (ax, ay)         | `exp_sets/uav/cont_sets.json` (10 sets) |
-| `wheeled`  | `MultiWheeled-v0` | `MultiWheeled`  | Bicycle (accel, steer-rate) | `exp_sets/wheeled/env*.ini`   (8 sets)  |
+| `wheeled`  | `MultiWheeled-v0` | `MultiWheeled`  | Bicycle (accel, steer-rate) | `exp_sets/wheeled/env*.ini`   (10 sets) |
 
 **Every experiment is performed for both robot types.**  The CLI scripts
 (`train.py`, `evaluate.py`, `tune.py`, `sensitivity_hp.py`) all accept
@@ -43,7 +43,7 @@ UAV models inside CoppeliaSim.
 > if you have a CUDA-capable GPU.  CrossQ and TQC benefit the most from a GPU.
 >
 > **Reproduction time warning:** The full grid (3 seeds × 10 UAV sets × 4 robot
-> counts, plus 3 seeds × 8 wheeled sets) takes hundreds of CPU-hours per
+> counts, plus 3 seeds × 10 wheeled sets) takes hundreds of CPU-hours per
 > algorithm.  The commands below show a **minimal single run** for sanity
 > checking and **loop variants** for full coverage — start with the single
 > run and only expand the loops once the pipeline is verified end-to-end.
@@ -87,7 +87,7 @@ logs/main_default/CrossQ_wheeled_N3_env1_seed42/    ← wheeled
 ```bash
 for ROBOT in uav wheeled; do
   if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; ROBOTS="2 3 4 5"; fi
-  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8";        ROBOTS="3"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8 9 10";   ROBOTS="3"; fi
   for ALG in CrossQ TQC PPO A2C TRPO ARS; do
     for SET in $SETS; do
       for SEED in 42 123 9999; do
@@ -155,7 +155,7 @@ Pass `--hyperparams_json` pointing at the matching robot-type JSON.
 ```bash
 for ROBOT in uav wheeled; do
   if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; ROBOTS="2 3 4 5"; fi
-  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8";        ROBOTS="3"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8 9 10";   ROBOTS="3"; fi
   for ALG in CrossQ TQC PPO A2C TRPO ARS; do
     for SET in $SETS; do
       for SEED in 42 123 9999; do
@@ -198,7 +198,7 @@ N is taken from the env `.ini`.
 ```bash
 for ROBOT in uav wheeled; do
   if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
-  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
   for CONDITION in full no_term no_path; do
     for SET in $SETS; do
       for SEED in 42 123 9999; do
@@ -223,7 +223,7 @@ done
 ```bash
 for ROBOT in uav wheeled; do
   if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
-  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
   for OBS in full no_pos no_inf_hist pos_only; do
     for SET in $SETS; do
       for SEED in 42 123 9999; do
@@ -248,7 +248,7 @@ done
 ```bash
 for ROBOT in uav wheeled; do
   if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
-  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
   for MODE in full wind_only act_only deterministic; do
     for SET in $SETS; do
       for SEED in 42 123 9999; do
@@ -277,7 +277,7 @@ Three DR conditions: `none`, `wind`, `full`.  Same robot-type loop:
 ```bash
 for ROBOT in uav wheeled; do
   if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; ROBOTS="2 3 4 5"; fi
-  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8";        ROBOTS="3"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8 9 10";   ROBOTS="3"; fi
   for DR in none wind full; do
     for SET in $SETS; do
       for SEED in 42 123 9999; do
@@ -313,7 +313,7 @@ those.  The experiments below do require `evaluate.py`.
 mkdir -p logs/results
 for ROBOT in uav wheeled; do
   if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
-  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
   for CONDITION in full no_term no_path; do
     for SET in $SETS; do
       for SEED in 42 123 9999; do
@@ -341,7 +341,7 @@ Each policy trained under one noise condition is evaluated under all four:
 mkdir -p logs/results
 for ROBOT in uav wheeled; do
   if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
-  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; fi
   for TRAIN_MODE in full wind_only act_only deterministic; do
     for EVAL_MODE in full wind_only act_only deterministic; do
       for SET in $SETS; do
@@ -370,7 +370,7 @@ done
 mkdir -p logs/results
 for ROBOT in uav wheeled; do
   if [ "$ROBOT" == "uav" ]; then SETS="1 2 3 4 5 6 7 8 9 10"; ROBOTS="2 3 4 5"; fi
-  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8";        ROBOTS="3"; fi
+  if [ "$ROBOT" == "wheeled" ]; then SETS="1 2 3 4 5 6 7 8 9 10";   ROBOTS="3"; fi
   for DR in none wind full; do
     for SET in $SETS; do
       for SEED in 42 123 9999; do
@@ -486,10 +486,10 @@ sbatch --array=0-119 slurm/step1_crossq_default.sh uav
 # UAV  (5 algs × 10 sets × 4 N × 3 seeds = 600 jobs)
 sbatch --array=0-599 slurm/step1_others_default.sh uav
 
-# Wheeled  (1 alg × 8 sets × 1 N × 3 seeds = 24 jobs)
-sbatch --array=0-23  slurm/step1_crossq_default.sh wheeled
-# Wheeled  (5 algs × 8 sets × 1 N × 3 seeds = 120 jobs)
-sbatch --array=0-119 slurm/step1_others_default.sh wheeled
+# Wheeled  (1 alg × 10 sets × 1 N × 3 seeds = 30 jobs)
+sbatch --array=0-29  slurm/step1_crossq_default.sh wheeled
+# Wheeled  (5 algs × 10 sets × 1 N × 3 seeds = 150 jobs)
+sbatch --array=0-149 slurm/step1_others_default.sh wheeled
 ```
 
 **Output layout:**
@@ -516,8 +516,8 @@ journal logs under `logs/optuna_studies/{uav,wheeled}/`.
 sbatch --array=0-119 slurm/step3_crossq_tuned.sh uav
 sbatch --array=0-599 slurm/step3_others_tuned.sh uav
 
-sbatch --array=0-23  slurm/step3_crossq_tuned.sh wheeled
-sbatch --array=0-119 slurm/step3_others_tuned.sh wheeled
+sbatch --array=0-29  slurm/step3_crossq_tuned.sh wheeled
+sbatch --array=0-149 slurm/step3_others_tuned.sh wheeled
 ```
 
 ## B-4–6. Ablation Training — Reward, Observation, Uncertainty
@@ -530,22 +530,20 @@ sbatch --array=0-119 slurm/step4_5_6_ablations.sh ablation_reward       uav
 sbatch --array=0-119 slurm/step4_5_6_ablations.sh ablation_obs          uav
 sbatch --array=0-119 slurm/step4_5_6_ablations.sh ablation_uncertainty  uav
 
-# Wheeled  (4 conditions × 8 sets × 3 seeds = 96 jobs each)
-sbatch --array=0-95  slurm/step4_5_6_ablations.sh ablation_reward       wheeled
-sbatch --array=0-95  slurm/step4_5_6_ablations.sh ablation_obs          wheeled
-sbatch --array=0-95  slurm/step4_5_6_ablations.sh ablation_uncertainty  wheeled
+# Wheeled  (3 cond × 10 sets × 3 seeds = 90 jobs; 4 cond × 10 sets × 3 seeds = 120 jobs)
+sbatch --array=0-89  slurm/step4_5_6_ablations.sh ablation_reward       wheeled
+sbatch --array=0-119 slurm/step4_5_6_ablations.sh ablation_obs          wheeled
+sbatch --array=0-119 slurm/step4_5_6_ablations.sh ablation_uncertainty  wheeled
 ```
 
-> The reward and obs ablations each have 3 and 4 conditions respectively; the
-> uncertainty ablation has 4.  The maximum grid size for the merged script is
-> driven by `ablation_obs` / `ablation_uncertainty` (4 conditions); the smaller
-> reward grid is a strict subset and is launched with the same array bounds.
+> `ablation_reward` has 3 conditions (90 wheeled jobs); `ablation_obs` and
+> `ablation_uncertainty` each have 4 conditions (120 wheeled jobs each).
 
 ## B-7. Step 7 — Domain Randomization
 
 ```bash
 sbatch --array=0-359 slurm/step7_dr.sh uav      # 3 × 10 × 4 × 3 = 360
-sbatch --array=0-71  slurm/step7_dr.sh wheeled  # 3 ×  8 × 1 × 3 =  72
+sbatch --array=0-89  slurm/step7_dr.sh wheeled  # 3 × 10 × 1 × 3 =  90
 ```
 
 ## B-8. Post-Training Evaluation
@@ -556,7 +554,7 @@ sbatch --array=0-71  slurm/step7_dr.sh wheeled  # 3 ×  8 × 1 × 3 =  72
 
 ```bash
 sbatch --array=0-89 slurm/eval_ablations.sh ablation_reward uav      # 90 jobs
-sbatch --array=0-71 slurm/eval_ablations.sh ablation_reward wheeled  # 72 jobs
+sbatch --array=0-89 slurm/eval_ablations.sh ablation_reward wheeled  # 90 jobs
 ```
 
 Merge per-job CSVs (one merge per robot type):
@@ -576,7 +574,7 @@ done
 
 ```bash
 sbatch --array=0-479 slurm/eval_ablations.sh ablation_uncertainty uav      # 4×4×10×3 = 480
-sbatch --array=0-383 slurm/eval_ablations.sh ablation_uncertainty wheeled  # 4×4× 8×3 = 384
+sbatch --array=0-479 slurm/eval_ablations.sh ablation_uncertainty wheeled  # 4×4×10×3 = 480
 ```
 
 Merge:
@@ -596,7 +594,7 @@ done
 
 ```bash
 sbatch --array=0-359 slurm/eval_ablations.sh dr uav      # 3×10×4×3 = 360
-sbatch --array=0-71  slurm/eval_ablations.sh dr wheeled  # 3× 8×1×3 =  72
+sbatch --array=0-89  slurm/eval_ablations.sh dr wheeled  # 3×10×1×3 =  90
 ```
 
 Merge in-distribution / OOD:
@@ -655,16 +653,17 @@ python plot_figures.py --robot_type both \
 
 | Step | Script                       | UAV jobs | Wheeled jobs |
 |------|------------------------------|---------:|-------------:|
-| 1a   | step1_crossq_default.sh      |     120  |       24     |
-| 1b   | step1_others_default.sh      |     600  |      120     |
+| 1a   | step1_crossq_default.sh      |     120  |       30     |
+| 1b   | step1_others_default.sh      |     600  |      150     |
 | 2    | step2_tune_hyperparameters.sh|     300  |      300     |
-| 3a   | step3_crossq_tuned.sh        |     120  |       24     |
-| 3b   | step3_others_tuned.sh        |     600  |      120     |
-| 4–6  | step4_5_6_ablations.sh ×3    |    3×120 |     3×96     |
-| 7    | step7_dr.sh                  |     360  |       72     |
-| 8a   | eval_ablations.sh reward     |      90  |       72     |
-| 8b   | eval_ablations.sh uncertainty|     480  |      384     |
-| 8c   | eval_ablations.sh dr         |     360  |       72     |
+| 3a   | step3_crossq_tuned.sh        |     120  |       30     |
+| 3b   | step3_others_tuned.sh        |     600  |      150     |
+| 4    | step4_5_6_ablations.sh reward|     120  |       90     |
+| 5–6  | step4_5_6_ablations.sh ×2    |    2×120 |    2×120     |
+| 7    | step7_dr.sh                  |     360  |       90     |
+| 8a   | eval_ablations.sh reward     |      90  |       90     |
+| 8b   | eval_ablations.sh uncertainty|     480  |      480     |
+| 8c   | eval_ablations.sh dr         |     360  |       90     |
 | 8d   | eval_wind_sweep.sh           |      60  |       60     |
 | 8e   | step8_sensitivity_hp.sh      |       6  |        6     |
 
