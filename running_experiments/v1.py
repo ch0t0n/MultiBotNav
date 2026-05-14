@@ -5,7 +5,6 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 import copy
 import json
-import configparser                  # [NEW] .ini config files for wheeled robot envs
 from datetime import datetime
 import numpy as np
 import gymnasium as gym
@@ -74,7 +73,7 @@ def get_robot_polygon(x, y, theta, robot_length, robot_width):
     rotated = np.dot(corners, R.T) + np.array([x, y])
     return Polygon(rotated)
 
-def read_uav_json(json_path, sf=10):
+def read_uav_json(json_path, sf=1):
     """Load UAV field-info dicts from JSON, applying a scale factor sf."""
     with open(json_path, "r") as f:
         data = json.load(f)
@@ -84,73 +83,67 @@ def read_uav_json(json_path, sf=10):
         cfg["infected_locations"]= [tuple((p[0] * sf, p[1] * sf)) for p in cfg["infected_locations"]]
     return data
 
-def read_wheeled_configs(config_dir):
+def read_wheeled_json(json_path):
     """
-    Scan config_dir for .ini files (env1.ini, env2.ini, …) and load each one.
-    Files are sorted lexicographically so env1 → set1, env2 → set2, etc.
-    Returns a dict {"set1": env_params_1, "set2": env_params_2, …} so that
-    train_single_env() can access configs with the same set_key pattern used
-    for UAV (json_dict[f"set{env_id}"]).
+    Load all wheeled-robot environment configs from a single JSON file.
+
+    The JSON file maps environment keys ("env1", "env2", …) to config dicts
+    with the following structure::
+
+        {
+          "screen":    {"width": 500, "height": 500},
+          "robots":    {"length": 20, "width": 15, "max_speed": 100,
+                        "max_steer": 45, "num_robots": 5,
+                        "configs": [[x, y, theta_deg], ...]},
+          "goals":     {"num_goals": 4, "goal_size": 10,
+                        "positions": [[x, y], ...]},
+          "obstacles": [[[x, y], ...], ...]
+        }
+
+    Returns a dict {"set1": env_params_1, "set2": env_params_2, …} whose
+    values are flat dicts with the exact keys expected by MultiWheeled
+    (SCREEN_WIDTH, ROBOT_INIT_CONFIGS with radians, GOAL_POSITIONS, etc.).
     """
-    ini_files = sorted(f for f in os.listdir(config_dir) if f.endswith(".ini"))
-    if not ini_files:
-        raise FileNotFoundError(f"No .ini files found in '{config_dir}'")
+    with open(json_path, "r") as f:
+        raw = json.load(f)
+
     configs = {}
-    for i, fname in enumerate(ini_files, start=1):
-        configs[f"set{i}"] = read_env_config(os.path.join(config_dir, fname))
-        print(f"  Loaded wheeled config set{i} ← {fname}")
+    for i, (key, cfg) in enumerate(sorted(raw.items(),
+                                          key=lambda kv: int(kv[0].replace("env", ""))),
+                                   start=1):
+        r   = cfg["robots"]
+        g   = cfg["goals"]
+        obs = cfg["obstacles"]
+        env_params = {
+            "SCREEN_WIDTH":      float(cfg["screen"]["width"]),
+            "SCREEN_HEIGHT":     float(cfg["screen"]["height"]),
+            "ROBOT_LENGTH":      float(r["length"]),
+            "ROBOT_WIDTH":       float(r["width"]),
+            "MAX_SPEED":         float(r["max_speed"]),
+            "MAX_STEER":         float(r["max_steer"]),
+            "NUM_ROBOTS":        int(r["num_robots"]),
+            # theta stored in degrees in JSON; MultiWheeled expects radians
+            "ROBOT_INIT_CONFIGS": [
+                (float(c[0]), float(c[1]), float(np.radians(c[2])))
+                for c in r["configs"]
+            ],
+            "NUM_GOALS":         int(g["num_goals"]),
+            "GOAL_SIZE":         float(g["goal_size"]),
+            "GOAL_POSITIONS":    [tuple(p) for p in g["positions"]],
+            "NUM_OBSTACLES":     len(obs),
+            "OBSTACLES":         [[tuple(v) for v in poly] for poly in obs],
+        }
+        configs[f"set{i}"] = env_params
+        print(f"  Loaded wheeled config set{i} ← {key}  "
+              f"({env_params['NUM_ROBOTS']} robots, "
+              f"{int(env_params['SCREEN_WIDTH'])}×{int(env_params['SCREEN_HEIGHT'])})")
+
     return configs
-
-def read_env_config(config_path):
-    """
-    Parse a single .ini environment config file (configparser format).
-    Taken directly from the wheeled robot reference script — do not modify
-    the field names or section names without also updating the .ini files.
-    """
-    config = configparser.ConfigParser()
-    config.read(config_path)
-    env_params = {}
-
-    # Screen
-    env_params['SCREEN_WIDTH']  = float(config['SCREEN']['WIDTH'])
-    env_params['SCREEN_HEIGHT'] = float(config['SCREEN']['HEIGHT'])
-
-    # Robot physical params
-    env_params['ROBOT_LENGTH'] = float(config['ROBOTS']['LENGTH'])
-    env_params['ROBOT_WIDTH']  = float(config['ROBOTS']['WIDTH'])
-    env_params['MAX_SPEED']    = float(config['ROBOTS']['MAX_SPEED'])
-    env_params['MAX_STEER']    = float(config['ROBOTS']['MAX_STEER'])
-    env_params['NUM_ROBOTS']   = int(config['ROBOTS']['NUM_ROBOTS'])
-
-    # Initial robot configurations — theta stored in radians
-    env_params['ROBOT_INIT_CONFIGS'] = []
-    for i in range(env_params['NUM_ROBOTS']):
-        conf = config['ROBOTS'][f'ROBOT_{i + 1}']
-        x, y, theta = map(float, conf.split(','))
-        env_params['ROBOT_INIT_CONFIGS'].append((x, y, float(np.radians(theta))))
-
-    # Goal positions
-    env_params['NUM_GOALS']    = int(config['GOALS']['NUM_GOALS'])
-    env_params['GOAL_SIZE']    = float(config['GOALS']['GOAL_SIZE'])
-    env_params['GOAL_POSITIONS'] = []
-    for i in range(env_params['NUM_GOALS']):
-        g_pos = config['GOALS'][f'GOAL_{i + 1}']
-        x, y  = map(float, g_pos.split(','))
-        env_params['GOAL_POSITIONS'].append((x, y))
-
-    # Polygonal obstacles — vertices separated by ';', coordinates by ','
-    env_params['NUM_OBSTACLES'] = int(config['OBSTACLES']['NUM_OBSTACLES'])
-    env_params['OBSTACLES']     = []
-    for i in range(env_params['NUM_OBSTACLES']):
-        ver_str = config['OBSTACLES'][f'OBSTACLE_{i + 1}']
-        points  = [tuple(map(int, pt.split(','))) for pt in ver_str.split(';')]
-        env_params['OBSTACLES'].append(points)
-
-    return env_params
 
 # ================================
 # Environment Classes
 # ================================
+
 
 class MultiUAV(gym.Env):
     """
@@ -216,7 +209,7 @@ class MultiUAV(gym.Env):
         self.num_robots   = num_robots                          # Total number of UAVs
         self.init_robot_positions = np.array(
             self.field_info['init_positions'][:num_robots], dtype=np.float32) # Fetch initial positions
-        self.robot_size   = 10                                  # Base robot visual/collision size
+        self.robot_size   = 1.0                                 # Base robot visual/collision size
         self.mass         = 1.0                                 # UAV mass (overridden by DR full)
         self.thrust_power = 0.5                                 # Action scaling multiplier (overridden by DR full)
         self.max_speed    =  5.0                                # Maximum allowable speed
@@ -228,7 +221,7 @@ class MultiUAV(gym.Env):
 
         # ── Infection / Target params ───────────────────────────────
         self.initial_inf_locations  = [tuple(loc) for loc in self.field_info['infected_locations']] # Target coordinates
-        self._nominal_infected_size = 10                        # Base radius for successful visitation
+        self._nominal_infected_size = 1.5                       # Base radius for successful visitation
         self.infected_size          = self._nominal_infected_size
         self.infected_length        = len(self.initial_inf_locations) # Total number of targets
 
@@ -250,7 +243,7 @@ class MultiUAV(gym.Env):
         self.wind_dir_noise_std  = _noise["wind_dir"]           # Wind direction volatility
         self.action_noise_std    = _noise["action"]             # Volatility applied to UAV control inputs
         self.obs_noise_std       = _noise["obs"]                # Sensor noise added to state observations
-        self.init_position_noise = 0.5                          # Jitter added to spawn coordinates
+        self.init_position_noise = 0.05                          # Jitter added to spawn coordinates
 
         # ── Nominal values for DR restore ───────────────────────────
         self._nominal_action_noise_std = _noise["action"]
@@ -511,14 +504,14 @@ class MultiUAV(gym.Env):
         # ── Rendering Scaling Fix ────────────────────────────────────────────────
         # Using a much larger baseline multiplier to match Code 1's visibility intent.
         # Ensure robots and targets aren't shrunken by dynamic screen scaling.
-        r_px = max(6, int(self.robot_size * self.render_scale))
+        r_px = int(self.robot_size * self.render_scale)
         
         # Draw Robots
         for i in range(self.num_robots):
             pygame.draw.circle(self.screen, self.robot_colors[i % len(self.robot_colors)],
                                self.world_to_screen(self.robot_positions[i]), r_px)
 
-        inf_px = max(8, int(self.infected_size * self.render_scale * 0.8))
+        inf_px = int(self.infected_size * self.render_scale) / 1.5
         
         # Draw unvisited targets (Cyan)
         for loc in self.infected_locations:
@@ -713,6 +706,9 @@ class MultiWheeled(gym.Env):
 
     def step(self, action):
         terminated, truncated = False, False
+        term_cond = ""
+        # Recompute dec_g fresh at the start of each step
+        self.dec_g = binary_list_to_decimal(self.goal_visited)
         reward = -(self.r_s / self.dec_g) if self.dec_g != 0 else -self.r_s
         self.t += 1
 
@@ -754,8 +750,17 @@ class MultiWheeled(gym.Env):
                     self.collision_point = (pt.x, pt.y)
                     if self.reward_ablation != "no_term":
                         reward = -self.r_M
-                    terminated = True
+                    terminated = True                    
                     self.collision_occurred = True
+                    term_cond = "collision"
+                    obs, info = self._get_obs()
+                    info.update({
+                        "step_count":    self.t,
+                        "goals_visited": int(sum(self.goal_visited)),
+                        "path_length":   self.total_path_length,
+                        "term_cond":     term_cond,
+                    })
+                    return obs, reward, terminated, truncated, info
 
             for prev_poly in robot_polygons:
                 if robot_poly.intersects(prev_poly):
@@ -765,6 +770,15 @@ class MultiWheeled(gym.Env):
                         reward = -self.r_M
                     terminated = True
                     self.collision_occurred = True
+                    term_cond = "collision"
+                    obs, info = self._get_obs()
+                    info.update({
+                        "step_count":    self.t,
+                        "goals_visited": int(sum(self.goal_visited)),
+                        "path_length":   self.total_path_length,
+                        "term_cond":     term_cond,
+                    })
+                    return obs, reward, terminated, truncated, info
             robot_polygons.append(robot_poly)
 
             for j, (gx, gy) in enumerate(self.goal_positions):
@@ -792,7 +806,6 @@ class MultiWheeled(gym.Env):
             dists_mat  = np.linalg.norm(current_positions[:, None] - target_arr[None, :], axis=2)
             reward    += 0.5 * float(np.sum(np.exp(-np.min(dists_mat, axis=1))))
 
-        term_cond = ""
         if sum(self.goal_visited) >= len(self.goal_positions):
             if self.reward_ablation != "no_term":
                 reward += self.r_M
@@ -971,15 +984,15 @@ def train_single_env(env_id, config, seed=42):
 # ================================
 def main():
     # ── CONFIG ─────────────────────────────────────────────────────────────
-    version    = "6"
-    robot_type = "uav"       # [NEW] change to "wheeled" to train MultiWheeled
+    version    = "1"
+    robot_type = "wheeled"       # [NEW] change to "wheeled" to train MultiWheeled
     # seeds      = [0, 42, 123, 2024, 9999]
     seeds      = [42]
 
     config_base = {
         "robot_type": robot_type,  # [NEW] forwarded to every worker
         "device_ids": [f"cuda:{i}" for i in range(8)],
-        "time_steps": int(2e6),
+        "time_steps": int(3e6),
         "num_envs":   8,
         "num_robots": 3,           # only used by MultiUAV; ignored by MultiWheeled
         "max_steps":  1000,
@@ -991,11 +1004,11 @@ def main():
         json_path = os.path.join(".", "exp_sets", "uav", "cont_sets.json")
         json_dict = read_uav_json(json_path)
     elif robot_type == "wheeled":
-        # One .ini file per environment (env1.ini, env2.ini, …) in the directory.
-        # read_wheeled_configs() scans the folder and returns {"set1": …, "set2": …}
-        # so train_single_env() can use the same set_key pattern as UAV.
-        config_dir = os.path.join(".", "exp_sets", "wheeled")
-        json_dict  = read_wheeled_configs(config_dir)
+        # Single JSON file consolidating all 10 environments (500×500, 5 robots each).
+        # read_wheeled_json() returns {"set1": env_params_1, …} so train_single_env()
+        # uses the identical set_key pattern as UAV.
+        json_path = os.path.join(".", "exp_sets", "wheeled", "wheeled_configs.json")
+        json_dict = read_wheeled_json(json_path)
     else:
         raise ValueError(f"Unknown robot_type: '{robot_type}'")
 
