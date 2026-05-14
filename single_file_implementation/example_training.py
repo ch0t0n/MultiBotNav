@@ -1,5 +1,6 @@
 # This is the new environment for multi-robot navigation developed in May 11, 2026
 
+import re
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
@@ -92,7 +93,10 @@ def read_wheeled_configs(config_dir):
     train_single_env() can access configs with the same set_key pattern used
     for UAV (json_dict[f"set{env_id}"]).
     """
-    ini_files = sorted(f for f in os.listdir(config_dir) if f.endswith(".ini"))
+    ini_files = sorted(
+                (f for f in os.listdir(config_dir) if f.endswith(".ini")),
+                key=lambda f: int(re.search(r'\d+', f).group())
+                )
     if not ini_files:
         raise FileNotFoundError(f"No .ini files found in '{config_dir}'")
     configs = {}
@@ -151,6 +155,7 @@ def read_env_config(config_path):
 # ================================
 # Environment Classes
 # ================================
+
 
 class MultiUAV(gym.Env):
     """
@@ -228,7 +233,7 @@ class MultiUAV(gym.Env):
 
         # ── Infection / Target params ───────────────────────────────
         self.initial_inf_locations  = [tuple(loc) for loc in self.field_info['infected_locations']] # Target coordinates
-        self._nominal_infected_size = 1.0                       # Base radius for successful visitation
+        self._nominal_infected_size = 1.5                       # Base radius for successful visitation
         self.infected_size          = self._nominal_infected_size
         self.infected_length        = len(self.initial_inf_locations) # Total number of targets
 
@@ -250,7 +255,7 @@ class MultiUAV(gym.Env):
         self.wind_dir_noise_std  = _noise["wind_dir"]           # Wind direction volatility
         self.action_noise_std    = _noise["action"]             # Volatility applied to UAV control inputs
         self.obs_noise_std       = _noise["obs"]                # Sensor noise added to state observations
-        self.init_position_noise = 0.5                          # Jitter added to spawn coordinates
+        self.init_position_noise = 0.05                          # Jitter added to spawn coordinates
 
         # ── Nominal values for DR restore ───────────────────────────
         self._nominal_action_noise_std = _noise["action"]
@@ -518,7 +523,7 @@ class MultiUAV(gym.Env):
             pygame.draw.circle(self.screen, self.robot_colors[i % len(self.robot_colors)],
                                self.world_to_screen(self.robot_positions[i]), r_px)
 
-        inf_px = int(self.infected_size * self.render_scale)
+        inf_px = int(self.infected_size * self.render_scale) / 1.5
         
         # Draw unvisited targets (Cyan)
         for loc in self.infected_locations:
@@ -713,6 +718,9 @@ class MultiWheeled(gym.Env):
 
     def step(self, action):
         terminated, truncated = False, False
+        term_cond = ""
+        # Recompute dec_g fresh at the start of each step
+        self.dec_g = binary_list_to_decimal(self.goal_visited)
         reward = -(self.r_s / self.dec_g) if self.dec_g != 0 else -self.r_s
         self.t += 1
 
@@ -754,8 +762,17 @@ class MultiWheeled(gym.Env):
                     self.collision_point = (pt.x, pt.y)
                     if self.reward_ablation != "no_term":
                         reward = -self.r_M
-                    terminated = True
+                    terminated = True                    
                     self.collision_occurred = True
+                    term_cond = "collision"
+                    obs, info = self._get_obs()
+                    info.update({
+                        "step_count":    self.t,
+                        "goals_visited": int(sum(self.goal_visited)),
+                        "path_length":   self.total_path_length,
+                        "term_cond":     term_cond,
+                    })
+                    return obs, reward, terminated, truncated, info
 
             for prev_poly in robot_polygons:
                 if robot_poly.intersects(prev_poly):
@@ -765,6 +782,15 @@ class MultiWheeled(gym.Env):
                         reward = -self.r_M
                     terminated = True
                     self.collision_occurred = True
+                    term_cond = "collision"
+                    obs, info = self._get_obs()
+                    info.update({
+                        "step_count":    self.t,
+                        "goals_visited": int(sum(self.goal_visited)),
+                        "path_length":   self.total_path_length,
+                        "term_cond":     term_cond,
+                    })
+                    return obs, reward, terminated, truncated, info
             robot_polygons.append(robot_poly)
 
             for j, (gx, gy) in enumerate(self.goal_positions):
@@ -792,7 +818,6 @@ class MultiWheeled(gym.Env):
             dists_mat  = np.linalg.norm(current_positions[:, None] - target_arr[None, :], axis=2)
             reward    += 0.5 * float(np.sum(np.exp(-np.min(dists_mat, axis=1))))
 
-        term_cond = ""
         if sum(self.goal_visited) >= len(self.goal_positions):
             if self.reward_ablation != "no_term":
                 reward += self.r_M
@@ -971,15 +996,15 @@ def train_single_env(env_id, config, seed=42):
 # ================================
 def main():
     # ── CONFIG ─────────────────────────────────────────────────────────────
-    version    = "7"
-    robot_type = "uav"       # [NEW] change to "wheeled" to train MultiWheeled
+    version    = "10"
+    robot_type = "wheeled"       # [NEW] change to "wheeled" to train MultiWheeled
     # seeds      = [0, 42, 123, 2024, 9999]
     seeds      = [42]
 
     config_base = {
         "robot_type": robot_type,  # [NEW] forwarded to every worker
         "device_ids": [f"cuda:{i}" for i in range(8)],
-        "time_steps": int(2e6),
+        "time_steps": int(3e6),
         "num_envs":   8,
         "num_robots": 3,           # only used by MultiUAV; ignored by MultiWheeled
         "max_steps":  1000,

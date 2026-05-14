@@ -103,7 +103,7 @@ class MultiUAV(gym.Env):
         self.num_robots   = num_robots                          # Total number of UAVs
         self.init_robot_positions = np.array(
             self.field_info['init_positions'][:num_robots], dtype=np.float32) # Fetch initial positions
-        self.robot_size   = 10                                  # Base robot visual/collision size
+        self.robot_size   = 1.0                                 # Base robot visual/collision size
         self.mass         = 1.0                                 # UAV mass (overridden by DR full)
         self.thrust_power = 0.5                                 # Action scaling multiplier (overridden by DR full)
         self.max_speed    =  5.0                                # Maximum allowable speed
@@ -115,7 +115,7 @@ class MultiUAV(gym.Env):
 
         # ── Infection / Target params ───────────────────────────────
         self.initial_inf_locations  = [tuple(loc) for loc in self.field_info['infected_locations']] # Target coordinates
-        self._nominal_infected_size = 10                        # Base radius for successful visitation
+        self._nominal_infected_size = 1.0                       # Base radius for successful visitation
         self.infected_size          = self._nominal_infected_size
         self.infected_length        = len(self.initial_inf_locations) # Total number of targets
 
