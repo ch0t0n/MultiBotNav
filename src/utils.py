@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import random
 import configparser
@@ -116,7 +117,10 @@ def read_wheeled_configs(config_dir):
     train_single_env() can access configs with the same set_key pattern used
     for UAV (json_dict[f"set{env_id}"]).
     """
-    ini_files = sorted(f for f in os.listdir(config_dir) if f.endswith(".ini"))
+    ini_files = sorted(
+                (f for f in os.listdir(config_dir) if f.endswith(".ini")),
+                key=lambda f: int(re.search(r'\d+', f).group())
+                )
     if not ini_files:
         raise FileNotFoundError(f"No .ini files found in '{config_dir}'")
     configs = {}

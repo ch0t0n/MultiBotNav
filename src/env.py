@@ -115,7 +115,7 @@ class MultiUAV(gym.Env):
 
         # ── Infection / Target params ───────────────────────────────
         self.initial_inf_locations  = [tuple(loc) for loc in self.field_info['infected_locations']] # Target coordinates
-        self._nominal_infected_size = 1.0                       # Base radius for successful visitation
+        self._nominal_infected_size = 1.5                       # Base radius for successful visitation
         self.infected_size          = self._nominal_infected_size
         self.infected_length        = len(self.initial_inf_locations) # Total number of targets
 
@@ -137,7 +137,7 @@ class MultiUAV(gym.Env):
         self.wind_dir_noise_std  = _noise["wind_dir"]           # Wind direction volatility
         self.action_noise_std    = _noise["action"]             # Volatility applied to UAV control inputs
         self.obs_noise_std       = _noise["obs"]                # Sensor noise added to state observations
-        self.init_position_noise = 0.5                          # Jitter added to spawn coordinates
+        self.init_position_noise = 0.05                          # Jitter added to spawn coordinates
 
         # ── Nominal values for DR restore ───────────────────────────
         self._nominal_action_noise_std = _noise["action"]
@@ -398,14 +398,14 @@ class MultiUAV(gym.Env):
         # ── Rendering Scaling Fix ────────────────────────────────────────────────
         # Using a much larger baseline multiplier to match Code 1's visibility intent.
         # Ensure robots and targets aren't shrunken by dynamic screen scaling.
-        r_px = max(6, int(self.robot_size * self.render_scale * 0.8))
-        
+        r_px = int(self.robot_size * self.render_scale)
+
         # Draw Robots
         for i in range(self.num_robots):
             pygame.draw.circle(self.screen, self.robot_colors[i % len(self.robot_colors)],
                                self.world_to_screen(self.robot_positions[i]), r_px)
 
-        inf_px = max(8, int(self.infected_size * self.render_scale * 0.8))
+        inf_px = int(self.infected_size * self.render_scale) / 1.5
         
         # Draw unvisited targets (Cyan)
         for loc in self.infected_locations:
@@ -613,6 +613,9 @@ class MultiWheeled(gym.Env):
     # ── step ─────────────────────────────────────────────────────────
     def step(self, action):
         terminated, truncated = False, False
+        term_cond = ""
+        # Recompute dec_g fresh at the start of each step
+        self.dec_g = binary_list_to_decimal(self.goal_visited)
         reward = -(self.r_s / self.dec_g) if self.dec_g != 0 else -self.r_s
         self.t += 1
 
@@ -656,6 +659,15 @@ class MultiWheeled(gym.Env):
                         reward = -self.r_M
                     terminated = True
                     self.collision_occurred = True
+                    term_cond = "collision"
+                    obs, info = self._get_obs()
+                    info.update({
+                        "step_count":    self.t,
+                        "goals_visited": int(sum(self.goal_visited)),
+                        "path_length":   self.total_path_length,
+                        "term_cond":     term_cond,
+                    })
+                    return obs, reward, terminated, truncated, info
 
             for prev_poly in robot_polygons:
                 if robot_poly.intersects(prev_poly):
@@ -665,6 +677,15 @@ class MultiWheeled(gym.Env):
                         reward = -self.r_M
                     terminated = True
                     self.collision_occurred = True
+                    term_cond = "collision"
+                    obs, info = self._get_obs()
+                    info.update({
+                        "step_count":    self.t,
+                        "goals_visited": int(sum(self.goal_visited)),
+                        "path_length":   self.total_path_length,
+                        "term_cond":     term_cond,
+                    })
+                    return obs, reward, terminated, truncated, info
             robot_polygons.append(robot_poly)
 
             for j, (gx, gy) in enumerate(self.goal_positions):
