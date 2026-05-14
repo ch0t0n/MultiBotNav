@@ -2,10 +2,10 @@
 This is the branch for running experiments from the KDD GPU servers.
 
 ## Conda environment activation
-`cd "/home/c/choton/reinforcement_learning/corl_2026/git/MultiBotNav/running_experiments" && source ~/.bashrc && conda activate rl4pag`
+```
+cd "/home/c/choton/reinforcement_learning/corl_2026/git/MultiBotNav/running_experiments" && source ~/.bashrc && conda activate rl4pag
+```
 
-## Command to run
-`python v1.py`
 
 ## Currently running experiments 
 ### In GPU server: 
