@@ -30,7 +30,7 @@ Follow **Part A** to run the experiments on a local machine (this may take a
 long time).  Follow **Part B** if you have access to an HPC cluster with
 SLURM.  A **single-file reference implementation** that bundles both
 environments, the helpers, the gym registration, and the training launcher
-is available at `single_file/example_env_v1.py` — useful for quickly
+is available at `single_file_implementation/example_training.py` — useful for quickly
 inspecting the full pipeline in one place.  Once policies are trained, see
 the **Simulation** section near the end of this document to run the trained
 UAV models inside CoppeliaSim.
