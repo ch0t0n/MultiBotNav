@@ -108,15 +108,83 @@ def read_uav_json(json_path, sf=1):
     return data
 
 
+def read_wheeled_json(json_path):
+    """
+    Load all wheeled-robot environment configs from a single JSON file.
+
+    The JSON file maps environment keys ("env1", "env2", …) to config dicts
+    with the following structure::
+
+        {
+          "screen":    {"width": 500, "height": 500},
+          "robots":    {"length": 20, "width": 15, "max_speed": 100,
+                        "max_steer": 45, "num_robots": 5,
+                        "configs": [[x, y, theta_deg], ...]},
+          "goals":     {"num_goals": 4, "goal_size": 10,
+                        "positions": [[x, y], ...]},
+          "obstacles": [[[x, y], ...], ...]
+        }
+
+    Returns a dict {"set1": env_params_1, "set2": env_params_2, …} whose
+    values are flat dicts with the exact keys expected by MultiWheeled
+    (SCREEN_WIDTH, ROBOT_INIT_CONFIGS with radians, GOAL_POSITIONS, etc.).
+
+    The ``num_robots`` field in each env records the *maximum* number of
+    robot starting positions available.  MultiWheeled accepts a ``num_robots``
+    override at construction time to use only the first N of them, so the
+    same JSON supports 2-, 3-, 4-, and 5-robot experiments.
+    """
+    with open(json_path, "r") as f:
+        raw = json.load(f)
+
+    configs = {}
+    for i, (key, cfg) in enumerate(sorted(raw.items(),
+                                          key=lambda kv: int(kv[0].replace("env", ""))),
+                                   start=1):
+        r   = cfg["robots"]
+        g   = cfg["goals"]
+        obs = cfg["obstacles"]
+        env_params = {
+            "SCREEN_WIDTH":      float(cfg["screen"]["width"]),
+            "SCREEN_HEIGHT":     float(cfg["screen"]["height"]),
+            "ROBOT_LENGTH":      float(r["length"]),
+            "ROBOT_WIDTH":       float(r["width"]),
+            "MAX_SPEED":         float(r["max_speed"]),
+            "MAX_STEER":         float(r["max_steer"]),
+            "NUM_ROBOTS":        int(r["num_robots"]),
+            # theta stored in degrees in JSON; MultiWheeled expects radians
+            "ROBOT_INIT_CONFIGS": [
+                (float(c[0]), float(c[1]), float(np.radians(c[2])))
+                for c in r["configs"]
+            ],
+            "NUM_GOALS":         int(g["num_goals"]),
+            "GOAL_SIZE":         float(g["goal_size"]),
+            "GOAL_POSITIONS":    [tuple(p) for p in g["positions"]],
+            "NUM_OBSTACLES":     len(obs),
+            "OBSTACLES":         [[tuple(v) for v in poly] for poly in obs],
+        }
+        configs[f"set{i}"] = env_params
+        print(f"  Loaded wheeled config set{i} <- {key}  "
+              f"({env_params['NUM_ROBOTS']} robot slots, "
+              f"{int(env_params['SCREEN_WIDTH'])}x{int(env_params['SCREEN_HEIGHT'])})")
+
+    return configs
+
+
 def read_wheeled_configs(config_dir):
     """
-    Scan config_dir for .ini files (env1.ini, env2.ini, ...) and load each one.
+    DEPRECATED — scans a directory for .ini files.
 
-    Files are sorted lexicographically so env1 → set1, env2 → set2, etc.
-    Returns a dict {"set1": env_params_1, "set2": env_params_2, ...} so that
-    train_single_env() can access configs with the same set_key pattern used
-    for UAV (json_dict[f"set{env_id}"]).
+    Kept for backward compatibility only.  New code should call
+    ``read_wheeled_json(json_path)`` with the consolidated JSON file at
+    ``exp_sets/wheeled/wheeled_configs.json``.
     """
+    import warnings
+    warnings.warn(
+        "read_wheeled_configs() is deprecated.  "
+        "Use read_wheeled_json('exp_sets/wheeled/wheeled_configs.json') instead.",
+        DeprecationWarning, stacklevel=2,
+    )
     ini_files = sorted(
                 (f for f in os.listdir(config_dir) if f.endswith(".ini")),
                 key=lambda f: int(re.search(r'\d+', f).group())
@@ -125,47 +193,41 @@ def read_wheeled_configs(config_dir):
         raise FileNotFoundError(f"No .ini files found in '{config_dir}'")
     configs = {}
     for i, fname in enumerate(ini_files, start=1):
-        configs[f"set{i}"] = read_env_config(os.path.join(config_dir, fname))
+        configs[f"set{i}"] = _read_ini_env_config(os.path.join(config_dir, fname))
         print(f"  Loaded wheeled config set{i} <- {fname}")
     return configs
 
 
-def read_env_config(config_path):
+def _read_ini_env_config(config_path):
     """
-    Parse a single .ini environment config file (configparser format).
+    Internal: parse a single legacy .ini environment config file.
     """
     config = configparser.ConfigParser()
     config.read(config_path)
     env_params = {}
 
-    # Screen
     env_params['SCREEN_WIDTH']  = float(config['SCREEN']['WIDTH'])
     env_params['SCREEN_HEIGHT'] = float(config['SCREEN']['HEIGHT'])
+    env_params['ROBOT_LENGTH']  = float(config['ROBOTS']['LENGTH'])
+    env_params['ROBOT_WIDTH']   = float(config['ROBOTS']['WIDTH'])
+    env_params['MAX_SPEED']     = float(config['ROBOTS']['MAX_SPEED'])
+    env_params['MAX_STEER']     = float(config['ROBOTS']['MAX_STEER'])
+    env_params['NUM_ROBOTS']    = int(config['ROBOTS']['NUM_ROBOTS'])
 
-    # Robot physical params
-    env_params['ROBOT_LENGTH'] = float(config['ROBOTS']['LENGTH'])
-    env_params['ROBOT_WIDTH']  = float(config['ROBOTS']['WIDTH'])
-    env_params['MAX_SPEED']    = float(config['ROBOTS']['MAX_SPEED'])
-    env_params['MAX_STEER']    = float(config['ROBOTS']['MAX_STEER'])
-    env_params['NUM_ROBOTS']   = int(config['ROBOTS']['NUM_ROBOTS'])
-
-    # Initial robot configurations — theta stored in radians
     env_params['ROBOT_INIT_CONFIGS'] = []
     for i in range(env_params['NUM_ROBOTS']):
         conf = config['ROBOTS'][f'ROBOT_{i + 1}']
         x, y, theta = map(float, conf.split(','))
         env_params['ROBOT_INIT_CONFIGS'].append((x, y, float(np.radians(theta))))
 
-    # Goal positions
-    env_params['NUM_GOALS']    = int(config['GOALS']['NUM_GOALS'])
-    env_params['GOAL_SIZE']    = float(config['GOALS']['GOAL_SIZE'])
+    env_params['NUM_GOALS']      = int(config['GOALS']['NUM_GOALS'])
+    env_params['GOAL_SIZE']      = float(config['GOALS']['GOAL_SIZE'])
     env_params['GOAL_POSITIONS'] = []
     for i in range(env_params['NUM_GOALS']):
         g_pos = config['GOALS'][f'GOAL_{i + 1}']
         x, y  = map(float, g_pos.split(','))
         env_params['GOAL_POSITIONS'].append((x, y))
 
-    # Polygonal obstacles — vertices separated by ';', coordinates by ','
     env_params['NUM_OBSTACLES'] = int(config['OBSTACLES']['NUM_OBSTACLES'])
     env_params['OBSTACLES']     = []
     for i in range(env_params['NUM_OBSTACLES']):
@@ -174,6 +236,10 @@ def read_env_config(config_path):
         env_params['OBSTACLES'].append(points)
 
     return env_params
+
+
+# Backward-compatible alias for old scripts still calling read_env_config
+read_env_config = _read_ini_env_config
 
 
 # Backward-compatible alias for scripts that still call load_experiment_dict_json

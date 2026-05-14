@@ -26,15 +26,15 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from sb3_contrib import TRPO, TQC, CrossQ, ARS
 
 from src.env import MultiUAV, MultiWheeled
-from src.utils import read_uav_json, read_wheeled_configs
+from src.utils import read_uav_json, read_wheeled_json
 
 
 # ================================================================
 # CONSTANTS
 # ================================================================
 
-UAV_JSON_PATH      = os.path.join('exp_sets', 'uav', 'cont_sets.json')
-WHEELED_CONFIG_DIR = os.path.join('exp_sets', 'wheeled')
+UAV_JSON_PATH     = os.path.join('exp_sets', 'uav', 'cont_sets.json')
+WHEELED_JSON_PATH = os.path.join('exp_sets', 'wheeled', 'wheeled_configs.json')
 NUM_ENVS   = 4
 NUM_ROBOTS = 3
 MAX_STEPS  = 1000
@@ -243,12 +243,13 @@ def run_tuning(args):
             render_mode=None,
         )
     else:
-        wheeled_dict = read_wheeled_configs(WHEELED_CONFIG_DIR)
+        wheeled_dict = read_wheeled_json(WHEELED_JSON_PATH)
         env_config   = wheeled_dict[f"set{ENV_VAR}"]
         env_class    = MultiWheeled
         env_id       = "MultiWheeled-v0"
         env_kwargs   = dict(
             env_params=env_config,
+            num_robots=NUM_ROBOTS,        # use the module-level default (3)
             max_steps=MAX_STEPS,
             render_mode=None,
         )

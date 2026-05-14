@@ -42,7 +42,7 @@ ENV_SETS_BY_ROBOT = {
 }
 ROBOT_COUNTS_BY_ROBOT = {
     "uav":     [2, 3, 4, 5],
-    "wheeled": [3],
+    "wheeled": [2, 3, 4, 5],
 }
 
 

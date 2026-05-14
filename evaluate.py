@@ -38,14 +38,14 @@ from stable_baselines3.common.env_util import make_vec_env
 from sb3_contrib import TRPO, TQC, CrossQ, ARS
 
 from src.env import MultiUAV, MultiWheeled
-from src.utils import read_uav_json, read_wheeled_configs
+from src.utils import read_uav_json, read_wheeled_json
 
 # ================================================================
 # Constants
 # ================================================================
 
-UAV_JSON_PATH      = os.path.join('exp_sets', 'uav', 'cont_sets.json')
-WHEELED_CONFIG_DIR = os.path.join('exp_sets', 'wheeled')
+UAV_JSON_PATH     = os.path.join('exp_sets', 'uav', 'cont_sets.json')
+WHEELED_JSON_PATH = os.path.join('exp_sets', 'wheeled', 'wheeled_configs.json')
 N_EVAL_EPISODES    = 50
 MAX_STEPS          = 1000
 
@@ -84,7 +84,7 @@ def parse_args():
     p.add_argument("--set",          type=int, required=True)
     p.add_argument("--robot_type",   type=str, default="uav", choices=["uav", "wheeled"])
     p.add_argument("--num_robots",   type=int, default=3,
-                   help="Number of robots (UAV only)")
+                   help="Number of robots (2-5 for both UAV and wheeled)")
     p.add_argument("--seed",         type=int, default=42)
     p.add_argument("--experiment",   type=str, default="main", choices=list(EXPERIMENT_MAP.keys()))
     p.add_argument("--ablation",     type=str, default=None)
@@ -168,6 +168,7 @@ def build_eval_env_kwargs(args, env_config: dict,
     else:
         kwargs = dict(
             env_params=env_config,
+            num_robots=args.num_robots,   # override JSON default; slices configs
             max_steps=MAX_STEPS,
             render_mode=None,
         )
@@ -209,17 +210,17 @@ def evaluate(args):
         env_class  = MultiUAV
         env_id     = "MultiUAV-v0"
     else:
-        wheeled_dict = read_wheeled_configs(WHEELED_CONFIG_DIR)
+        wheeled_dict = read_wheeled_json(WHEELED_JSON_PATH)
         env_config   = wheeled_dict[f"set{args.set}"]
         env_class    = MultiWheeled
         env_id       = "MultiWheeled-v0"
-        # Mirror train.py: align --num_robots with the .ini-defined count so
-        # the model-lookup tag (N{num_robots}) matches what train.py wrote.
-        cfg_n = int(env_config.get("NUM_ROBOTS", args.num_robots))
-        if cfg_n != args.num_robots:
-            print(f"  [INFO] wheeled set{args.set}: overriding --num_robots "
-                  f"{args.num_robots} with NUM_ROBOTS={cfg_n} from .ini")
-            args.num_robots = cfg_n
+        # Validate: --num_robots must not exceed available starting configs
+        max_slots = len(env_config["ROBOT_INIT_CONFIGS"])
+        if args.num_robots > max_slots:
+            raise ValueError(
+                f"--num_robots {args.num_robots} exceeds the {max_slots} "
+                f"robot configs in wheeled set{args.set}."
+            )
 
     if env_id not in gym.envs.registry:
         gym.register(id=env_id, entry_point=env_class, max_episode_steps=MAX_STEPS)

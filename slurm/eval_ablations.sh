@@ -17,15 +17,15 @@
 #   sbatch --array=0-479 eval_ablations.sh ablation_uncertainty uav
 #   sbatch --array=0-479 eval_ablations.sh ablation_uncertainty wheeled
 #   sbatch --array=0-359 eval_ablations.sh dr                   uav
-#   sbatch --array=0-89  eval_ablations.sh dr                   wheeled
+#   sbatch --array=0-359 eval_ablations.sh dr                   wheeled
 #
 # Grid sizes:
-#   ablation_reward       uav  : 3 cond × 10 sets × 3 seeds      =  90 jobs
-#   ablation_reward       wheel: 3 cond × 10 sets × 3 seeds      =  90 jobs
+#   ablation_reward       uav  : 3 cond × 10 sets × 3 seeds           =  90 jobs
+#   ablation_reward       wheel: 3 cond × 10 sets × 3 seeds           =  90 jobs
 #   ablation_uncertainty  uav  : 4 train × 4 eval × 10 sets × 3 seeds = 480 jobs
 #   ablation_uncertainty  wheel: 4 train × 4 eval × 10 sets × 3 seeds = 480 jobs
 #   dr                    uav  : 3 dr × 10 sets × 4 robots × 3 seeds  = 360 jobs
-#   dr                    wheel: 3 dr × 10 sets × 1 robot  × 3 seeds  =  90 jobs
+#   dr                    wheel: 3 dr × 10 sets × 4 robots × 3 seeds  = 360 jobs
 # ============================================================
 
 #SBATCH --job-name=eval_ablation
@@ -118,11 +118,8 @@ elif [ "$EXPERIMENT" == "ablation_uncertainty" ]; then
 elif [ "$EXPERIMENT" == "dr" ]; then
 
     dr_modes=("none" "wind" "full")
-    if [ "$ROBOT_TYPE" == "uav" ]; then
-        robots=(2 3 4 5)
-    else
-        robots=(3)
-    fi
+    # Both robot types now test 2-5 robots
+    robots=(2 3 4 5)
     num_robots=${#robots[@]}
 
     seed_idx=$(( index % num_seeds ))

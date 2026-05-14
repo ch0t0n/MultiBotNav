@@ -7,11 +7,11 @@
 #
 # Grid:
 #   uav     → 1 alg × 10 sets × 4 robot counts × 3 seeds = 120 jobs
-#   wheeled → 1 alg × 10 sets × 1 robot count  × 3 seeds =  30 jobs
+#   wheeled → 1 alg × 10 sets × 4 robot counts × 3 seeds = 120 jobs
 #
 # Submit:
 #   sbatch --array=0-119 step3_crossq_tuned.sh uav
-#   sbatch --array=0-29  step3_crossq_tuned.sh wheeled
+#   sbatch --array=0-119 step3_crossq_tuned.sh wheeled
 # ============================================================
 
 #SBATCH --array=0-119
@@ -35,13 +35,10 @@ ROBOT_TYPE=${1:-uav}
 algorithms=("CrossQ")
 seeds=(42 123 9999)
 
-if [ "$ROBOT_TYPE" == "uav" ]; then
-    sets=(1 2 3 4 5 6 7 8 9 10)
-    robots=(2 3 4 5)
-else
-    sets=(1 2 3 4 5 6 7 8 9 10)
-    robots=(3)
-fi
+# Both robot types now test 2-5 robots (wheeled uses num_robots override
+# against the single JSON config which carries 5 starting positions per env).
+sets=(1 2 3 4 5 6 7 8 9 10)
+robots=(2 3 4 5)
 
 num_sets=${#sets[@]}
 num_robots=${#robots[@]}
@@ -61,7 +58,7 @@ steps=2000000
 
 BEST_JSON="logs/best_hyperparams_${ROBOT_TYPE}.json"
 
-echo "S3-CrossQ-tuned | robot_type=$ROBOT_TYPE | alg=$algorithm | set=$set | robots=$num_robots_value | seed=$seed | job=$SLURM_ARRAY_TASK_ID"
+echo "S3-CrossQ-tuned | robot=$ROBOT_TYPE | alg=$algorithm | set=$set | N=$num_robots_value | seed=$seed | job=$SLURM_ARRAY_TASK_ID"
 
 /homes/choton/miniconda3/envs/robot_env/bin/python train.py \
     --algorithm        $algorithm \

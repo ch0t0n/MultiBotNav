@@ -33,7 +33,7 @@ from stable_baselines3.common.logger import configure
 from sb3_contrib import TRPO, TQC, CrossQ, ARS
 
 from src.env import MultiUAV, MultiWheeled
-from src.utils import read_uav_json, read_wheeled_configs
+from src.utils import read_uav_json, read_wheeled_json
 
 # ================================================================
 # Constants
@@ -75,8 +75,8 @@ EXPERIMENT_DEFAULTS = {
     "dr":                    "none",
 }
 
-UAV_JSON_PATH     = os.path.join('exp_sets', 'uav', 'cont_sets.json')
-WHEELED_CONFIG_DIR = os.path.join('exp_sets', 'wheeled')
+UAV_JSON_PATH      = os.path.join('exp_sets', 'uav', 'cont_sets.json')
+WHEELED_JSON_PATH  = os.path.join('exp_sets', 'wheeled', 'wheeled_configs.json')
 
 # ================================================================
 # Argument parsing
@@ -93,7 +93,7 @@ def parse_args():
                    choices=["uav", "wheeled"],
                    help="Robot platform: 'uav' (MultiUAV) or 'wheeled' (MultiWheeled)")
     p.add_argument("--num_robots",    type=int,   default=3,
-                   help="Number of robots (UAV only; ignored for wheeled)")
+                   help="Number of robots (2-5 for both UAV and wheeled)")
     p.add_argument("--seed",          type=int,   default=42)
     p.add_argument("--steps",         type=int,   default=int(2e6))
     p.add_argument("--verbose",       type=int,   default=1)
@@ -161,6 +161,7 @@ def build_env_kwargs(args, env_config: dict) -> dict:
     else:  # wheeled
         kwargs = dict(
             env_params=env_config,
+            num_robots=args.num_robots,   # override JSON default; slices configs
             max_steps=args.max_steps,
             render_mode=None,
         )
@@ -204,17 +205,17 @@ def train(args):
         env_class  = MultiUAV
         env_id     = "MultiUAV-v0"
     else:
-        wheeled_dict = read_wheeled_configs(WHEELED_CONFIG_DIR)
+        wheeled_dict = read_wheeled_json(WHEELED_JSON_PATH)
         env_config   = wheeled_dict[f"set{args.set}"]
         env_class    = MultiWheeled
         env_id       = "MultiWheeled-v0"
-        # MultiWheeled reads NUM_ROBOTS from the .ini — override the CLI flag
-        # so the log-dir tag and banner reflect the actual robot count.
-        cfg_n = int(env_config.get("NUM_ROBOTS", args.num_robots))
-        if cfg_n != args.num_robots:
-            print(f"  [INFO] wheeled set{args.set}: overriding --num_robots "
-                  f"{args.num_robots} with NUM_ROBOTS={cfg_n} from .ini")
-            args.num_robots = cfg_n
+        # Validate: --num_robots must not exceed the available starting configs
+        max_slots = len(env_config["ROBOT_INIT_CONFIGS"])
+        if args.num_robots > max_slots:
+            raise ValueError(
+                f"--num_robots {args.num_robots} exceeds the {max_slots} "
+                f"robot configs in wheeled set{args.set}."
+            )
 
     env_kwargs = build_env_kwargs(args, env_config)
 

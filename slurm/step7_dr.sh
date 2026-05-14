@@ -11,7 +11,7 @@
 #
 # Grid:
 #   uav     → 3 DR × 10 env sets × 4 robot counts × 3 seeds = 360 jobs
-#   wheeled → 3 DR × 10 env sets × 1 robot count  × 3 seeds =  90 jobs
+#   wheeled → 3 DR × 10 env sets × 4 robot counts × 3 seeds = 360 jobs
 #
 # Index layout (innermost → outermost):
 #   seed_idx  = index %  num_seeds
@@ -21,7 +21,7 @@
 #
 # Submit:
 #   sbatch --array=0-359 step7_dr.sh uav
-#   sbatch --array=0-89  step7_dr.sh wheeled
+#   sbatch --array=0-359 step7_dr.sh wheeled
 # ============================================================
 
 #SBATCH --array=0-359
@@ -45,13 +45,10 @@ ROBOT_TYPE=${1:-uav}
 dr_modes=("none" "wind" "full")
 seeds=(42 123 9999)
 
-if [ "$ROBOT_TYPE" == "uav" ]; then
-    sets=(1 2 3 4 5 6 7 8 9 10)
-    robots=(2 3 4 5)
-else
-    sets=(1 2 3 4 5 6 7 8 9 10)
-    robots=(3)
-fi
+# Both robot types now test 2-5 robots (wheeled uses num_robots override
+# against the single JSON config which carries 5 starting positions per env).
+sets=(1 2 3 4 5 6 7 8 9 10)
+robots=(2 3 4 5)
 
 num_dr=${#dr_modes[@]}
 num_sets=${#sets[@]}
@@ -70,7 +67,7 @@ num_robots_value=${robots[$robot_idx]}
 seed=${seeds[$seed_idx]}
 steps=2000000
 
-echo "S7-DR | robot_type=$ROBOT_TYPE | dr_mode=$dr_mode | set=$set | robots=$num_robots_value | seed=$seed | job=$SLURM_ARRAY_TASK_ID"
+echo "S7-DR | robot=$ROBOT_TYPE | dr_mode=$dr_mode | set=$set | N=$num_robots_value | seed=$seed | job=$SLURM_ARRAY_TASK_ID"
 
 /homes/choton/miniconda3/envs/robot_env/bin/python train.py \
     --algorithm   "CrossQ" \

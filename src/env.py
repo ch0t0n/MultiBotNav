@@ -442,7 +442,14 @@ class MultiUAV(gym.Env):
 # ================================================================
 
 class MultiWheeled(gym.Env):
-    """Multi-wheeled-robot path-planning (bicycle-model kinematics)."""
+    """Multi-wheeled-robot path-planning (bicycle-model kinematics).
+
+    The ``num_robots`` parameter lets you override the robot count stored in
+    *env_params* so that one JSON config (which always carries the *maximum*
+    number of initial positions) can be reused for 2-, 3-, 4-, or 5-robot
+    experiments — mirroring how ``MultiUAV`` slices ``init_positions[:N]``.
+    When *num_robots* is ``None`` the value from *env_params* is used as-is.
+    """
     metadata = {"render_modes": ["human"], "render_fps": 60}
 
     def __init__(
@@ -450,6 +457,7 @@ class MultiWheeled(gym.Env):
         env_params,
         render_mode=None,
         wind_par=None,
+        num_robots=None,
         uncertainty_mode="full",
         dr_mode="none",
         reward_ablation="full",
@@ -484,8 +492,19 @@ class MultiWheeled(gym.Env):
 
         self.ROBOT_LENGTH = env_params['ROBOT_LENGTH']
         self.ROBOT_WIDTH  = env_params['ROBOT_WIDTH']
-        self.NUM_ROBOTS   = env_params['NUM_ROBOTS']
-        self.init_ROBOTS  = env_params['ROBOT_INIT_CONFIGS']
+
+        # ── num_robots override ──────────────────────────────────────
+        # The JSON config carries the *maximum* number of positions (5).
+        # Passing num_robots=N uses only the first N of them, so the same
+        # JSON file works for 2-, 3-, 4-, and 5-robot experiments.
+        max_configs = len(env_params['ROBOT_INIT_CONFIGS'])
+        if num_robots is not None:
+            assert 1 <= num_robots <= max_configs, (
+                f"num_robots={num_robots} exceeds available configs ({max_configs})")
+            self.NUM_ROBOTS  = int(num_robots)
+        else:
+            self.NUM_ROBOTS  = int(env_params['NUM_ROBOTS'])
+        self.init_ROBOTS = env_params['ROBOT_INIT_CONFIGS'][:self.NUM_ROBOTS]
 
         self._nominal_max_speed   = float(env_params['MAX_SPEED'])
         self._nominal_max_steer   = float(np.radians(env_params['MAX_STEER']))
