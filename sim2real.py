@@ -33,7 +33,7 @@ from sb3_contrib import CrossQ
 # CONFIG
 # ────────────────────────────────────────────────────────────────
 TRAINED_MODEL_PATH = os.path.join(
-    'logs', 'main_default',
+    'logs', 'dr_full',
     'CrossQ_uav_N3_env1_seed42',
     'best_model', 'best_model.zip',
 )
@@ -283,7 +283,7 @@ def main():
         max_steps        = 1000,
         render_mode      = 'human' if RENDER_COPPELIA else None,
         obs_mode         = 'full',
-        dr_mode          = 'none',
+        dr_mode          = 'full',
         uncertainty_mode = 'full',
         reward_ablation  = 'full',
     )

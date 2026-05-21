@@ -26,7 +26,6 @@ import os
 import csv
 import json
 import argparse
-import fcntl
 import numpy as np
 import gymnasium as gym
 from stable_baselines3 import A2C, PPO
@@ -35,7 +34,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from sb3_contrib import TRPO, TQC, CrossQ, ARS
 
 from src.env import MultiUAV, MultiWheeled
-from src.utils import read_uav_json, read_wheeled_json # read_wheeled_configs
+from src.utils import read_uav_json, read_wheeled_json, flock_exclusive, flock_unlock
 
 
 # ================================================================
@@ -216,13 +215,13 @@ def sweep_algorithm(args, algorithm: str,
     return results
 
 # ================================================================
-# CSV append (fcntl-safe for parallel SLURM jobs)
+# CSV append (file-locked on Unix/HPC when fcntl is available)
 # ================================================================
 
 def append_cv_csv(results: list, csv_path: str):
     os.makedirs(os.path.dirname(os.path.abspath(csv_path)), exist_ok=True)
     with open(csv_path, "a", newline="") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
+        flock_exclusive(f)
         try:
             write_header = os.fstat(f.fileno()).st_size == 0
             writer = csv.writer(f)
@@ -246,7 +245,7 @@ def append_cv_csv(results: list, csv_path: str):
                 f.flush()
                 os.fsync(f.fileno())
         finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+            flock_unlock(f)
     print(f"\n  Appended {len(results)} rows -> {csv_path}")
 
 
@@ -257,7 +256,7 @@ def append_raw_csv(algorithm: str, hp_name: str,
     row = [algorithm, hp_name, grid_index, f"{hp_value:.8g}", f"{iqm:.4f}"]
 
     with open(raw_path, "a", newline="") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
+        flock_exclusive(f)
         try:
             write_header = os.fstat(f.fileno()).st_size == 0
             writer = csv.writer(f)
@@ -267,7 +266,7 @@ def append_raw_csv(algorithm: str, hp_name: str,
             f.flush()
             os.fsync(f.fileno())
         finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+            flock_unlock(f)
 
 # ================================================================
 # Expand raw CSV from an existing cv_table.csv
@@ -437,6 +436,7 @@ def main():
         env_config   = wheeled_dict[f"set{ENV_VAR}"]
         env_kwargs   = dict(
             env_params=env_config,
+            num_robots=NUM_ROBOTS,
             max_steps=MAX_STEPS,
             render_mode=None,
         )

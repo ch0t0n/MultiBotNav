@@ -29,7 +29,6 @@ import os
 import csv
 import glob
 import time
-import fcntl
 import argparse
 import numpy as np
 import gymnasium as gym
@@ -38,7 +37,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from sb3_contrib import TRPO, TQC, CrossQ, ARS
 
 from src.env import MultiUAV, MultiWheeled
-from src.utils import read_uav_json, read_wheeled_json
+from src.utils import read_uav_json, read_wheeled_json, flock_exclusive, flock_unlock
 
 # ================================================================
 # Constants
@@ -308,7 +307,7 @@ def evaluate(args):
     # Append to CSV
     os.makedirs(os.path.dirname(os.path.abspath(args.output_csv)), exist_ok=True)
     with open(args.output_csv, "a", newline="") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
+        flock_exclusive(f)
         try:
             write_header = os.fstat(f.fileno()).st_size == 0
             writer = csv.writer(f)
@@ -332,7 +331,7 @@ def evaluate(args):
                 args.n_eval_eps, f"{elapsed:.1f}",
             ])
         finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+            flock_unlock(f)
     print(f"  Appended to {args.output_csv}")
 
 if __name__ == "__main__":

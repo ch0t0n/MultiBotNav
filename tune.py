@@ -15,8 +15,6 @@ import json
 import argparse
 import time
 import numpy as np
-import fcntl
-
 import optuna
 from optuna.storages import JournalStorage
 from optuna.storages.journal import JournalFileBackend
@@ -27,7 +25,7 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from sb3_contrib import TRPO, TQC, CrossQ, ARS
 
 from src.env import MultiUAV, MultiWheeled
-from src.utils import read_uav_json, read_wheeled_json
+from src.utils import read_uav_json, read_wheeled_json, flock_exclusive, flock_unlock
 
 
 # ================================================================
@@ -232,7 +230,7 @@ def update_best_json(output_json: str, alg_name: str, iqm: float, params: dict):
     lock_path = output_json + ".lock"
 
     with open(lock_path, "w") as lock_f:
-        fcntl.flock(lock_f, fcntl.LOCK_EX)
+        flock_exclusive(lock_f)
         try:
             best_all = {}
             if os.path.exists(output_json):
@@ -260,7 +258,7 @@ def update_best_json(output_json: str, alg_name: str, iqm: float, params: dict):
                     f"(existing IQM={float(old_iqm):.4f} >= new IQM={float(iqm):.4f})"
                 )
         finally:
-            fcntl.flock(lock_f, fcntl.LOCK_UN)
+            flock_unlock(lock_f)
 
 
 # ================================================================

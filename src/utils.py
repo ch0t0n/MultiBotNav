@@ -307,6 +307,30 @@ def filter_args(args, model):
 
 
 # ================================
+# Cross-platform file locking (HPC / Linux)
+# ================================
+
+try:
+    import fcntl as _fcntl
+    _HAVE_FCNTL = True
+except ImportError:
+    _fcntl = None
+    _HAVE_FCNTL = False
+
+
+def flock_exclusive(f):
+    """Acquire an exclusive lock when fcntl is available (Unix/HPC)."""
+    if _HAVE_FCNTL:
+        _fcntl.flock(f, _fcntl.LOCK_EX)
+
+
+def flock_unlock(f):
+    """Release a file lock acquired with flock_exclusive."""
+    if _HAVE_FCNTL:
+        _fcntl.flock(f, _fcntl.LOCK_UN)
+
+
+# ================================
 # STDOUT / STDERR redirect
 # ================================
 

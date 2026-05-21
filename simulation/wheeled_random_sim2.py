@@ -10,7 +10,7 @@ from shapely import Polygon, Point
 import gymnasium as gym
 
 # Path to the consolidated JSON config and the environment key to load
-wheeled_json_path = os.path.join('exp_sets', 'wheeled', 'wheeled.json') #exp_sets\wheeled\wheeled.json
+wheeled_json_path = os.path.join('exp_sets', 'wheeled', 'wheeled_configs.json')
 env_key           = 'env10'   # change to 'env2' … 'env10' to simulate other environments
 
 
