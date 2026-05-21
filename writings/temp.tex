@@ -342,9 +342,8 @@ contradicting the optimality of $\{\zeta_i^*\}$. Therefore $\hat{\pi} = \pi^*$, 
 
 We evaluate the following: performance of RL methods on both platforms, sensitivity to design choices, out-of-distribution (OOD) robustness under domain shift, and the simulation-to-real observation gap for the UAV platform.
 
-
 \paragraph{Setup.}
-We compare four on-policy (A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, PPO \citep{schulman2017ppo}, TRPO \citep{schulman2015trust}) and two off-policy (CrossQ \citep{bhatt2024crossq}, TQC \citep{kuznetsov2020tqc}) algorithms via Stable-Baselines3 \citep{stable-baselines3}. Main experiments use: (A)~\textit{default hyperparameters} from Stable-Baselines3 and (B)~\textit{tuned hyperparameters} found by Optuna \citep{optuna_2019} (details in supplementary). For the \textbf{UAV} platform, we vary the number of robots $N \in \{2, 3, 4, 5\}$ and use 10 environment configurations (varied field shapes, starting positions, and target locations); for the \textbf{Wheeled} platform, we similarly vary the number of robots $N \in \{2, 3, 4, 5\}$ and use 10 arena layouts with distinct obstacle arrangements. Every algorithm--configuration pair is trained for $2\!\times\!10^6$ timesteps with 3 seeds $(42, 123, 9999)$. The interquartile mean (IQM) \citep{agarwal2021deep} is the primary metric. All experiments were conducted on an HPC cluster with GPUs: NVIDIA\textsuperscript{\textregistered} GeForce RTX 1080Ti, 2080Ti, 3090, L4, L40s, A4000, A4500, A6000; CPUs: Intel\textsuperscript{\textregistered} Xeon\textsuperscript{\textregistered} E5-2680v3, E5-2683v4, Gold 6130 (16--48 cores); and 4--16\,GB RAM per node. Simulations were performed on a local desktop with AMD Ryzen\texttrademark\ Threadripper 1950X (16-core), 64\,GB RAM, and NVIDIA\textsuperscript{\textregistered} GeForce RTX 2080. Each run took approximately 1--6 hours.
+We compare four on-policy (A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, PPO \citep{schulman2017ppo}, TRPO \citep{schulman2015trust}) and two off-policy (CrossQ \citep{bhatt2024crossq}, TQC \citep{kuznetsov2020tqc}) algorithms via Stable-Baselines3 \citep{stable-baselines3}. Main experiments use: (A)~\textit{default hyperparameters} from Stable-Baselines3 and (B)~\textit{tuned hyperparameters} found by Optuna \citep{optuna_2019} (details in supplementary). For the \textbf{UAV} platform, we vary the number of robots $N \in \{2, 3, 4, 5\}$ and use 10 environment configurations (varied field shapes, starting positions, and target locations); for the \textbf{Wheeled} platform, the number of robots is specified per configuration (fixed at $N=3$ in the default setup) and 10 arena layouts with distinct obstacle arrangements are used. Every algorithm--configuration pair is trained for $2\!\times\!10^6$ timesteps with 3 seeds $(42, 123, 9999)$. The interquartile mean (IQM) \citep{agarwal2021deep} is the primary metric. All experiments were conducted on an HPC cluster with GPUs: NVIDIA\textsuperscript{\textregistered} GeForce RTX 1080Ti, 2080Ti, 3090, L4, L40s, A4000, A4500, A6000; CPUs: Intel\textsuperscript{\textregistered} Xeon\textsuperscript{\textregistered} E5-2680v3, E5-2683v4, Gold 6130 (16--48 cores); and 4--16\,GB RAM per node. Simulations were performed on a local desktop with AMD Ryzen\texttrademark\ Threadripper 1950X (16-core), 64\,GB RAM, and NVIDIA\textsuperscript{\textregistered} GeForce RTX 2080. Each run took approximately 1--6 hours.
 
 % ─── Table 1: UAV Main Results ───────────────────────────────────────────────
 \begin{table*}[tbp]
@@ -352,7 +351,7 @@ We compare four on-policy (A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, PP
 \footnotesize
 \caption{\small IQM of episodic reward for the \textbf{UAV} platform under default and tuned hyperparameters, over 3\,seeds\,$\times$\,10\,configurations\,$\times$\,50 episodes. $\dagger$~=~best per column. ($-$~=~placeholder; to be filled after experiments complete.)}
 \label{tab:uav_main}
-% \resizebox{\textwidth}{!}{
+\resizebox{\textwidth}{!}{
 \begin{tabular}{l|cccc|cccc}
     \toprule
     \multirow{2}{*}{\textbf{Algorithm}}
@@ -370,36 +369,29 @@ We compare four on-policy (A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, PP
     CrossQ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
     \bottomrule
 \end{tabular}
-\vspace{-6pt}
+\vspace{-6pt}}
 \end{table*}
 
 % ─── Table 2: Wheeled Main Results ───────────────────────────────────────────
-\begin{table*}[tbp]
+\begin{table}[tbp]
 \centering
 \footnotesize
-\caption{\small IQM of episodic reward for the \textbf{Wheeled} platform under default and tuned hyperparameters, over 3\,seeds\,$\times$\,10\,configurations\,$\times$\,50 episodes.
-$\dagger$~=~best per column. ($-$~=~placeholder; to be filled after experiments complete.)}
+\caption{\small IQM of episodic reward for the \textbf{Wheeled} platform ($N=3$) under default and tuned hyperparameters, over 3\,seeds\,$\times$\,10\,configurations\,$\times$\,50 episodes. $\dagger$~=~best per column.}
 \label{tab:whl_main}
-% \resizebox{\textwidth}{!}{
-\begin{tabular}{l|cccc|cccc}
+\begin{tabular}{l|c|c}
     \toprule
-    \multirow{2}{*}{\textbf{Algorithm}}
-        & \multicolumn{4}{c|}{\textbf{Default Hyperparameters}}
-        & \multicolumn{4}{c}{\textbf{Tuned Hyperparameters}} \\
-    \cmidrule(lr){2-9}
-           & $N=2$ & $N=3$ & $N=4$ & $N=5$
-           & $N=2$ & $N=3$ & $N=4$ & $N=5$ \\
+    \textbf{Algorithm} & \textbf{Default HPs} & \textbf{Tuned HPs} \\
     \midrule
-    A2C    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
-    ARS    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
-    PPO    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
-    TQC    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
-    TRPO   & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
-    CrossQ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    A2C    & $-$ & $-$ \\
+    ARS    & $-$ & $-$ \\
+    PPO    & $-$ & $-$ \\
+    TQC    & $-$ & $-$ \\
+    TRPO   & $-$ & $-$ \\
+    CrossQ & $-$ & $-$ \\
     \bottomrule
 \end{tabular}
 \vspace{-6pt}
-\end{table*}
+\end{table}
 
 % ─────────────────────────────────────────────────────────────────────────────
 \subsection{Main Results}
