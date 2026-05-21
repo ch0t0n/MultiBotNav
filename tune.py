@@ -15,6 +15,7 @@ import json
 import argparse
 import time
 import numpy as np
+import fcntl
 
 import optuna
 from optuna.storages import JournalStorage
@@ -223,6 +224,45 @@ def create_study_safe(args):
     raise RuntimeError("Failed to create Optuna study after 10 retries")
 
 
+def update_best_json(output_json: str, alg_name: str, iqm: float, params: dict):
+    """Update best_hyperparams JSON under an inter-process file lock."""
+    output_dir = os.path.dirname(os.path.abspath(output_json))
+    os.makedirs(output_dir, exist_ok=True)
+
+    lock_path = output_json + ".lock"
+
+    with open(lock_path, "w") as lock_f:
+        fcntl.flock(lock_f, fcntl.LOCK_EX)
+        try:
+            best_all = {}
+            if os.path.exists(output_json):
+                with open(output_json) as f:
+                    best_all = json.load(f)
+
+            old = best_all.get(alg_name, {})
+            old_iqm = old.get("iqm", None)
+
+            should_update = old_iqm is None or float(iqm) >= float(old_iqm)
+            if should_update:
+                best_all[alg_name] = {"iqm": float(iqm), "params": params}
+
+                tmp_path = f"{output_json}.{os.getpid()}.tmp"
+                with open(tmp_path, "w") as f:
+                    json.dump(best_all, f, indent=2)
+                    f.flush()
+                    os.fsync(f.fileno())
+
+                os.replace(tmp_path, output_json)
+                print(f"Updated -> {output_json}")
+            else:
+                print(
+                    f"Kept existing {alg_name} HPs in {output_json} "
+                    f"(existing IQM={float(old_iqm):.4f} >= new IQM={float(iqm):.4f})"
+                )
+        finally:
+            fcntl.flock(lock_f, fcntl.LOCK_UN)
+
+
 # ================================================================
 # MAIN
 # ================================================================
@@ -281,21 +321,22 @@ def run_tuning(args):
     best = study.best_trial
     print(f"BEST (so far): IQM={best.value:.4f} | {best.params}")
 
-    output_dir = os.path.dirname(os.path.abspath(args.output_json))
-    os.makedirs(output_dir, exist_ok=True)
+    # output_dir = os.path.dirname(os.path.abspath(args.output_json))
+    # os.makedirs(output_dir, exist_ok=True)
 
-    best_all = {}
-    if os.path.exists(args.output_json):
-        with open(args.output_json) as f:
-            best_all = json.load(f)
+    # best_all = {}
+    # if os.path.exists(args.output_json):
+    #     with open(args.output_json) as f:
+    #         best_all = json.load(f)
 
-    best_all[alg_name] = {"iqm": best.value, "params": best.params}
+    # best_all[alg_name] = {"iqm": best.value, "params": best.params}
 
-    with open(args.output_json, "w") as f:
-        json.dump(best_all, f, indent=2)
+    # with open(args.output_json, "w") as f:
+    #     json.dump(best_all, f, indent=2)
 
-    print(f"Updated -> {args.output_json}")
-
+    # print(f"Updated -> {args.output_json}")
+    
+    update_best_json(args.output_json, alg_name, best.value, best.params)
 
 if __name__ == "__main__":
     run_tuning(parse_args())

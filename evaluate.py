@@ -177,6 +177,11 @@ def build_eval_env_kwargs(args, env_config: dict,
     if kwarg_name is not None:
         ablation_val = args.ablation or EXPERIMENT_DEFAULTS[args.experiment]
         kwargs[kwarg_name] = ablation_val
+        # Is this better?
+        # if args.experiment == "dr" and wind_speed is not None:
+        #     kwargs[kwarg_name] = "none"
+        # else:
+        #     kwargs[kwarg_name] = ablation_val
 
     if args.eval_uncertainty_mode is not None:
         kwargs["uncertainty_mode"] = args.eval_uncertainty_mode

@@ -35,7 +35,8 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from sb3_contrib import TRPO, TQC, CrossQ, ARS
 
 from src.env import MultiUAV, MultiWheeled
-from src.utils import read_uav_json, read_wheeled_configs
+from src.utils import read_uav_json, read_wheeled_json # read_wheeled_configs
+
 
 # ================================================================
 # Constants
@@ -43,6 +44,7 @@ from src.utils import read_uav_json, read_wheeled_configs
 
 UAV_JSON_PATH      = os.path.join('exp_sets', 'uav', 'cont_sets.json')
 WHEELED_CONFIG_DIR = os.path.join('exp_sets', 'wheeled')
+WHEELED_JSON_PATH  = os.path.join('exp_sets', 'wheeled', 'wheeled_configs.json')
 ENV_VAR     = 1
 NUM_ROBOTS  = 3
 NUM_ENVS    = 4
@@ -430,7 +432,8 @@ def main():
         env_id    = "MultiUAV-v0"
         env_class = MultiUAV
     else:
-        wheeled_dict = read_wheeled_configs(WHEELED_CONFIG_DIR)
+        # wheeled_dict = read_wheeled_configs(WHEELED_CONFIG_DIR)
+        wheeled_dict = read_wheeled_json(WHEELED_JSON_PATH)
         env_config   = wheeled_dict[f"set{ENV_VAR}"]
         env_kwargs   = dict(
             env_params=env_config,
@@ -439,6 +442,7 @@ def main():
         )
         env_id    = "MultiWheeled-v0"
         env_class = MultiWheeled
+
 
     if env_id not in gym.envs.registry:
         gym.register(id=env_id, entry_point=env_class, max_episode_steps=MAX_STEPS)

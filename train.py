@@ -138,16 +138,44 @@ def parse_args():
 # Utilities
 # ================================================================
 
+# def load_hyperparams(json_path: str, algorithm: str) -> dict:
+#     """Load tuned hyperparameters for one algorithm from JSON."""
+#     if json_path is None or not os.path.exists(json_path):
+#         return {}
+#     with open(json_path) as f:
+#         data = json.load(f)
+#     hp = data.get(algorithm, {}).get("params", {})
+#     print(f"  Loaded tuned HPs for {algorithm}: {hp}")
+#     return hp
+
 def load_hyperparams(json_path: str, algorithm: str) -> dict:
     """Load tuned hyperparameters for one algorithm from JSON."""
-    if json_path is None or not os.path.exists(json_path):
+    if json_path is None:
         return {}
+
+    if not os.path.exists(json_path):
+        raise FileNotFoundError(
+            f"--hyperparams_json was provided but does not exist: {json_path}"
+        )
+
     with open(json_path) as f:
         data = json.load(f)
-    hp = data.get(algorithm, {}).get("params", {})
+
+    if algorithm not in data or "params" not in data[algorithm]:
+        raise KeyError(
+            f"No tuned hyperparameters found for algorithm '{algorithm}' "
+            f"in {json_path}."
+        )
+
+    hp = data[algorithm]["params"]
+    if not hp:
+        raise ValueError(
+            f"Tuned hyperparameter entry for '{algorithm}' in {json_path} "
+            "is empty."
+        )
+
     print(f"  Loaded tuned HPs for {algorithm}: {hp}")
     return hp
-
 
 def build_env_kwargs(args, env_config: dict) -> dict:
     """Assemble the keyword-argument dict for the chosen env class."""

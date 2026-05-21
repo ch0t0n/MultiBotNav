@@ -636,6 +636,9 @@ class MultiWheeled(gym.Env):
         # Recompute dec_g fresh at the start of each step
         self.dec_g = binary_list_to_decimal(self.goal_visited)
         reward = -(self.r_s / self.dec_g) if self.dec_g != 0 else -self.r_s
+        # Is this better?
+        # visited_count = int(sum(self.goal_visited))
+        # reward = -(self.r_s / (visited_count + 1))
         self.t += 1
 
         # Per-step stochastic wind
