@@ -180,6 +180,7 @@ class MultiUAV(gym.Env):
             pygame.display.quit()
             pygame.quit()
 
+
 class MultiWheeled(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 60}
     def __init__(self, env_params, render_mode=None):
