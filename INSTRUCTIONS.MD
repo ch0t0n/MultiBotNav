@@ -426,16 +426,49 @@ done
 
 ## A-9. Aggregate Results and Generate Table CSVs (Local)
 
-Run once per robot type for per-platform CSVs and LaTeX row snippets, then
-run with `--robot_type both` to emit the merged side-by-side LaTeX snippet
-(`main_combined_latex_rows_both.txt`) for `tab:main_results` in `0_main.tex`.
+**Table 2** (`tab:main_results`) is populated entirely from training NPZ files —
+no separate `evaluate.py` run is needed.  Run the aggregation script for both
+platforms, then run it once more with `--robot_type both` to emit the merged
+LaTeX snippet:
 
 ```bash
+# Step 1: aggregate per-platform results
 python analyze_results.py --robot_type uav     --log_root logs --results_dir logs/results
 python analyze_results.py --robot_type wheeled --log_root logs --results_dir logs/results
-# Optionally generate the merged table snippet in one shot:
+
+# Step 2: generate the merged Table 2 LaTeX rows (UAV + Wheeled side-by-side)
 python analyze_results.py --robot_type both    --log_root logs --results_dir logs/results
 ```
+
+**Output file:** `logs/results/main_combined_latex_rows_both.txt`
+
+**How to paste into `writings/0_main.tex`:**
+
+The file contains two clearly labelled blocks:
+
+```
+% ── (a) UAV minipage rows ───
+    A2C    & ... \\
+    ...
+% ── (b) Wheeled minipage rows ───
+    A2C    & ... \\
+    ...
+```
+
+1. Open `writings/0_main.tex` and locate the merged Table 2 (`tab:main_results`).
+2. In the **first** minipage (UAV, labelled `(a)`), replace the six placeholder
+   rows (`A2C & $-$ & ...`) with the lines from the `(a) UAV minipage rows` block.
+3. In the **second** minipage (Wheeled, labelled `(b)`), replace the six placeholder
+   rows with the lines from the `(b) Wheeled minipage rows` block.
+4. Each block of rows goes between `\midrule` and `\bottomrule` of its minipage.
+
+The other output files from this step feed the other tables:
+
+| Output file | Target |
+|---|---|
+| `main_combined_latex_rows_both.txt` | Table 2 (`tab:main_results`) |
+| `combined_ablations_dr_latex_rows_uav.txt` | Table 3 UAV columns (`tab:ablations_and_dr`) |
+| `combined_ablations_dr_latex_rows_wheeled.txt` | Table 3 Wheeled columns |
 
 ## A-10. Generate All Figures (Local)
 
@@ -644,12 +677,23 @@ python sensitivity_hp.py --robot_type wheeled --write_latex_only --results_dir l
 
 ## B-9. Aggregate Results
 
+**Table 2** (`tab:main_results`) is populated from training NPZ files — no
+separate evaluation step is needed.
+
 ```bash
+# Aggregate per-platform results
 python analyze_results.py --robot_type uav     --log_root logs --results_dir logs/results
 python analyze_results.py --robot_type wheeled --log_root logs --results_dir logs/results
-# Generate the merged side-by-side table snippet for tab:main_results:
+
+# Generate the merged Table 2 LaTeX rows (UAV + Wheeled side-by-side)
 python analyze_results.py --robot_type both    --log_root logs --results_dir logs/results
 ```
+
+**Output:** `logs/results/main_combined_latex_rows_both.txt`
+
+Paste the `(a) UAV minipage rows` block between `\midrule` and `\bottomrule` of
+the first minipage in `tab:main_results`, and the `(b) Wheeled minipage rows`
+block into the second minipage.  See **A-9** for the full paste instructions.
 
 ## B-10. Generate Figures
 
