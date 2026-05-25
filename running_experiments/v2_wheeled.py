@@ -189,7 +189,7 @@ class MultiUAV(gym.Env):
             f"Unknown dr_mode: {dr_mode}"
         assert reward_ablation in ("full", "no_term", "no_path"), \
             f"Unknown reward_ablation: {reward_ablation}"
-        assert obs_mode in ("full", "no_pos", "no_inf_hist", "pos_only"), \
+        assert obs_mode in ("full", "no_pos", "no_vis_hist", "pos_only"), \
             f"Unknown obs_mode: {obs_mode}"
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         
@@ -275,10 +275,10 @@ class MultiUAV(gym.Env):
         # ── Observation space — depends on obs_mode ─────────────────
         # "full"        positions(2N) + velocities(2N) + visited_decimal(1) = 4N+1
         # "no_pos"      visited_decimal(1)  [remove all kinematics]
-        # "no_inf_hist" positions(2N) + velocities(2N) = 4N
+        # "no_vis_hist" positions(2N) + velocities(2N) = 4N
         # "pos_only"    positions(2N)
         N = num_robots
-        _obs_dims = {"full": 4*N+1, "no_pos": 1, "no_inf_hist": 4*N, "pos_only": 2*N}
+        _obs_dims = {"full": 4*N+1, "no_pos": 1, "no_vis_hist": 4*N, "pos_only": 2*N}
         self.observation_space = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float32)
 
@@ -306,7 +306,7 @@ class MultiUAV(gym.Env):
                                     np.array([infected_decimal], dtype=np.float32)])
         elif self.obs_mode == "no_pos":
             state = np.array([infected_decimal], dtype=np.float32)
-        elif self.obs_mode == "no_inf_hist":
+        elif self.obs_mode == "no_vis_hist":
             state = np.concatenate([self.robot_positions.flatten(),
                                     self.robot_velocities.flatten()])
         elif self.obs_mode == "pos_only":
@@ -574,7 +574,7 @@ class MultiWheeled(gym.Env):
             f"Unknown dr_mode: {dr_mode}"
         assert reward_ablation in ("full", "no_term", "no_path"), \
             f"Unknown reward_ablation: {reward_ablation}"
-        assert obs_mode in ("full", "no_pos", "no_inf_hist", "pos_only"), \
+        assert obs_mode in ("full", "no_pos", "no_vis_hist", "pos_only"), \
             f"Unknown obs_mode: {obs_mode}"
         assert render_mode is None or render_mode in self.metadata["render_modes"]
 
@@ -637,10 +637,10 @@ class MultiWheeled(gym.Env):
         # Observation space — size depends on obs_mode
         # "full"        (x,y,θ,v,δ)(5N) + goal_decimal(1) = 5N+1
         # "no_pos"      (θ,v,δ)(3N)     + goal_decimal(1) = 3N+1
-        # "no_inf_hist" (x,y,θ,v,δ)(5N)
+        # "no_vis_hist" (x,y,θ,v,δ)(5N)
         # "pos_only"    (x,y)(2N)
         N = self.NUM_ROBOTS
-        _obs_dims = {"full": 5*N+1, "no_pos": 3*N+1, "no_inf_hist": 5*N, "pos_only": 2*N}
+        _obs_dims = {"full": 5*N+1, "no_pos": 3*N+1, "no_vis_hist": 5*N, "pos_only": 2*N}
         self.observation_space = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float64)
 
@@ -669,7 +669,7 @@ class MultiWheeled(gym.Env):
             obs = np.concatenate([self.robots.flatten(), np.array([self.dec_g])])
         elif self.obs_mode == "no_pos":
             obs = np.concatenate([self.robots[:, 2:].flatten(), np.array([self.dec_g])])
-        elif self.obs_mode == "no_inf_hist":
+        elif self.obs_mode == "no_vis_hist":
             obs = self.robots.flatten().copy()
         elif self.obs_mode == "pos_only":
             obs = self.robots[:, :2].flatten().copy()
