@@ -73,6 +73,13 @@ def get_robot_polygon(x, y, theta, robot_length, robot_width):
     rotated = np.dot(corners, R.T) + np.array([x, y])
     return Polygon(rotated)
 
+def scale_polygon_about_centroid(poly_pts, scale):
+    """Scale polygon vertices about centroid by `scale` (0<scale<=1 shrinks)."""
+    pts = np.asarray(poly_pts, dtype=np.float64)
+    centroid = np.mean(pts, axis=0)
+    scaled = centroid + scale * (pts - centroid)
+    return [tuple(p) for p in scaled.tolist()]
+
 def read_uav_json(json_path, sf=1):
     """Load UAV field-info dicts from JSON, applying a scale factor sf."""
     with open(json_path, "r") as f:
@@ -104,6 +111,9 @@ def read_wheeled_json(json_path):
     values are flat dicts with the exact keys expected by MultiWheeled
     (SCREEN_WIDTH, ROBOT_INIT_CONFIGS with radians, GOAL_POSITIONS, etc.).
     """
+    # Shrink obstacles in env2-env9 so robots can traverse cluttered maps more easily.
+    obstacle_scale_env2_9 = 0.30
+
     with open(json_path, "r") as f:
         raw = json.load(f)
 
@@ -114,6 +124,10 @@ def read_wheeled_json(json_path):
         r   = cfg["robots"]
         g   = cfg["goals"]
         obs = cfg["obstacles"]
+        if key.startswith("env"):
+            env_idx = int(key.replace("env", ""))
+            if 2 <= env_idx <= 9:
+                obs = [scale_polygon_about_centroid(poly, obstacle_scale_env2_9) for poly in obs]
         env_params = {
             "SCREEN_WIDTH":      float(cfg["screen"]["width"]),
             "SCREEN_HEIGHT":     float(cfg["screen"]["height"]),
@@ -633,7 +647,16 @@ class MultiWheeled(gym.Env):
         self.action_space = gym.spaces.Box(
             low=-1.0, high=1.0, shape=(self.NUM_ROBOTS, 2), dtype=np.float32)
 
-        self.r_s, self.r_l, self.r_M = 10, 10000, 100000
+        # Reward scales tuned for dense learning in cluttered maps.
+        # Keep magnitudes moderate so value targets stay stable.
+        self.r_time         = 1.0
+        self.r_goal         = 300.0
+        self.r_success      = 2000.0
+        self.r_collision    = 1200.0
+        self.r_progress     = 8.0
+        self.r_action_coeff = 0.02
+        self.r_speed_coeff  = 0.01
+        self.r_path_coeff   = 0.02
         self.reset()
 
     def world_to_screen(self, x, y):
@@ -657,6 +680,15 @@ class MultiWheeled(gym.Env):
 
         info = {f'robot{i}': self.robots[i, :2].copy() for i in range(self.NUM_ROBOTS)}
         return obs, info
+
+    def _nearest_unvisited_goal_dists(self, positions):
+        """Return nearest unvisited-goal distance per robot."""
+        unvisited = [gp for gp, vis in zip(self.goal_positions, self.goal_visited) if not vis]
+        if not unvisited:
+            return np.zeros(self.NUM_ROBOTS, dtype=np.float64)
+        target_arr = np.array(unvisited, dtype=np.float64)
+        dists_mat  = np.linalg.norm(positions[:, None] - target_arr[None, :], axis=2)
+        return np.min(dists_mat, axis=1)
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -699,6 +731,7 @@ class MultiWheeled(gym.Env):
         self.robots            = np.array(self.robots, dtype=np.float64)
         self.total_path_length = 0.0
         self.prev_positions    = self.robots[:, :2].copy()
+        self.prev_nearest_goal_dists = self._nearest_unvisited_goal_dists(self.prev_positions)
 
         if self.render_mode == "human":
             self._render_pygame()
@@ -709,7 +742,8 @@ class MultiWheeled(gym.Env):
         term_cond = ""
         # Recompute dec_g fresh at the start of each step
         self.dec_g = binary_list_to_decimal(self.goal_visited)
-        reward = -(self.r_s / self.dec_g) if self.dec_g != 0 else -self.r_s
+        # Constant time pressure (do not depend on binary goal encoding).
+        reward = -self.r_time
         self.t += 1
 
         # Per-step stochastic wind
@@ -738,8 +772,8 @@ class MultiWheeled(gym.Env):
             y      = np.clip(y, 0.0, self.world_height)
 
             if self.reward_ablation != "no_path":
-                reward -= 0.1 * (a_noisy ** 2 + d_delta_noisy ** 2)
-                reward -= 0.3 * abs(v)
+                reward -= self.r_action_coeff * (a_noisy ** 2 + d_delta_noisy ** 2)
+                reward -= self.r_speed_coeff * abs(v)
 
             robot_poly = get_robot_polygon(x, y, theta, self.ROBOT_LENGTH, self.ROBOT_WIDTH)
 
@@ -749,7 +783,7 @@ class MultiWheeled(gym.Env):
                     pt = robot_poly.intersection(obs_poly).representative_point()
                     self.collision_point = (pt.x, pt.y)
                     if self.reward_ablation != "no_term":
-                        reward = -self.r_M
+                        reward = -self.r_collision
                     terminated = True                    
                     self.collision_occurred = True
                     term_cond = "collision"
@@ -767,7 +801,7 @@ class MultiWheeled(gym.Env):
                     pt = robot_poly.intersection(prev_poly).representative_point()
                     self.collision_point = (pt.x, pt.y)
                     if self.reward_ablation != "no_term":
-                        reward = -self.r_M
+                        reward = -self.r_collision
                     terminated = True
                     self.collision_occurred = True
                     term_cond = "collision"
@@ -783,7 +817,7 @@ class MultiWheeled(gym.Env):
 
             for j, (gx, gy) in enumerate(self.goal_positions):
                 if not self.goal_visited[j] and Point(gx, gy).buffer(self.goal_radius).intersects(robot_poly):
-                    reward += self.r_l
+                    reward += self.r_goal
                     self.goal_visited[j] = True
 
             self.robots[i] = [x, y, theta, v, delta]
@@ -796,19 +830,17 @@ class MultiWheeled(gym.Env):
         self.prev_positions     = current_positions.copy()
 
         if self.reward_ablation != "no_path":
-            reward -= 1.0 * step_path
-            reward -= 2.0
+            reward -= self.r_path_coeff * step_path
 
-        # Distance shaping to nearest unvisited goal (always active)
-        unvisited = [gp for gp, vis in zip(self.goal_positions, self.goal_visited) if not vis]
-        if unvisited:
-            target_arr = np.array(unvisited, dtype=np.float64)
-            dists_mat  = np.linalg.norm(current_positions[:, None] - target_arr[None, :], axis=2)
-            reward    += 0.5 * float(np.sum(np.exp(-np.min(dists_mat, axis=1))))
+        # Potential-based shaping: reward progress towards nearest unvisited goal.
+        curr_nearest_dists = self._nearest_unvisited_goal_dists(current_positions)
+        progress = np.clip(self.prev_nearest_goal_dists - curr_nearest_dists, -5.0, 5.0)
+        reward  += self.r_progress * float(np.sum(progress))
+        self.prev_nearest_goal_dists = curr_nearest_dists
 
         if sum(self.goal_visited) >= len(self.goal_positions):
             if self.reward_ablation != "no_term":
-                reward += self.r_M
+                reward += self.r_success
             term_cond  = "all_goals"
             terminated = True
 
@@ -928,6 +960,7 @@ def train_single_env(env_id, config, seed=42):
 
     # [NEW] Select gym ID and env_kwargs based on robot_type
     # ─────────────────────────────────────────────────────
+    stage_specs = []
     if robot_type == "uav":
         gym_id   = "MultiUAV-v0"
         # [FIX 1] Was 'MultiRobotEnv-v0' — that ID is never registered and
@@ -938,31 +971,36 @@ def train_single_env(env_id, config, seed=42):
             "max_steps":  max_steps,
             "render_mode": None,
         }
+        stage_specs = [("main", env_kwargs, time_steps)]
     elif robot_type == "wheeled":
         gym_id   = "MultiWheeled-v0"
-        env_kwargs = {
+        # Curriculum inside one run:
+        # 1) deterministic/no-DR for discovery
+        # 2) wind uncertainty + DR for robustness
+        stage1_steps = int(0.70 * time_steps)
+        stage2_steps = max(time_steps - stage1_steps, 0)
+        env_kwargs_stage1 = {
             "env_params": json_dict[set_key],
             "max_steps":  max_steps,
             "render_mode": None,
+            "uncertainty_mode": "deterministic",
+            "dr_mode": "none",
         }
+        stage_specs.append(("stage1_deterministic", env_kwargs_stage1, stage1_steps))
+        if stage2_steps > 0:
+            env_kwargs_stage2 = {
+                "env_params": json_dict[set_key],
+                "max_steps":  max_steps,
+                "render_mode": None,
+                "uncertainty_mode": "wind_only",
+                "dr_mode": "wind",
+            }
+            stage_specs.append(("stage2_robust_wind", env_kwargs_stage2, stage2_steps))
     else:
         raise ValueError(f"Unknown robot_type: '{robot_type}'. Choose 'uav' or 'wheeled'.")
 
-    vec_env = make_vec_env(gym_id, env_kwargs=env_kwargs, n_envs=num_envs, seed=seed, monitor_dir=None)
-    eval_env = make_vec_env(gym_id, env_kwargs=env_kwargs, n_envs=1,       seed=seed, monitor_dir=None)
-
-    callback = CallbackList([
-        LogEveryNTimesteps(n_steps=10000),
-        EvalCallback(
-            eval_env,
-            best_model_save_path=os.path.join(log_path, f"best_model_env{env_id}"),
-            log_path            =os.path.join(log_path, f"eval_logs_env{env_id}"),
-            eval_freq           =max(10000 // num_envs, 1),
-            n_eval_episodes     =5,
-            deterministic       =True,
-            render              =False,
-        ),
-    ])
+    initial_stage_name, initial_kwargs, initial_steps = stage_specs[0]
+    vec_env = make_vec_env(gym_id, env_kwargs=initial_kwargs, n_envs=num_envs, seed=seed, monitor_dir=None)
 
     logger = configure(
         os.path.join(log_path, f"crossq_env{env_id}"),
@@ -971,11 +1009,49 @@ def train_single_env(env_id, config, seed=42):
 
     model = CrossQ("MlpPolicy", vec_env, verbose=1, device=device_id, seed=seed)
     model.set_logger(logger)
-    model.learn(total_timesteps=time_steps, callback=callback)
+    if initial_steps > 0:
+        eval_env = make_vec_env(gym_id, env_kwargs=initial_kwargs, n_envs=1, seed=seed, monitor_dir=None)
+        callback = CallbackList([
+            LogEveryNTimesteps(n_steps=10000),
+            EvalCallback(
+                eval_env,
+                best_model_save_path=os.path.join(log_path, f"best_model_env{env_id}_{initial_stage_name}"),
+                log_path            =os.path.join(log_path, f"eval_logs_env{env_id}_{initial_stage_name}"),
+                eval_freq           =max(10000 // num_envs, 1),
+                n_eval_episodes     =10,
+                deterministic       =True,
+                render              =False,
+            ),
+        ])
+        model.learn(total_timesteps=initial_steps, callback=callback)
+        eval_env.close()
+
+    # Continue training in later stages without resetting model timestep counter.
+    for stage_name, env_kwargs, stage_steps in stage_specs[1:]:
+        if stage_steps <= 0:
+            continue
+        vec_env.close()
+        vec_env = make_vec_env(gym_id, env_kwargs=env_kwargs, n_envs=num_envs, seed=seed, monitor_dir=None)
+        model.set_env(vec_env)
+        eval_env = make_vec_env(gym_id, env_kwargs=env_kwargs, n_envs=1, seed=seed, monitor_dir=None)
+        callback = CallbackList([
+            LogEveryNTimesteps(n_steps=10000),
+            EvalCallback(
+                eval_env,
+                best_model_save_path=os.path.join(log_path, f"best_model_env{env_id}_{stage_name}"),
+                log_path            =os.path.join(log_path, f"eval_logs_env{env_id}_{stage_name}"),
+                eval_freq           =max(10000 // num_envs, 1),
+                n_eval_episodes     =10,
+                deterministic       =True,
+                render              =False,
+            ),
+        ])
+        model.learn(total_timesteps=stage_steps, callback=callback, reset_num_timesteps=False)
+        eval_env.close()
+
     model.save(os.path.join(log_path, f"env{env_id}_CrossQ_{robot_type}"))
 
     vec_env.close()
-    eval_env.close()
     print(f"[DONE]  Training env {env_id}, seed {seed}, robot_type {robot_type}")
 
 
