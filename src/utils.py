@@ -71,6 +71,14 @@ def get_robot_polygon(x, y, theta, robot_length, robot_width):
     return Polygon(rotated)
 
 
+def scale_polygon_about_centroid(poly_pts, scale):
+    """Scale polygon vertices about their centroid by *scale* (0 < scale ≤ 1 shrinks)."""
+    pts = np.asarray(poly_pts, dtype=np.float64)
+    centroid = np.mean(pts, axis=0)
+    scaled = centroid + scale * (pts - centroid)
+    return [tuple(p) for p in scaled.tolist()]
+
+
 # ================================
 # Encoding helpers
 # ================================
@@ -133,7 +141,14 @@ def read_wheeled_json(json_path):
     robot starting positions available.  MultiWheeled accepts a ``num_robots``
     override at construction time to use only the first N of them, so the
     same JSON supports 2-, 3-, 4-, and 5-robot experiments.
+
+    Obstacles in env2–env9 are shrunk to 30 % of their original area about
+    their centroid so that robots can traverse those more cluttered maps.
     """
+    # Cluttered maps (env2-env9) benefit from reduced obstacle footprints
+    # so the policy can discover feasible paths during early training.
+    obstacle_scale_env2_9 = 0.30
+
     with open(json_path, "r") as f:
         raw = json.load(f)
 
@@ -144,6 +159,11 @@ def read_wheeled_json(json_path):
         r   = cfg["robots"]
         g   = cfg["goals"]
         obs = cfg["obstacles"]
+        if key.startswith("env"):
+            env_idx = int(key.replace("env", ""))
+            if 2 <= env_idx <= 9:
+                obs = [scale_polygon_about_centroid(poly, obstacle_scale_env2_9)
+                       for poly in obs]
         env_params = {
             "SCREEN_WIDTH":      float(cfg["screen"]["width"]),
             "SCREEN_HEIGHT":     float(cfg["screen"]["height"]),
@@ -165,8 +185,8 @@ def read_wheeled_json(json_path):
         }
         configs[f"set{i}"] = env_params
         print(f"  Loaded wheeled config set{i} <- {key}  "
-              f"({env_params['NUM_ROBOTS']} robot slots, "
-              f"{int(env_params['SCREEN_WIDTH'])}x{int(env_params['SCREEN_HEIGHT'])})")
+              f"({env_params['NUM_ROBOTS']} robots, "
+              f"{int(env_params['SCREEN_WIDTH'])}x{int(env_params['SCREEN_HEIGHT'])}")
 
     return configs
 

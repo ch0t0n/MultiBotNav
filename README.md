@@ -12,7 +12,7 @@ experiment in the paper is run for **both** of them.
 | Robot type  | Gym ID            | Class           | Dynamics                          | Configs                                  | Action     |
 |------------:|:------------------|:----------------|:----------------------------------|:-----------------------------------------|:-----------|
 | `uav`       | `MultiUAV-v0`     | `MultiUAV`      | Newtonian point-mass with wind     | `exp_sets/uav/cont_sets.json` (10 sets)  | (ax, ay)   |
-| `wheeled`   | `MultiWheeled-v0` | `MultiWheeled`  | Bicycle kinematics with wind drift | `exp_sets/wheeled/env*.ini`   (10 sets)  | (accel, δ̇) |
+| `wheeled`   | `MultiWheeled-v0` | `MultiWheeled`  | Bicycle kinematics with wind drift | `exp_sets/wheeled/wheeled_configs.json` (10 sets)  | (accel, δ̇) |
 
 Both environments support the same experimental knobs:
 
@@ -23,7 +23,7 @@ Both environments support the same experimental knobs:
 
 A standalone reference implementation that bundles both environments, the
 helpers, the gym registration, and the multiprocess training launcher is
-available at `single_file/example_env_v1.py`.
+available in `single_file_implementation/`.
 
 ---
 
@@ -37,7 +37,7 @@ learning_to_navigate/
 │   └── __init__.py             ← registers MultiUAV-v0 and MultiWheeled-v0
 ├── exp_sets/
 │   ├── uav/cont_sets.json      ← 10 UAV field configurations
-│   └── wheeled/env{1..10}.ini  ← 10 wheeled-robot configurations
+│   └── wheeled/wheeled_configs.json  ← 10 wheeled-robot configurations
 ├── train.py                    ← unified training (--robot_type uav|wheeled)
 ├── tune.py                     ← Optuna distributed tuning
 ├── evaluate.py                 ← post-training evaluation
@@ -45,7 +45,7 @@ learning_to_navigate/
 ├── analyze_results.py          ← aggregate NPZ + CSV into LaTeX-ready tables
 ├── plot_figures.py             ← all paper figures
 ├── sim2real.py                 ← CoppeliaSim observation-gap study (UAV only)
-├── single_file/example_env_v1.py  ← all-in-one reference implementation
+├── single_file_implementation/    ← all-in-one reference implementations
 ├── slurm/                      ← SLURM array scripts (one per step)
 └── INSTRUCTIONS.MD             ← full reproduction recipe (local + HPC)
 ```
@@ -88,8 +88,7 @@ logs/main_default/CrossQ_uav_N3_env1_seed42/
     eval_logs/evaluations.npz
 ```
 
-Switching to the wheeled platform is a one-flag change (`--robot_type wheeled`);
-the number of robots is read from the `.ini` config file in that case.
+Switching to the wheeled platform is a one-flag change (`--robot_type wheeled`).
 
 For the **full** reproduction pipeline — six algorithms, all env sets, three
 seeds, both robot types, all ablation/DR conditions — follow
@@ -99,22 +98,22 @@ an HPC cluster.
 
 ---
 
-## How the Single-File Reference (`example_env_v1.py`) Maps to This Repo
+## How the Single-File References Map to This Repo
 
-| `example_env_v1.py`        | This repository                                |
-|----------------------------|------------------------------------------------|
-| `set_seed`, helpers, ...   | `src/utils.py`                                 |
-| `class MultiUAV`           | `src/env.py`                                   |
-| `class MultiWheeled`       | `src/env.py`                                   |
-| `read_uav_json`            | `src/utils.py`                                 |
-| `read_wheeled_configs`     | `src/utils.py`                                 |
-| Gym registration           | `src/__init__.py`                              |
-| `train_single_env` worker  | `train.py` (with full CLI)                     |
-| `main()` multi-seed loop   | `slurm/step1_*.sh` (job arrays) + `INSTRUCTIONS.MD` local loops |
+| Single-file symbol          | This repository                                |
+|-----------------------------|------------------------------------------------|
+| `set_seed`, helpers, ...    | `src/utils.py`                                 |
+| `class MultiUAV`            | `src/env.py`                                   |
+| `class MultiWheeled`        | `src/env.py`                                   |
+| `read_uav_json`             | `src/utils.py`                                 |
+| `read_wheeled_json`         | `src/utils.py`                                 |
+| Gym registration            | `src/__init__.py`                              |
+| `train_single_env` worker   | `train.py` (with full CLI)                     |
+| `main()` multi-seed loop    | `slurm/step1_*.sh` (job arrays) + `INSTRUCTIONS.MD` local loops |
 
-The single-file version is the same logic flattened into one Python file so
-you can read the entire pipeline top-to-bottom in one place — useful for
-inspection or for running a quick smoke test on a desktop.
+The single-file versions contain the same logic flattened into one Python
+file so you can read the entire pipeline top-to-bottom in one place — useful
+for inspection or for running a quick smoke test on a desktop.
 
 ---
 

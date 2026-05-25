@@ -282,19 +282,6 @@ def train(args):
     print(f"  Log dir     : {log_dir}")
     print("=" * 60)
 
-    # Callbacks
-    eval_cb = EvalCallback(
-        eval_vec,
-        best_model_save_path=os.path.join(log_dir, "best_model"),
-        log_path=os.path.join(log_dir, "eval_logs"),
-        eval_freq=max(args.log_steps // args.num_envs, 1),
-        n_eval_episodes=args.n_eval_eps,
-        deterministic=True,
-        render=False,
-    )
-    log_cb   = LogEveryNTimesteps(n_steps=args.log_steps)
-    callback = CallbackList([log_cb, eval_cb])
-
     # SB3 logger
     logger = configure(log_dir, ["stdout", "log", "csv", "tensorboard"])
 
@@ -312,9 +299,97 @@ def train(args):
     )
     model.set_logger(logger)
 
-    # Training
-    print(f"\nTraining {args.algorithm} ({args.robot_type}) ...")
-    model.learn(total_timesteps=args.steps, callback=callback)
+    # Wheeled main experiments use a two-stage curriculum:
+    #   Stage 1 (70 %): deterministic dynamics — helps the policy discover goal paths
+    #   Stage 2 (30 %): wind noise + DR wind — adds robustness without destabilising learning
+    if args.robot_type == "wheeled" and args.experiment == "main":
+        stage1_steps = int(0.70 * args.steps)
+        stage2_steps = args.steps - stage1_steps
+
+        stage1_kwargs = dict(
+            env_params   = env_config,
+            num_robots   = args.num_robots,
+            max_steps    = args.max_steps,
+            render_mode  = None,
+            uncertainty_mode = "deterministic",
+            dr_mode          = "none",
+        )
+        stage2_kwargs = dict(
+            env_params   = env_config,
+            num_robots   = args.num_robots,
+            max_steps    = args.max_steps,
+            render_mode  = None,
+            uncertainty_mode = "wind_only",
+            dr_mode          = "wind",
+        )
+
+        print(f"\nTraining {args.algorithm} ({args.robot_type}) — stage 1 ({stage1_steps:,} steps) ...")
+        vec_env.close()
+        eval_vec.close()
+        vec_s1 = make_vec_env(env_id, env_kwargs=stage1_kwargs,
+                              n_envs=args.num_envs, seed=args.seed)
+        eval_s1 = make_vec_env(env_id, env_kwargs=stage1_kwargs,
+                               n_envs=1, seed=args.seed + 1)
+        model.set_env(vec_s1)
+        cb_s1 = CallbackList([
+            LogEveryNTimesteps(n_steps=args.log_steps),
+            EvalCallback(
+                eval_s1,
+                best_model_save_path=os.path.join(log_dir, "best_model_stage1"),
+                log_path=os.path.join(log_dir, "eval_logs_stage1"),
+                eval_freq=max(args.log_steps // args.num_envs, 1),
+                n_eval_episodes=args.n_eval_eps,
+                deterministic=True, render=False,
+            ),
+        ])
+        model.learn(total_timesteps=stage1_steps, callback=cb_s1)
+        eval_s1.close()
+
+        if stage2_steps > 0:
+            print(f"\nTraining {args.algorithm} ({args.robot_type}) — stage 2 ({stage2_steps:,} steps) ...")
+            vec_s1.close()
+            vec_s2 = make_vec_env(env_id, env_kwargs=stage2_kwargs,
+                                  n_envs=args.num_envs, seed=args.seed)
+            eval_s2 = make_vec_env(env_id, env_kwargs=stage2_kwargs,
+                                   n_envs=1, seed=args.seed + 1)
+            model.set_env(vec_s2)
+            cb_s2 = CallbackList([
+                LogEveryNTimesteps(n_steps=args.log_steps),
+                EvalCallback(
+                    eval_s2,
+                    best_model_save_path=os.path.join(log_dir, "best_model_stage2"),
+                    log_path=os.path.join(log_dir, "eval_logs_stage2"),
+                    eval_freq=max(args.log_steps // args.num_envs, 1),
+                    n_eval_episodes=args.n_eval_eps,
+                    deterministic=True, render=False,
+                ),
+            ])
+            model.learn(total_timesteps=stage2_steps, callback=cb_s2,
+                        reset_num_timesteps=False)
+            eval_s2.close()
+            vec_s2.close()
+        else:
+            vec_s1.close()
+
+    else:
+        # Standard single-stage training (UAV, or wheeled ablation experiments)
+        eval_cb = EvalCallback(
+            eval_vec,
+            best_model_save_path=os.path.join(log_dir, "best_model"),
+            log_path=os.path.join(log_dir, "eval_logs"),
+            eval_freq=max(args.log_steps // args.num_envs, 1),
+            n_eval_episodes=args.n_eval_eps,
+            deterministic=True,
+            render=False,
+        )
+        log_cb   = LogEveryNTimesteps(n_steps=args.log_steps)
+        callback = CallbackList([log_cb, eval_cb])
+
+        print(f"\nTraining {args.algorithm} ({args.robot_type}) ...")
+        model.learn(total_timesteps=args.steps, callback=callback)
+
+        vec_env.close()
+        eval_vec.close()
 
     # Save final model
     save_path = os.path.join(
@@ -324,9 +399,6 @@ def train(args):
     model.save(save_path)
     print(f"Model saved -> {save_path}.zip")
 
-    # Cleanup
-    vec_env.close()
-    eval_vec.close()
     del model
 
 
