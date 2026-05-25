@@ -11,6 +11,9 @@ cd "/home/c/choton/reinforcement_learning/corl_2026/git/MultiBotNav/running_expe
 ### In GPU server: 
 1. `/home/c/choton/reinforcement_learning/corl_2026/git/MultiBotNav/running_experiments/v1_wheeled.py`
 
+### May 25, 2026
+Today I developed the best environment for wheeled robots which now learns the optimal policy for every env variation. The code is in `running_experiments/v2_wheeled.py`.
+
 ### May 14, 2026
 Today I have multiple updates:
 1. First, I created two branches in the git repo `https://github.com/ch0t0n/MultiBotNav/`: `gpu_server` for experiments in KDD GPU server, and `experiment` for experiments/development in local machine(s).
