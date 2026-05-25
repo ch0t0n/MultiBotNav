@@ -231,7 +231,7 @@ The joint state $s_t = \big(\{s_i(t)\}_{i=1}^n,\; \mathbf{b}(t)\big)$ lives in $
 $A = \mathcal{U}_1 \times \cdots \times \mathcal{U}_n$, where $\mathcal{U}_i$ is the platform-specific control space. The semantics of each action (e.g., thrust components for UAVs, acceleration and steering rate for wheeled robots) are detailed in Section~\ref{sec:exp:dynamics}.
 
 \paragraph{Observation Space.}
-Observations provide a noisy, partial view of the true state. The visit history $\mathbf{b}(t)$ is compressed into a single scalar via the binary-to-decimal encoding $\phi(\mathbf{b}) = \sum_{j=1}^m b_j\,2^{j-1}$. Four observation modes are supported: \texttt{full} (complete kinematic state of all robots plus $\phi(\mathbf{b})$), \texttt{no\_pos} (non-positional kinematic quantities plus $\phi(\mathbf{b})$), \texttt{no\_inf\_hist} (complete kinematic state without $\phi(\mathbf{b})$, for a robot that cannot recall which targets have been visited), and \texttt{pos\_only} (robot positions only). Gaussian noise $\mathcal{N}(\mathbf{0}, \sigma_\mathrm{obs}^2 \mathbf{I})$ is added to all observations when $\sigma_\mathrm{obs} > 0$. Platform-specific observation dimensions for each mode are given in Table~\ref{tab:obs_modes} in Section~\ref{sec:exp:dynamics}.
+Observations provide a noisy, partial view of the true state. The visit history $\mathbf{b}(t)$ is compressed into a single scalar via the binary-to-decimal encoding $\phi(\mathbf{b}) = \sum_{j=1}^m b_j\,2^{j-1}$. Four observation modes are supported: \texttt{full} (complete kinematic state of all robots plus $\phi(\mathbf{b})$), \texttt{no\_pos} (non-positional kinematic quantities plus $\phi(\mathbf{b})$), \texttt{no\_vis\_hist} (complete kinematic state without $\phi(\mathbf{b})$, for a robot that cannot recall which targets have been visited), and \texttt{pos\_only} (robot positions only). Gaussian noise $\mathcal{N}(\mathbf{0}, \sigma_\mathrm{obs}^2 \mathbf{I})$ is added to all observations when $\sigma_\mathrm{obs} > 0$. Platform-specific observation dimensions for each mode are given in Table~\ref{tab:obs_modes} in Section~\ref{sec:exp:dynamics}.
 
 \paragraph{Observation Function.}
 $O : S \to \Delta(\Omega)$ maps each true state to a distribution over noisy observations as described above.
@@ -379,7 +379,7 @@ Table~\ref{tab:obs_modes} summarizes the observation space composition for each 
     \midrule
     \texttt{full}        & position + velocity + $\phi(\mathbf{b})$ ($4N+1$) & full kin.\ + $\phi(\mathbf{b})$ ($5N+1$) \\
     \texttt{no\_pos}     & $\phi(\mathbf{b})$ only ($1$) & $(\theta,v,\delta)$ per robot + $\phi(\mathbf{b})$ ($3N+1$) \\
-    \texttt{no\_inf\_hist} & position + velocity ($4N$) & full kin.\ only ($5N$) \\
+    \texttt{no\_vis\_hist} & position + velocity ($4N$) & full kin.\ only ($5N$) \\
     \texttt{pos\_only}   & position only ($2N$) & position only ($2N$) \\
     \bottomrule
 \end{tabular}
@@ -472,7 +472,7 @@ We ablate reward terms, observation spaces, and uncertainty parameters using Cro
 
 \textbf{Reward ablations} compare the IQM of episode lengths, where episodes terminate either on complete target coverage (all $m$ targets visited) or on a collision. Removing $\rterm$ prevents the policy from learning collision avoidance and coverage incentives. Removing $\rpath$ eliminates energy and path-efficiency penalties; because the discount factor $\gamma$ still implicitly penalizes slow episodes, the impact is expected to be moderate.
 
-\textbf{Observation ablations} evaluate the effect of withholding kinematic information (\texttt{no\_pos}), visit history (\texttt{no\_inf\_hist}), or both (retaining \texttt{pos\_only}). We hypothesize that removing position information is catastrophic since robots cannot navigate, and that withholding visit history has a milder effect as robots can re-discover targets.
+\textbf{Observation ablations} evaluate the effect of withholding kinematic information (\texttt{no\_pos}), visit history (\texttt{no\_vis\_hist}), or both (retaining \texttt{pos\_only}). We hypothesize that removing position information is catastrophic since robots cannot navigate, and that withholding visit history has a milder effect as robots can re-discover targets.
 
 \textbf{Uncertainty ablations} isolate the contributions of wind noise (\texttt{wind\_only}), actuation noise (\texttt{act\_only}), neither (\texttt{deterministic}), or both (\texttt{full}). This identifies which noise source is the primary driver of performance degradation.
 

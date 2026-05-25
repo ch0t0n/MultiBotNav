@@ -2,7 +2,7 @@
 """
 analyze_results.py — Aggregate per-run evaluations.npz files (written by
 SB3's EvalCallback during training) into table-ready summary CSVs that
-directly map to the LaTeX tables in full_experiments.tex.
+directly map to the LaTeX tables in writings/0_main.tex.
 
 All input CSVs (produced by evaluate.py) and all output CSVs / LaTeX
 files are robot-tagged (uav vs wheeled) so the two robot platforms
@@ -10,6 +10,8 @@ never overwrite each other's results.
 
 Outputs (written to --results_dir, default "logs/results/"):
   main_default_summary_<robot>.csv     / main_tuned_summary_<robot>.csv
+  main_combined_latex_rows_<robot>.txt -> tab:main_results (per-robot half)
+  main_combined_latex_rows_both.txt    -> tab:main_results (UAV + Wheeled merged)
   ablation_reward_agg_<robot>.csv      -> tab:ablation_reward
   ablation_obs_agg_<robot>.csv         -> tab:ablation_obs
   ablation_uncertainty_agg_<robot>.csv -> tab:ablation_uncertainty
@@ -122,7 +124,8 @@ def cvar_0_1(vals: np.ndarray) -> float:
     return float(np.mean(np.sort(vals)[:n]))
 
 
-def wilcoxon_pval(a: np.ndarray, b: np.ndarray) -> float:
+def mannwhitney_pval(a: np.ndarray, b: np.ndarray) -> float:
+    """Two-sided Mann-Whitney U test (Wilcoxon rank-sum) for independent samples."""
     if len(a) < 2 or len(b) < 2: return 1.0
     _, p = ranksums(a, b)
     return float(p)
@@ -143,7 +146,7 @@ def mark_best(df_summary: pd.DataFrame, value_col: str = "mean_reward",
         second_idx = sorted_grp.index[1]
         a = np.array(grp.loc[best_idx,   "raw_rewards"])
         b = np.array(grp.loc[second_idx, "raw_rewards"])
-        p = wilcoxon_pval(a, b)
+        p = mannwhitney_pval(a, b)
         df_summary.loc[best_idx, "is_best"] = (p < alpha)
 
     return df_summary
@@ -170,11 +173,13 @@ def process_main(log_root: str, results_dir: str, hp_tag: str,
     df = pd.DataFrame(rows)
     summary_rows = []
     for (alg, N), grp in df.groupby(["algorithm", "num_robots"]):
-        r = grp["mean_reward"].astype(float).values
+        r  = grp["mean_reward"].astype(float).values
+        el = grp["mean_ep_length"].astype(float).values
         summary_rows.append(dict(
             algorithm=alg, num_robots=N, mean_reward=float(np.mean(r)),
             std_reward=float(np.std(r)), max_reward=float(np.max(r)),
             iqm=compute_iqm(r), raw_rewards=list(r), n_runs=len(r),
+            mean_ep_length=float(np.nanmean(el)),
         ))
 
     summary = pd.DataFrame(summary_rows)
@@ -241,9 +246,9 @@ def write_latex_main_combined(default_summary: pd.DataFrame,
     tuned_iqm   = _remark_iqm(tuned_summary)
 
     lines = [
-        rf"% LaTeX table rows for tab:main_{robot_type}",
+        rf"% LaTeX table rows for tab:main_results — {robot_type} half",
         r"% IQM only, default + tuned side-by-side.",
-        r"% Paste between \midrule and \bottomrule.", "",
+        r"% Paste between \midrule and \bottomrule of the matching minipage.", "",
     ]
     for alg in ALGORITHMS:
         default_cells = [_iqm_cell(default_iqm, alg, N) for N in robot_counts]
@@ -251,6 +256,67 @@ def write_latex_main_combined(default_summary: pd.DataFrame,
         lines.append(f"    {alg:<6} & " + " & ".join(default_cells + tuned_cells) + r" \\")
 
     out_path = os.path.join(results_dir, f"main_combined_latex_rows_{robot_type}.txt")
+    with open(out_path, "w") as f:
+        f.write("\n".join(lines))
+    print(f"  Wrote {out_path}")
+
+
+# ================================================================
+# Combined both-robot main table — tab:main_results
+# Writes a single .txt with UAV rows (left minipage) then Wheeled
+# rows (right minipage) so both halves can be pasted into one table.
+# ================================================================
+
+def write_latex_main_combined_both_robots(
+        uav_default: pd.DataFrame, uav_tuned: pd.DataFrame,
+        whl_default: pd.DataFrame, whl_tuned: pd.DataFrame,
+        results_dir: str):
+    """Write a single LaTeX snippet covering both halves of tab:main_results."""
+
+    def _remark_iqm(summary):
+        if summary is None:
+            return None
+        return mark_best(summary.copy(), value_col="iqm", group_cols=["num_robots"])
+
+    def _iqm_cell(summary, alg, N):
+        if summary is None:
+            return "---"
+        row = summary[(summary["algorithm"] == alg) & (summary["num_robots"] == N)]
+        if row.empty:
+            return "---"
+        r   = row.iloc[0]
+        val = f"{r['iqm']:.1f}"
+        return (rf"$\mathbf{{{val}}}^\dagger$" if r["is_best"] else f"${val}$")
+
+    uav_def_iqm = _remark_iqm(uav_default)
+    uav_tun_iqm = _remark_iqm(uav_tuned)
+    whl_def_iqm = _remark_iqm(whl_default)
+    whl_tun_iqm = _remark_iqm(whl_tuned)
+
+    uav_counts = _robot_counts("uav")
+    whl_counts = _robot_counts("wheeled")
+
+    lines = [
+        r"% tab:main_results — combined UAV (a) + Wheeled (b) side-by-side",
+        r"% Paste each block between \midrule and \bottomrule of the",
+        r"% corresponding minipage in 0_main.tex.", "",
+        r"% ── (a) UAV minipage rows ──────────────────────────────────────", "",
+    ]
+    for alg in ALGORITHMS:
+        def_cells = [_iqm_cell(uav_def_iqm, alg, N) for N in uav_counts]
+        tun_cells = [_iqm_cell(uav_tun_iqm, alg, N) for N in uav_counts]
+        lines.append(f"    {alg:<6} & " + " & ".join(def_cells + tun_cells) + r" \\")
+
+    lines += [
+        "",
+        r"% ── (b) Wheeled minipage rows ──────────────────────────────────", "",
+    ]
+    for alg in ALGORITHMS:
+        def_cells = [_iqm_cell(whl_def_iqm, alg, N) for N in whl_counts]
+        tun_cells = [_iqm_cell(whl_tun_iqm, alg, N) for N in whl_counts]
+        lines.append(f"    {alg:<6} & " + " & ".join(def_cells + tun_cells) + r" \\")
+
+    out_path = os.path.join(results_dir, "main_combined_latex_rows_both.txt")
     with open(out_path, "w") as f:
         f.write("\n".join(lines))
     print(f"  Wrote {out_path}")
@@ -359,20 +425,20 @@ def _write_latex_ablation_reward(summary: pd.DataFrame, results_dir: str,
 def process_ablation_obs(log_root: str, results_dir: str,
                          robot_type: str = "uav") -> pd.DataFrame:
     if robot_type == "uav":
-        # MultiUAV: full=4N+1, no_pos=1, no_inf_hist=4N, pos_only=2N
+        # MultiUAV: full=4N+1, no_pos=1, no_vis_hist=4N, pos_only=2N
         obs_dims = {"full": "4N+1", "no_pos": "1",
-                    "no_inf_hist": "4N", "pos_only": "2N"}
+                    "no_vis_hist": "4N", "pos_only": "2N"}
     else:
-        # MultiWheeled: full=5N+1, no_pos=3N+1, no_inf_hist=5N, pos_only=2N
+        # MultiWheeled: full=5N+1, no_pos=3N+1, no_vis_hist=5N, pos_only=2N
         obs_dims = {"full": "5N+1", "no_pos": "3N+1",
-                    "no_inf_hist": "5N", "pos_only": "2N"}
+                    "no_vis_hist": "5N", "pos_only": "2N"}
     labels   = {"full": "Full obs.", "no_pos": "No positions",
-                "no_inf_hist": "No coverage history", "pos_only": "Positions only"}
+                "no_vis_hist": "No coverage history", "pos_only": "Positions only"}
 
     env_sets = _env_sets(robot_type)
 
     summary_rows = []
-    for cond in ["full", "no_pos", "no_inf_hist", "pos_only"]:
+    for cond in ["full", "no_pos", "no_vis_hist", "pos_only"]:
         version = f"ablation_obs_{cond}"
         print(f"  Scanning {log_root}/{version}/  (robot_type={robot_type})")
         rows = collect_rewards(log_root, version, ["CrossQ"], [3],
@@ -387,7 +453,9 @@ def process_ablation_obs(log_root: str, results_dir: str,
     if not summary_rows: return None
 
     summary  = pd.DataFrame(summary_rows)
-    ref_iqm  = summary.iloc[0]["iqm"] if not summary.empty else 1.0
+    full_row = summary[summary["condition"] == labels["full"]]
+    ref_iqm  = (float(full_row["iqm"].iloc[0]) if not full_row.empty
+                else (float(summary["iqm"].iloc[0]) if not summary.empty else 1.0))
     summary["delta_iqm_pct"] = ((summary["iqm"] - ref_iqm) / (abs(ref_iqm) + 1e-9) * 100)
     out_path = os.path.join(results_dir, f"ablation_obs_agg_{robot_type}.csv")
     summary.drop(columns=["raw_rewards"]).to_csv(out_path, index=False)
@@ -567,7 +635,7 @@ def write_latex_combined_ablations_dr(reward_df: pd.DataFrame, obs_df: pd.DataFr
         mask = [False] * len(df)
         if len(sorted_idx) >= 2 and "raw_rewards" in df.columns:
             a, b = np.array(df["raw_rewards"].iloc[sorted_idx[0]]), np.array(df["raw_rewards"].iloc[sorted_idx[1]])
-            if wilcoxon_pval(a, b) < 0.05: mask[sorted_idx[0]] = True
+            if mannwhitney_pval(a, b) < 0.05: mask[sorted_idx[0]] = True
         elif sorted_idx.size >= 1:
             mask[sorted_idx[0]] = True
         return mask
@@ -670,8 +738,50 @@ def parse_args():
     p.add_argument("--log_root",    type=str, default="logs")
     p.add_argument("--results_dir", type=str, default=r"logs/results")
     p.add_argument("--robot_type",  type=str, default="uav",
-                   choices=["uav", "wheeled"])
+                   choices=["uav", "wheeled", "both"],
+                   help="Process one platform or 'both' to also emit "
+                        "main_combined_latex_rows_both.txt for tab:main_results.")
     return p.parse_args()
+
+
+def _process_one_robot(log_root: str, results_dir: str, robot_type: str):
+    """Run all analyses for a single robot type and return summary dicts."""
+    print(f"\n{'=' * 60}")
+    print(f"  Processing robot_type = {robot_type}")
+    print(f"{'=' * 60}")
+
+    print("\n-- Main results: default HPs -------------------------------------------")
+    default_summary = process_main(log_root, results_dir, "default",
+                                   robot_type=robot_type)
+    print_summary_table(default_summary, "Main results", "default",
+                        robot_type=robot_type)
+
+    print("\n-- Main results: tuned HPs ---------------------------------------------")
+    tuned_summary = process_main(log_root, results_dir, "tuned",
+                                 robot_type=robot_type)
+    print_summary_table(tuned_summary, "Main results", "tuned",
+                        robot_type=robot_type)
+
+    print("\n-- Reward ablation -----------------------------------------------------")
+    reward_summary = process_ablation_reward(log_root, results_dir,
+                                             robot_type=robot_type)
+
+    print("\n-- Observation ablation ------------------------------------------------")
+    obs_summary = process_ablation_obs(log_root, results_dir,
+                                       robot_type=robot_type)
+
+    print("\n-- Uncertainty ablation ------------------------------------------------")
+    unc_summary = process_ablation_uncertainty(results_dir, robot_type=robot_type)
+
+    print("\n-- Domain randomization ------------------------------------------------")
+    dr_summary = process_dr(results_dir, robot_type=robot_type)
+
+    write_latex_main_combined(default_summary, tuned_summary,
+                              results_dir, robot_type=robot_type)
+    write_latex_combined_ablations_dr(reward_summary, obs_summary,
+                                      unc_summary, dr_summary,
+                                      results_dir, robot_type=robot_type)
+    return default_summary, tuned_summary
 
 
 def main():
@@ -682,39 +792,15 @@ def main():
     print(f"Results dir : {args.results_dir}")
     print(f"Robot type  : {args.robot_type}")
 
-    print("\n-- Main results: default HPs -------------------------------------------")
-    default_summary = process_main(args.log_root, args.results_dir, "default",
-                                   robot_type=args.robot_type)
-    print_summary_table(default_summary, "Main results", "default",
-                        robot_type=args.robot_type)
+    if args.robot_type == "both":
+        uav_def, uav_tun = _process_one_robot(args.log_root, args.results_dir, "uav")
+        whl_def, whl_tun = _process_one_robot(args.log_root, args.results_dir, "wheeled")
 
-    print("\n-- Main results: tuned HPs ---------------------------------------------")
-    tuned_summary = process_main(args.log_root, args.results_dir, "tuned",
-                                 robot_type=args.robot_type)
-    print_summary_table(tuned_summary, "Main results", "tuned",
-                        robot_type=args.robot_type)
-
-    print("\n-- Reward ablation -----------------------------------------------------")
-    reward_summary = process_ablation_reward(args.log_root, args.results_dir,
-                                             robot_type=args.robot_type)
-
-    print("\n-- Observation ablation ------------------------------------------------")
-    obs_summary = process_ablation_obs(args.log_root, args.results_dir,
-                                       robot_type=args.robot_type)
-
-    print("\n-- Uncertainty ablation ------------------------------------------------")
-    unc_summary = process_ablation_uncertainty(args.results_dir,
-                                               robot_type=args.robot_type)
-
-    print("\n-- Domain randomization ------------------------------------------------")
-    dr_summary = process_dr(args.results_dir, robot_type=args.robot_type)
-
-    write_latex_main_combined(default_summary, tuned_summary,
-                              args.results_dir, robot_type=args.robot_type)
-    write_latex_combined_ablations_dr(reward_summary, obs_summary,
-                                      unc_summary, dr_summary,
-                                      args.results_dir,
-                                      robot_type=args.robot_type)
+        print("\n-- Merged side-by-side table (tab:main_results) --------------------")
+        write_latex_main_combined_both_robots(
+            uav_def, uav_tun, whl_def, whl_tun, args.results_dir)
+    else:
+        _process_one_robot(args.log_root, args.results_dir, args.robot_type)
 
     print("\n✓ analyze_results.py complete.")
 

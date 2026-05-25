@@ -198,7 +198,7 @@ All three ablations use `train.py` with different `--experiment` and
 | Experiment             | `--experiment`        | Valid `--ablation` values                        |
 |------------------------|-----------------------|--------------------------------------------------|
 | Reward ablation        | `ablation_reward`     | `full`, `no_term`, `no_path`                     |
-| Observation ablation   | `ablation_obs`        | `full`, `no_pos`, `no_inf_hist`, `pos_only`      |
+| Observation ablation   | `ablation_obs`        | `full`, `no_pos`, `no_vis_hist`, `pos_only`      |
 | Uncertainty ablation   | `ablation_uncertainty`| `full`, `wind_only`, `act_only`, `deterministic` |
 
 ### Step 4 — Reward ablation
@@ -228,7 +228,7 @@ done
 
 ```bash
 for ROBOT in uav wheeled; do
-  for OBS in full no_pos no_inf_hist pos_only; do
+  for OBS in full no_pos no_vis_hist pos_only; do
     for SET in 1 2 3 4 5 6 7 8 9 10; do
       for SEED in 42 123 9999; do
         python train.py \
@@ -303,11 +303,13 @@ done
 
 ## A-8. Post-Training Evaluation (Local)
 
-Main results (Tables 1 & 2) and the observation ablation (Table 4) are read
-**directly from training NPZ files** — no separate eval pass is required for
-those.  The experiments below do require `evaluate.py`.
+Main results (Table 2 — UAV and Wheeled side-by-side, `tab:main_results`) and
+the observation ablation block inside the combined ablation table (Table 3,
+`tab:ablations_and_dr`) are read **directly from training NPZ files** — no
+separate eval pass is required for those.  The experiments below do require
+`evaluate.py`.
 
-### A-8-A. Reward ablation (Table 3)
+### A-8-A. Reward ablation (Table 3, left block of `tab:ablations_and_dr`)
 
 ```bash
 mkdir -p logs/results
@@ -331,7 +333,7 @@ for ROBOT in uav wheeled; do
 done
 ```
 
-### A-8-B. Uncertainty ablation cross-evaluation matrix (Table 5)
+### A-8-B. Uncertainty ablation cross-evaluation matrix (Table 3, third block of `tab:ablations_and_dr`)
 
 Each policy trained under one noise condition is evaluated under all four:
 
@@ -360,7 +362,7 @@ for ROBOT in uav wheeled; do
 done
 ```
 
-### A-8-C. Domain randomization — in-distribution & OOD (Table 7)
+### A-8-C. Domain randomization — in-distribution & OOD (Table 3, right block of `tab:ablations_and_dr`)
 
 ```bash
 mkdir -p logs/results
@@ -424,9 +426,15 @@ done
 
 ## A-9. Aggregate Results and Generate Table CSVs (Local)
 
+Run once per robot type for per-platform CSVs and LaTeX row snippets, then
+run with `--robot_type both` to emit the merged side-by-side LaTeX snippet
+(`main_combined_latex_rows_both.txt`) for `tab:main_results` in `0_main.tex`.
+
 ```bash
 python analyze_results.py --robot_type uav     --log_root logs --results_dir logs/results
 python analyze_results.py --robot_type wheeled --log_root logs --results_dir logs/results
+# Optionally generate the merged table snippet in one shot:
+python analyze_results.py --robot_type both    --log_root logs --results_dir logs/results
 ```
 
 ## A-10. Generate All Figures (Local)
@@ -437,7 +445,7 @@ python plot_figures.py --robot_type both \
     --log_root logs --results_dir logs/results --figures_dir figures
 ```
 
-## A-11. Hyperparameter Sensitivity (Table 6, Local)
+## A-11. Hyperparameter Sensitivity (supplementary / not yet in 0_main.tex)
 
 ```bash
 for ROBOT in uav wheeled; do
@@ -549,7 +557,7 @@ sbatch --array=0-359 slurm/step7_dr.sh wheeled  # 3 DR × 10 sets × 4 robots ×
 
 `eval_ablations.sh` accepts experiment as `arg1` and robot type as `arg2`.
 
-### B-8-A. Reward ablation (Table 3)
+### B-8-A. Reward ablation (Table 3, left block of `tab:ablations_and_dr`)
 
 ```bash
 sbatch --array=0-89 slurm/eval_ablations.sh ablation_reward uav      # 90 jobs
@@ -569,7 +577,7 @@ for ROBOT in uav wheeled; do
 done
 ```
 
-### B-8-B. Uncertainty ablation cross-eval matrix (Table 5)
+### B-8-B. Uncertainty ablation cross-eval matrix (Table 3, third block of `tab:ablations_and_dr`)
 
 ```bash
 sbatch --array=0-479 slurm/eval_ablations.sh ablation_uncertainty uav      # 4×4×10×3 = 480
@@ -589,7 +597,7 @@ for ROBOT in uav wheeled; do
 done
 ```
 
-### B-8-C. Domain randomization eval (Table 7)
+### B-8-C. Domain randomization eval (Table 3, right block of `tab:ablations_and_dr`)
 
 Both robot types now require 360 jobs each.
 
@@ -623,7 +631,7 @@ sbatch --array=0-59 slurm/eval_wind_sweep.sh wheeled  # 2×10×3 = 60
 > `eval_wind_sweep.sh` appends directly to `logs/results/wind_sweep_<robot>.csv`
 > (guarded by `fcntl` file locking in `evaluate.py`).  No merge step required.
 
-### B-8-E. Hyperparameter sensitivity (Table 6, optional)
+### B-8-E. Hyperparameter sensitivity (supplementary / not yet in 0_main.tex)
 
 ```bash
 sbatch --array=0-5 slurm/step8_sensitivity_hp.sh uav
@@ -639,6 +647,8 @@ python sensitivity_hp.py --robot_type wheeled --write_latex_only --results_dir l
 ```bash
 python analyze_results.py --robot_type uav     --log_root logs --results_dir logs/results
 python analyze_results.py --robot_type wheeled --log_root logs --results_dir logs/results
+# Generate the merged side-by-side table snippet for tab:main_results:
+python analyze_results.py --robot_type both    --log_root logs --results_dir logs/results
 ```
 
 ## B-10. Generate Figures
@@ -670,7 +680,7 @@ python plot_figures.py --robot_type both \
 
 > **Re-submission safety:** `evaluate.py` skips a run when the matching row
 > already exists in the output CSV (matched on algorithm, robot_type,
-> experiment, ablation, num_robots, env_set, seed, eval_wind_min,
+> experiment, ablation, **hp_tag**, num_robots, env_set, seed, eval_wind_min,
 > eval_wind_max, eval_uncertainty_mode), so re-submitting failed array
 > indices never produces duplicate rows.
 
@@ -678,25 +688,35 @@ python plot_figures.py --robot_type both \
 
 ## Dependency Graph (submit in order)
 
+Table numbering in `writings/0_main.tex`:
+  Tab. 1 = tab:obs_modes       (observation space composition)
+  Tab. 2 = tab:main_results    (UAV + Wheeled side-by-side, merged)
+  Tab. 3 = tab:ablations_and_dr (reward / obs / uncertainty ablations + DR, combined)
+  Tab. 4 = tab:obs_gap         (sim-to-real observation gap)
+
 ```
 Step 1 (default train, both robots, N=2-5)
-    -> analyze_results.py --robot_type <r>   -> Tab. 1 (reads NPZ directly)
-       plot_figures.py    --robot_type both  -> Fig. 1
+    -> analyze_results.py --robot_type uav     -> Tab. 2 left half  (reads NPZ directly)
+    -> analyze_results.py --robot_type wheeled -> Tab. 2 right half (reads NPZ directly)
+    -> analyze_results.py --robot_type both    -> Tab. 2 merged (UAV + Wheeled side-by-side)
+       plot_figures.py    --robot_type both    -> Fig. 1
 
 Step 2 (tune, both robots) -> Step 3 (tuned train, N=2-5)
-    -> analyze_results.py --robot_type <r>   -> Tab. 2
-       plot_figures.py    --robot_type both  -> Fig. 2, 3
+    -> analyze_results.py --robot_type both    -> Tab. 2 (merged, tuned half)
+       plot_figures.py    --robot_type both    -> Fig. 2, 3
 
 Steps 4-6 (ablations, both robots, N=3 fixed)
     -> eval_ablations.sh (reward, uncertainty) per robot
-            -> merge CSVs -> analyze_results.py -> Tab. 3, 4, 5
+            -> merge CSVs -> analyze_results.py -> Tab. 3 (reward, obs, uncertainty blocks)
        (obs ablation needs no separate eval — read from NPZ)
 
 Step 7 (DR, both robots, N=2-5)
-    -> eval_ablations.sh (dr) per robot -> merge -> Tab. 7
+    -> eval_ablations.sh (dr) per robot -> merge -> Tab. 3 (DR block)
     -> eval_wind_sweep.sh per robot -> plot_figures.py -> Fig. 4, 5
 
-Step 2 -> (optional) step8_sensitivity_hp.sh (both robots) -> Tab. 6
+Step 2 -> (optional) step8_sensitivity_hp.sh (both robots) -> supplementary
+
+sim2real.py (UAV only, after Step 1) -> Tab. 4 (tab:obs_gap)
 ```
 
 ---
@@ -711,8 +731,8 @@ First, download and install the CoppeliaSim robotics simulator from
 simulator, then follow the instructions in
 `simulation/new_env_sim_v3.ipynb`.
 
-For the sim-to-real **observation gap** experiment (Table 8) on the UAV
-platform, run:
+For the sim-to-real **observation gap** experiment (Table 4, `tab:obs_gap`) on
+the UAV platform, run:
 
 ```bash
 python sim2real.py

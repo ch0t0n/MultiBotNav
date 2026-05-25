@@ -185,11 +185,11 @@ Because the dynamics are subjected to unbounded stochastic noise, strict constra
 \begin{flalign}
  & \min_{\pi} \mathbb{E}_{\pi} \Big[ \sum_{t=0}^{T} \sum_{i=1}^{n} \mathcal{J}(s_i(t), u_i(t))  \Big|  s_i(0) = s_i^{\init}, \mathbf{b}(0) = \mathbf{0}_m \Big] \label{eq:opt} \\
 \text{s.t.,} \nonumber \\
-\text{(i) }  &  \sum_{g_j \in \goals} b_j(T) = m,  \label{eq:const1} \\
-\text{(ii) } & \forall t \leq T, \forall \mathcal{M}_i \in \mathcal{M}: \mathcal{P}_i(q_i(t)) \subset \wspace^{\free}, \label{eq:const2} \\
-\text{(iii) }& \forall t \leq T, \forall \mathcal{M}_i \neq \mathcal{M}_j: \mathcal{P}_i(q_i(t)) \cap \mathcal{P}_j(q_j(t)) = \emptyset. \label{eq:const3}
+\text{(i) }  & \mathbb{P}_{\pi} \Big( \sum_{g_j \in \goals} b_j(T) = m \Big) \text{ is maximized}, \label{eq:const1} \\
+\text{(ii) } & \forall t < T, \forall \mathcal{M}_i \in \mathcal{M}: \mathcal{P}_i(q_i(t)) \subset \wspace^{\free}, \label{eq:const2} \\
+\text{(iii) }& \forall t < T, \forall \mathcal{M}_i \neq \mathcal{M}_j: \mathcal{P}_i(q_i(t)) \cap \mathcal{P}_j(q_j(t)) = \emptyset. \label{eq:const3}
 \end{flalign}
-Here, constraint (i) ensures maximizing the probability of visiting all target locations within time $T$. Constraints (ii) and (iii) define the safe operating conditions for avoiding collisions prior to termination. Since it is a \textit{stochastic} optimization problem, constraint satisfaction is considered for deterministic idealization (without noise). 
+Constraints (ii) and (iii) define the safe operating conditions prior to termination. 
 
 \section{Environment Design}
 \label{sec:mdp}
@@ -215,59 +215,51 @@ where $\rvisit$ rewards newly visited targets, $\rterm$ is the terminal reward f
 
 \begin{theorem}
 \label{thm:optimization}
-In the limit $\gamma \to 1$, the optimal policy $\pi^*$ for the underlying fully-observable MDP of $M$ solves the stochastic optimization problem in Eq.~\eqref{eq:opt}--\eqref{eq:const3} starting at state $s = (\{s_i^{\mathrm{init}}\}_{i=1}^n,  \mathbf{0}_m)$. Conversely, any optimal policy for the optimization problem is an optimal policy for the MDP.
+In the limit $\gamma \to 1$, the optimal policy $\pi^*$ for the underlying fully-observable MDP of $M$ solves the stochastic optimization problem in Eq.~\eqref{eq:opt}--\eqref{eq:const3}. Conversely, any optimal policy for the optimization problem is an optimal policy for the MDP.
 \end{theorem}
 
-\textbf{Proof.} The proof analyzes the underlying MDP where the true state $s_t$ is known, which serves as the theoretical upper bound for the POMDP and establishes the correctness of the reward shaping. For a finite horizon $[0,T]$, the definition of optimal policy $\pi^*$ and optimal action-value function $Q^{\pi^*}$ \citep{sutton2018reinforcement} starting at state $s_0 = (\{s_i^{\mathrm{init}}\}_{i=1}^n,  \mathbf{0}_m)$ are as follows:
+\textbf{Proof.} The proof analyzes the underlying MDP where the true state $s_t$ is known, which serves as the theoretical upper bound for the POMDP and establishes the correctness of the reward shaping. Let the value function of a policy $\pi$ from the initial state $s_0 = (\{s_i^{\mathrm{init}}\}_{i=1}^n, \mathbf{0}_m)$ be:
 \begin{align}
-    \pi^*(s_0) &= \argmax_a Q^{\pi^*}(s_0, a), \label{eq:opt_pi} \\
-    Q^{\pi^*}(s_0, a_0) &= \max_\pi \expectation_\pi \Big[\sum_{\tau=0}^T \gamma^\tau R(s_\tau, a_\tau)  \mid s_0 = (\{s_i^{\mathrm{init}}\}_{i=1}^n,  \mathbf{0}_m) , a_0\Big] \label{eq:opt_policy} \\
-    = \max_\pi &\Big( \expectation_\pi \big[ \sum_\tau \gamma^\tau \rvisit(\tau) \mid . \big] + \expectation_\pi \big[ \sum_\tau \gamma^\tau \rterm(\tau) \mid . \big] + \expectation_\pi \big[ \sum_\tau \gamma^\tau \rpath(\tau) \mid . \big] \Big) \tag*{[From Eq. \eqref{eq:reward} and properties of $\mathbb{E}$]}
+    V^\pi(s_0) &= \mathbb{E}_\pi \Big[\sum_{t=0}^T \gamma^t R(s_t, a_t) \mid s_0 \Big] \label{eq:opt_policy} \\
+    &= \mathbb{E}_\pi \Big[ \sum_{t=0}^T \gamma^t \rvisit(t) \Big] + \mathbb{E}_\pi \Big[ \sum_{t=0}^T \gamma^t \rterm(t) \Big] + \mathbb{E}_\pi \Big[ \sum_{t=0}^T \gamma^t \rpath(t) \Big] \tag*{[From Eq. \eqref{eq:reward}]}
 \end{align}
 where $T$ is the random stopping time when the episode terminates (either all targets are visited or a collision occurs). We prove both directions of the equivalence.
 
 \textbf{(Direction $\Rightarrow$) $\pi^*$ solves the optimization problem:}
-We proceed by analyzing the components of $Q^\pi(s_0, a_0)$ as $\gamma \to 1$ in two lemmas.
+We proceed by analyzing the components of $V^\pi(s_0)$ as $\gamma \to 1$.
 
 \begin{lemma}
 \label{lem:const}
-Assuming $r_L \gg \sum_{\tau=0}^T \gamma^\tau (\rvisit(\tau) + \rpath(\tau))$, any optimal policy $\pi^*$ must maximize the probability of satisfying constraints~\textnormal{(i)}, \textnormal{(ii)}, and~\textnormal{(iii)} of Eq.~\eqref{eq:opt}.
+By choosing $r_L \gg r_m \cdot m \gg \max \sum_{t=0}^T \sum_i \mathcal{J}(\cdot)$, any optimal policy $\pi^*$ must maximize the probability of satisfying constraints~\textnormal{(i)}, \textnormal{(ii)}, and~\textnormal{(iii)}.
 \end{lemma}
 
-\textit{Proof.} Because actuation and position noises are unbounded, no policy can eliminate the possibility of a constraint violation with probability exactly~1. We show that reward shaping makes violations overwhelmingly suboptimal.
-
-\paragraph{Constraint (iii) --- no collisions.} Suppose $\pi^*$ induces a collision at some time $t^*$; then $\rterm(t^*) = -r_L$. Here, $r_L \gg \sum_{\tau=0}^T \gamma^\tau (\rvisit(\tau) + \rpath(\tau))$ makes $Q^\pi \approx -r_L$, which is the lower bound. No such policy can be optimal.
-
-\paragraph{Constraint (ii) --- obstacle and workspace containment.} Any policy placing robot $i$ outside $\wspace^{\free}$ (i.e., outside the workspace boundary or into an obstacle region) incurs a per-step penalty $-r_m$ in $\rpath$. Since $\wspace^{\free} = \wspace \setminus \bigcup_j \wspace_{O_j}$, this uniformly penalizes both boundary violations and obstacle penetrations. Keeping $\mathcal{P}_i(q_i) \subset \wspace^{\free}$ sets this term to zero, maximizing $\rpath$ since $r_m > 0$. When $\obst = \emptyset$, the condition reduces to $p_i \in \wspace$.
-
-\paragraph{Constraint (i) --- all targets visited.} Visiting all $m$ targets yields $\rterm = +r_L$. Since $r_L$ dominates all other accumulated rewards, maximizing $\rterm$ ensures the highest probability for $\sum_{g_j \in \goals} b_j(T) = m$ at termination, satisfying constraint~(i). \hfill$\square$
+\textit{Proof.} Let $P_{\mathrm{succ}}^\pi$ be the probability that policy $\pi$ successfully visits all targets without colliding. Let $P_{\mathrm{col}}^\pi$ be the probability of collision. Since the episode terminates in either state, $P_{\mathrm{succ}}^\pi + P_{\mathrm{col}}^\pi = 1$.
+At termination, $\rterm$ yields $+r_L$ for success and $-r_L$ for collision. Thus, as $\gamma \to 1$:
+\begin{equation}
+    \mathbb{E}_\pi \Big[ \sum_{t=0}^T \gamma^t \rterm(t) \Big] \approx P_{\mathrm{succ}}^\pi r_L - P_{\mathrm{col}}^\pi r_L = (2 P_{\mathrm{succ}}^\pi - 1) r_L.
+\end{equation}
+Furthermore, any policy placing robot $i$ outside $\wspace^{\free}$ incurs a per-step penalty $-r_m$ in $\rpath$. Because $r_L$ is chosen to be overwhelmingly larger than all other possible accumulated rewards and penalties, maximizing $V^\pi(s_0)$ strictly requires maximizing $P_{\mathrm{succ}}^\pi$. This corresponds exactly to maximizing the probability of satisfying constraints (i)--(iii). \hfill$\square$
 
 \begin{lemma}
 \label{lem:cost}
-Among all policies satisfying constraints~\textnormal{(i)--(iii)}, maximizing $Q^\pi$ is equivalent to minimizing the cost objective of Eq.~\eqref{eq:opt}.
+Among all policies that maximize the probability of success, maximizing $V^\pi(s_0)$ is equivalent to minimizing the expected cost objective of Eq.~\eqref{eq:opt}.
 \end{lemma}
 
-\textit{Proof.} By Lemma~\ref{lem:const} and constraint~(i), $\rterm(\tau) = +r_L$ at the terminal step $T$ and $0$ otherwise, so $\expectation_\pi[\sum_\tau \gamma^\tau \rterm(\tau) \mid .] = \expectation_\pi[\gamma^T r_L \mid .] \approx r_L$ for $\gamma \approx 1$.
-
-For the visit reward, each target $j$ is visited exactly once by definition, contributing $r_m$ at the step it is first reached. Therefore:
+\textit{Proof.} For any policy $\pi$ that achieves the maximum possible success probability, the terminal reward expectation is a constant $C_{\mathrm{term}}$. Each target $j$ is visited at most once, contributing $r_m$. As $\gamma \to 1$, the expected visit reward is bounded by $r_m \cdot m$, which is also approximately constant across policies with the same success rate.
+Since $\mathcal{P}_i(q_i(t)) \subset \wspace^{\free}$ for safe steps, $\mathds{1}_{p_i \notin \wspace^{\free}} = 0$. Hence, the path reward simplifies to:
 \begin{equation}
-    \expectation_\pi \Big[\sum_{\tau=0}^T \gamma^\tau \rvisit(\tau) \mid .\Big]
-    = r_m \sum_{j=1}^m \expectation[\gamma^{t_j} \mid .]
-    \approx r_m m, \label{eq:visit_const}
+    \mathbb{E}_\pi \Big[\sum_{t=0}^T \gamma^t \rpath(t) \Big]
+    \approx -\mathbb{E}_\pi \Big[\sum_{t=0}^T \sum_{i=1}^n \mathcal{J}(s_i(t), u_i(t)) \Big]. \label{eq:path_const}
 \end{equation}
-where $t_j$ is the step when target $j$ is visited, and the approximation holds for $\gamma \approx 1$. This quantity is approximately constant (policy-independent for constraint-satisfying policies). By constraint~(ii), $\mathcal{P}_i(q_i(\tau)) \subset \wspace^{\free}$ for all $i, \tau$, so $\mathds{1}_{p_i \notin \wspace^{\free}} = 0$. Hence:
-\begin{equation}
-    \expectation_\pi \Big[\sum_\tau \gamma^\tau \rpath(\tau) \mid . \Big]
-    \approx -\expectation_\pi \Big[\sum_\tau \gamma^\tau \sum_{i=1}^n \mathcal{J}(s_i(\tau), u_i(\tau)) \mid . \Big], \label{eq:path_const}
-\end{equation}
-From Eq.~\eqref{eq:opt_policy}:
+Therefore, the value function becomes:
 \begin{flalign}
-Q^{\pi^*}(s_0, a_0) &\approx \max_\pi \Big( r_L + r_m m - \expectation_\pi \Big[\sum_\tau \gamma^\tau \sum_i \mathcal{J}(s_i(\tau), u_i(\tau))\Big] \Big) \nonumber \\
-&= r_L + r_m m - \min_\pi \expectation_\pi \Big[\sum_\tau \gamma^\tau \sum_i \mathcal{J}(s_i(\tau), u_i(\tau))\Big]. \tag*{[$\max_a(C-f(a)) = C -\min_a f(a)$]}
+V^\pi(s_0) &\approx C_{\mathrm{term}} + C_{\mathrm{visit}} - \mathbb{E}_\pi \Big[\sum_{t=0}^T \sum_{i=1}^n \mathcal{J}(s_i(t), u_i(t))\Big]. \nonumber
 \end{flalign}
-Here,  $r_L + r_m m$ is approximately constant (policy-independent) for policies with identical probabilities. Consequently, maximizing $Q^{\pi^*}$ is precisely equivalent to minimizing the expected discounted cost in Eq.~\eqref{eq:opt}, proving the lemma. Therefore, by Lemmas~\ref{lem:const} and~\ref{lem:cost}, $\pi^*$ solves Eq.~\eqref{eq:opt}.
+Since $C_{\mathrm{term}}$ and $C_{\mathrm{visit}}$ are constant for policies with identical success probabilities, maximizing $V^\pi(s_0)$ is precisely equivalent to minimizing the expected cumulative cost in Eq.~\eqref{eq:opt}. \hfill$\square$
 
-\textbf{(Direction $\Leftarrow$) The optimization solution induces $\pi^*$:} Let $\pi_{\mathrm{opt}}$ be an optimal closed-loop policy for the stochastic optimization problem in Eqs.~\eqref{eq:opt}--\eqref{eq:const3}. By definition, $\pi_{\mathrm{opt}}$ maximizes the probability of satisfying all three constraints, and among such policies, minimizes the expected path cost. Suppose for contradiction that there exists another policy $\pi'$ with $Q^{\pi'} > Q^{\pi_{\mathrm{opt}}}$. Because $r_L$ dominates the reward function (and the action-value function $Q$), $\pi'$ cannot have a lower success probability than $\pi_{\mathrm{opt}}$. If $\pi'$ has the same success probability, then by Lemma~\ref{lem:cost}, $Q^{\pi'} > Q^{\pi_{\mathrm{opt}}}$ implies:
+By Lemmas~\ref{lem:const} and~\ref{lem:cost}, the optimal policy $\pi^*$ solves Eq.~\eqref{eq:opt}.
+
+\textbf{(Direction $\Leftarrow$) The optimization solution induces $\pi^*$:} Let $\pi_{\mathrm{opt}}$ be an optimal closed-loop policy for the stochastic optimization problem in Eqs.~\eqref{eq:opt}--\eqref{eq:const3}. By definition, $\pi_{\mathrm{opt}}$ maximizes the probability of success $P_{\mathrm{succ}}^\pi$, and among such policies, minimizes the expected path cost. Suppose for contradiction that there exists another policy $\pi'$ with $V^{\pi'}(s_0) > V^{\pi_{\mathrm{opt}}}(s_0)$. Because $r_L$ dominates the reward function, $\pi'$ cannot have a lower success probability than $\pi_{\mathrm{opt}}$. If $\pi'$ has the same success probability, then by Lemma~\ref{lem:cost}, $V^{\pi'}(s_0) > V^{\pi_{\mathrm{opt}}}(s_0)$ implies:
 \[
 \mathbb{E}_{\pi'} \Big[\sum_{t=0}^T \sum_{i=1}^n \mathcal{J} \big(s_i(t), u_i(t)\big)\Big]
 < \mathbb{E}_{\pi_{\mathrm{opt}}} \Big[\sum_{t=0}^T \sum_{i=1}^n \mathcal{J} \big(s_i(t), u_i(t)\big)\Big],
@@ -330,24 +322,21 @@ where $a_s > 0$ is an acceleration scaling factor and $\ell_i > 0$ is the robot'
 
 We compare four on-policy (A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, PPO \citep{schulman2017ppo}, TRPO \citep{schulman2015trust}) and two off-policy (CrossQ \citep{bhatt2024crossq}, TQC \citep{kuznetsov2020tqc}) algorithms via Stable-Baselines3 \citep{stable-baselines3}. Main experiments use: (A)~\textit{default hyperparameters} from Stable-Baselines3 and (B)~\textit{tuned hyperparameters} found by Optuna \citep{optuna_2019} (details in supplementary). For the \textbf{UAV} platform, we vary the number of robots $N \in \{2, 3, 4, 5\}$ and use 10 environment configurations (varied field shapes, starting positions, and target locations); for the \textbf{Wheeled} platform, we similarly vary $N \in \{2, 3, 4, 5\}$ and use 10 arena layouts with distinct obstacle arrangements. Every algorithm--configuration pair is trained for $2 \times 10^6$ timesteps with 3 seeds $(42, 123, 9999)$. The interquartile mean (IQM) \citep{agarwal2021deep} is reported as the primary metric. All experiments were conducted on an HPC cluster with GPUs: NVIDIA\textsuperscript{\textregistered} GeForce RTX 1080Ti, 2080Ti, 3090, L4, L40s, A4000, A4500, A6000; CPUs: Intel\textsuperscript{\textregistered} Xeon\textsuperscript{\textregistered} E5-2680v3, E5-2683v4, Gold 6130 (16--48 cores); and 4--16 GB RAM per node. Simulations were performed on a local desktop with AMD Ryzen\texttrademark\ Threadripper 1950X (16-core), 64 GB RAM, and NVIDIA\textsuperscript{\textregistered} GeForce RTX 2080. Each run took approximately 1--6 hours.
 
-% ─── Table 1: Main Results (UAV + Wheeled, side by side) ─────────────────────
+% ─── Table 1: UAV Main Results ───────────────────────────────────────────────
 \begin{table*}[tbp]
 \centering
 \footnotesize
-\caption{\small IQM of episodic reward (3 seeds $\times$ 10 configurations $\times$ 50 episodes) under default and tuned hyperparameters. \textbf{(a) UAV platform} (left); \textbf{(b) Wheeled platform} (right). $\dagger$~=~best per column. ($-$~=~placeholder; to be filled after experiments complete.)}
-\label{tab:main_results}%
-\begin{minipage}[t]{0.49\linewidth}
-\centering
-{\small\textbf{(a) UAV Platform}}\label{tab:uav_main}\\[2pt]
-\resizebox{\linewidth}{!}{%
+\caption{\small IQM of episodic reward for the \textbf{UAV} platform under default and tuned hyperparameters, over 3 seeds $\times$ 10 configurations $\times$ 50 episodes. $\dagger$~=~best per column. ($-$~=~placeholder; to be filled after experiments complete.)}
+\label{tab:uav_main}
+% \resizebox{\textwidth}{!}{
 \begin{tabular}{l|cccc|cccc}
     \toprule
-    \multirow{2}{*}{\textbf{Alg.}}
-        & \multicolumn{4}{c|}{\textbf{Default HP}}
-        & \multicolumn{4}{c}{\textbf{Tuned HP}} \\
+    \multirow{2}{*}{\textbf{Algorithm}}
+        & \multicolumn{4}{c|}{\textbf{Default Hyperparameters}}
+        & \multicolumn{4}{c}{\textbf{Tuned Hyperparameters}} \\
     \cmidrule(lr){2-9}
-           & $N{=}2$ & $N{=}3$ & $N{=}4$ & $N{=}5$
-           & $N{=}2$ & $N{=}3$ & $N{=}4$ & $N{=}5$ \\
+           & $N=2$ & $N=3$ & $N=4$ & $N=5$
+           & $N=2$ & $N=3$ & $N=4$ & $N=5$ \\
     \midrule
     A2C    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
     ARS    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
@@ -356,21 +345,26 @@ We compare four on-policy (A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, PP
     TRPO   & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
     CrossQ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
     \bottomrule
-\end{tabular}}
-\end{minipage}
-\hfill
-\begin{minipage}[t]{0.49\linewidth}
+\end{tabular}
+\vspace{-6pt}
+\end{table*}
+
+% ─── Table 2: Wheeled Main Results ───────────────────────────────────────────
+\begin{table*}[tbp]
 \centering
-{\small\textbf{(b) Wheeled Platform}}\label{tab:whl_main}\\[2pt]
-\resizebox{\linewidth}{!}{%
+\footnotesize
+\caption{\small IQM of episodic reward for the \textbf{Wheeled} platform under default and tuned hyperparameters, over 3 seeds $\times$ 10 configurations $\times$ 50 episodes.
+$\dagger$~=~best per column. ($-$~=~placeholder; to be filled after experiments complete.)}
+\label{tab:whl_main}
+% \resizebox{\textwidth}{!}{
 \begin{tabular}{l|cccc|cccc}
     \toprule
-    \multirow{2}{*}{\textbf{Alg.}}
-        & \multicolumn{4}{c|}{\textbf{Default HP}}
-        & \multicolumn{4}{c}{\textbf{Tuned HP}} \\
+    \multirow{2}{*}{\textbf{Algorithm}}
+        & \multicolumn{4}{c|}{\textbf{Default Hyperparameters}}
+        & \multicolumn{4}{c}{\textbf{Tuned Hyperparameters}} \\
     \cmidrule(lr){2-9}
-           & $N{=}2$ & $N{=}3$ & $N{=}4$ & $N{=}5$
-           & $N{=}2$ & $N{=}3$ & $N{=}4$ & $N{=}5$ \\
+           & $N=2$ & $N=3$ & $N=4$ & $N=5$
+           & $N=2$ & $N=3$ & $N=4$ & $N=5$ \\
     \midrule
     A2C    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
     ARS    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
@@ -379,8 +373,7 @@ We compare four on-policy (A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, PP
     TRPO   & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
     CrossQ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
     \bottomrule
-\end{tabular}}
-\end{minipage}
+\end{tabular}
 \vspace{-6pt}
 \end{table*}
 
@@ -389,7 +382,7 @@ We compare four on-policy (A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, PP
 \label{sec:exp:main}
 % ─────────────────────────────────────────────────────────────────────────────
 
-Table~\ref{tab:main_results} compares all six algorithms on both platforms under default and Optuna-tuned hyperparameters, evaluated with 50 episodes per trained model. \textit{(Results and analysis to be added once experiments are complete.)} For reference, an episode is considered successful when all $m$ targets are visited before the step limit, which activates the $+r_L$ terminal bonus in Eq.~\eqref{eq:r_term}.
+Tables~\ref{tab:uav_main} and~\ref{tab:whl_main} compare all six algorithms under default and Optuna-tuned hyperparameters, evaluated with 50 episodes per trained model. \textit{(Results and analysis to be added once experiments are complete.)} For reference, an episode is considered successful when all $m$ targets are visited before the step limit, which activates the $+r_L$ terminal bonus in Eq.~\eqref{eq:r_term}.
 
 % ─── Figures (learning curves) ───────────────────────────────────────────────
 % \begin{figure}[tbp]

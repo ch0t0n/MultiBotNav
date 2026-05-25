@@ -6,7 +6,7 @@ INSTRUCTIONS:
   2. Set RENDER_COPPELIA = True only for one-episode visual inspection
      (requires CoppeliaSim scene file open first).
   3. After running, copy the printed IQM values into tab:obs_gap
-     in full_experiments.tex.
+     in writings/0_main.tex.
 
 Policy: CrossQ + full DR  (obs_mode="full", dr_mode="full")
 Env:    variation 1, N=3 (MultiUAV)
@@ -89,10 +89,13 @@ class ObsPerturber:
         self._cov_s = 4 * N
         self._cov_e = 4 * N + 1   # visited_decimal
 
-        # N-step velocity deque for wind latency
+        # N-step velocity deque for wind latency.
+        # Use a list comprehension so each slot is an independent array,
+        # not multiple references to the same object.
+        _buf_len = wind_latency_steps if wind_latency_steps > 0 else 1
         self._vel_buf: deque = deque(
-            [np.zeros(2 * N, dtype=np.float32)] * wind_latency_steps,
-            maxlen=wind_latency_steps if wind_latency_steps > 0 else 1,
+            [np.zeros(2 * N, dtype=np.float32) for _ in range(_buf_len)],
+            maxlen=_buf_len,
         )
 
     def reset(self):
@@ -352,7 +355,7 @@ def main():
 
     lines = []
     lines.append("=" * 60)
-    lines.append("TABLE — copy these values into tab:obs_gap in full_experiments.tex")
+    lines.append("TABLE — copy these values into tab:obs_gap in writings/0_main.tex")
     lines.append("=" * 60)
     lines.append(f"  {'Condition':<44} {'IQM':>8}  {'ΔIQM (%)':>10}  Alone")
     lines.append(f"  {'-'*44} {'-'*8}  {'-'*10}  -----")

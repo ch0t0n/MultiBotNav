@@ -17,7 +17,7 @@ experiment in the paper is run for **both** of them.
 Both environments support the same experimental knobs:
 
 - **`reward_ablation`** ∈ `{full, no_term, no_path}`
-- **`obs_mode`**        ∈ `{full, no_pos, no_inf_hist, pos_only}`
+- **`obs_mode`**        ∈ `{full, no_pos, no_vis_hist, pos_only}`
 - **`uncertainty_mode`**∈ `{full, wind_only, act_only, deterministic}`
 - **`dr_mode`**         ∈ `{none, wind, full}` (domain randomization)
 

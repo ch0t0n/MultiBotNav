@@ -4,8 +4,8 @@ sensitivity_hp.py — Hyperparameter sensitivity analysis for Table 6.
 
 For each algorithm, sweeps each of its tunable hyperparameters over a
 7-point grid while holding all others fixed at their Optuna-tuned values
-(from logs/best_hyperparams.json).  Trains a short policy for each grid
-point, evaluates it, and records the IQM.
+(from logs/best_hyperparams_<robot_type>.json).  Trains a short policy for
+each grid point, evaluates it, and records the IQM.
 
 Reports the coefficient of variation  CV = σ(IQM) / |μ(IQM)|  across the
 7-point grid for each (algorithm, hyperparameter) pair.  Lower CV means
@@ -13,8 +13,8 @@ the algorithm is more robust to that hyperparameter's choice.
 
 Outputs
 -------
-results_dir/cv_table.csv              — machine-readable
-results_dir/sensitivity_hp_latex_rows.txt — ready-to-paste LaTeX rows
+results_dir/cv_table_<robot_type>.csv              — machine-readable
+results_dir/sensitivity_hp_latex_rows_<robot_type>.txt — ready-to-paste LaTeX rows
 
 Usage
 -----
@@ -41,9 +41,8 @@ from src.utils import read_uav_json, read_wheeled_json, flock_exclusive, flock_u
 # Constants
 # ================================================================
 
-UAV_JSON_PATH      = os.path.join('exp_sets', 'uav', 'cont_sets.json')
-WHEELED_CONFIG_DIR = os.path.join('exp_sets', 'wheeled')
-WHEELED_JSON_PATH  = os.path.join('exp_sets', 'wheeled', 'wheeled_configs.json')
+UAV_JSON_PATH     = os.path.join('exp_sets', 'uav', 'cont_sets.json')
+WHEELED_JSON_PATH = os.path.join('exp_sets', 'wheeled', 'wheeled_configs.json')
 ENV_VAR     = 1
 NUM_ROBOTS  = 3
 NUM_ENVS    = 4
@@ -220,6 +219,24 @@ def sweep_algorithm(args, algorithm: str,
 
 def append_cv_csv(results: list, csv_path: str):
     os.makedirs(os.path.dirname(os.path.abspath(csv_path)), exist_ok=True)
+
+    # Read existing rows so we can skip duplicates (algorithm, hp_name) pairs.
+    existing_keys: set = set()
+    if os.path.exists(csv_path):
+        try:
+            with open(csv_path, newline="") as rf:
+                for row in csv.DictReader(rf):
+                    existing_keys.add((row.get("algorithm", ""), row.get("hp_name", "")))
+        except Exception:
+            pass
+
+    new_results = [r for r in results
+                   if (r["algorithm"], r["hp_name"]) not in existing_keys]
+
+    if not new_results:
+        print(f"\n  All {len(results)} rows already present in {csv_path} — skipping.")
+        return
+
     with open(csv_path, "a", newline="") as f:
         flock_exclusive(f)
         try:
@@ -231,7 +248,7 @@ def append_cv_csv(results: list, csv_path: str):
                     "iqm_mean", "iqm_std",
                     "grid_values", "iqm_values",
                 ])
-            for r in results:
+            for r in new_results:
                 iqm_arr = [v for v in r["iqm_values"] if not np.isnan(v)]
                 writer.writerow([
                     r["algorithm"],
@@ -246,7 +263,9 @@ def append_cv_csv(results: list, csv_path: str):
                 os.fsync(f.fileno())
         finally:
             flock_unlock(f)
-    print(f"\n  Appended {len(results)} rows -> {csv_path}")
+    skipped = len(results) - len(new_results)
+    print(f"\n  Appended {len(new_results)} new rows "
+          f"({skipped} already present) -> {csv_path}")
 
 
 def append_raw_csv(algorithm: str, hp_name: str,
@@ -303,6 +322,25 @@ def expand_raw_from_cv_table(cv_path: str, raw_path: str):
 # LaTeX table writer
 # ================================================================
 
+_HP_LATEX_LABELS = {
+    "learning_rate":                    r"CV($\alpha$)",
+    "gae_lambda":                       r"CV($\lambda_\mathrm{GAE}$)",
+    "vf_coef":                          r"CV($c_\mathrm{v}$)",
+    "ent_coef":                         r"CV($c_\mathrm{e}$)",
+    "max_grad_norm":                    r"CV(clip$_\nabla$)",
+    "clip_range":                       r"CV($\epsilon$)",
+    "n_epochs":                         r"CV($K$)",
+    "target_kl":                        r"CV($\delta_\mathrm{KL}$)",
+    "cg_max_steps":                     r"CV($n_\mathrm{CG}$)",
+    "delta_std":                        r"CV($\sigma_\delta$)",
+    "n_delta":                          r"CV($n_\delta$)",
+    "buffer_size":                      r"CV($|\mathcal{B}|$)",
+    "batch_size":                       r"CV($B$)",
+    "tau":                              r"CV($\tau$)",
+    "top_quantiles_to_drop_per_net":    r"CV($q_\mathrm{drop}$)",
+}
+
+
 def write_latex(csv_path: str, out_path: str):
     import csv as csv_mod
     if not os.path.exists(csv_path):
@@ -310,6 +348,7 @@ def write_latex(csv_path: str, out_path: str):
         return
 
     data = {}
+    hp_order_seen: list = []
     with open(csv_path, newline="") as f:
         reader = csv_mod.DictReader(f)
         for row in reader:
@@ -317,30 +356,32 @@ def write_latex(csv_path: str, out_path: str):
             hp  = row["hp_name"]
             cv  = float(row["cv"]) if row["cv"] != "nan" else float("nan")
             data.setdefault(alg, {})[hp] = cv
+            if hp not in hp_order_seen:
+                hp_order_seen.append(hp)
 
     alg_order = ["A2C", "ARS", "PPO", "TRPO", "CrossQ", "TQC"]
-    cols = [
-        ("learning_rate", r"CV($\alpha$)"),
-        ("gae_lambda",    r"CV($\lambda_\text{GAE}$)"),
-    ]
 
-    col_mins = {}
-    for hp_name, _ in cols:
+    # Per-column minimum (best = lowest CV) for bolding
+    col_mins: dict = {}
+    for hp_name in hp_order_seen:
         vals   = {alg: data.get(alg, {}).get(hp_name, float("nan")) for alg in alg_order}
         finite = {a: v for a, v in vals.items() if not np.isnan(v)}
         col_mins[hp_name] = min(finite, key=lambda a: finite[a]) if finite else None
 
+    col_headers = " & ".join(
+        _HP_LATEX_LABELS.get(hp, f"CV({hp})") for hp in hp_order_seen)
+
     lines = [
         "% LaTeX table rows for tab:sensitivity_hp",
         "% Generated by sensitivity_hp.py",
-        "% Columns: Algorithm | CV(alpha) | CV(gamma) | CV(lambda_GAE)",
+        f"% Columns: Algorithm | {col_headers}",
         "",
     ]
 
     for alg in alg_order:
         alg_data = data.get(alg, {})
         cells = []
-        for hp_name, _ in cols:
+        for hp_name in hp_order_seen:
             cv = alg_data.get(hp_name, float("nan"))
             if np.isnan(cv):
                 cells.append("---")
@@ -349,9 +390,7 @@ def write_latex(csv_path: str, out_path: str):
                 if col_mins.get(hp_name) == alg:
                     s = rf"$\mathbf{{{cv:.3f}}}^\dagger$"
                 cells.append(s)
-        # gamma column is always --- (not swept)
-        row_cells = [cells[0], "---", cells[1]]
-        lines.append(f"{alg} & " + " & ".join(row_cells) + r" \\")
+        lines.append(f"{alg} & " + " & ".join(cells) + r" \\")
 
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, "w") as f:
@@ -431,7 +470,6 @@ def main():
         env_id    = "MultiUAV-v0"
         env_class = MultiUAV
     else:
-        # wheeled_dict = read_wheeled_configs(WHEELED_CONFIG_DIR)
         wheeled_dict = read_wheeled_json(WHEELED_JSON_PATH)
         env_config   = wheeled_dict[f"set{ENV_VAR}"]
         env_kwargs   = dict(

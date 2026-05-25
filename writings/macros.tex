@@ -1,0 +1,55 @@
+% Formatting and General
+\newcommand{\etal}{\textit{et al. }}
+\newcommand{\solution}{\textbf{Solution:}}
+\newcommand{\qed}{\hfill \ensuremath{\Box}}
+\definecolor{darkgreen}{rgb}{0.0, 0.5, 0.0} 
+
+% Math Sets and Symbols
+\newcommand{\reals}{\ensuremath{\mathbb{R}}}
+\newcommand{\naturals}{\ensuremath{\mathbb{N}}}
+\newcommand{\integers}{\ensuremath{\mathbb{Z}}}
+\newcommand{\expectation}{\ensuremath{\mathbb{E}}}
+\newcommand{\D}{\mathrm{d}}
+\newcommand{\reg}{\ensuremath{\emph{R}}}
+
+% Spaces and Sets
+\newcommand{\config}{\mathcal{Q}}
+\newcommand{\wspace}{\mathcal{W}}
+\newcommand{\obst}{\mathcal{O}}
+\newcommand{\goals}{\mathcal{G}}
+\newcommand{\states}{\mathcal{S}}
+\newcommand{\trans}{\ensuremath{\mathcal{T}}}
+
+% Rewards
+\newcommand{\rterm}{R_{\mathrm{term}}}
+\newcommand{\rspray}{R_{\mathrm{spr}}}
+\newcommand{\rpath}{R_{\mathrm{path}}}
+\newcommand{\rvisit}{R_{\mathrm{visit}}}
+
+% Theorem Environments
+\newtheorem{problem}{Problem}
+\newtheorem{remark}{Remark}
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+
+% Paired Delimiters
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+% Operators
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\simulate}{SIM}
+\DeclareMathOperator{\init}{init}
+\DeclareMathOperator{\free}{free}
+\DeclareMathOperator{\new}{new}
+\DeclareMathOperator{\pos}{POS}
+\DeclareMathOperator{\goalf}{GS}
+\DeclareMathOperator{\visited}{\mathbb{V}}
+
+% Fallback definitions for general-formulation macros (no-op if already defined in macros.tex)
+\providecommand{\obst}{\mathcal{O}}
+\providecommand{\free}{\mathrm{free}}
+\providecommand{\obs}{\mathrm{obs}}
+\providecommand{\col}{\mathrm{col}}

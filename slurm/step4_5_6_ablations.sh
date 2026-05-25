@@ -5,12 +5,12 @@
 # Covers Steps 4, 5, and 6 in a single file.
 # Pass the experiment as arg1, robot type as arg2 (default: uav).
 #
-#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_reward uav
-#   sbatch --array=0-89  step4_5_6_ablations.sh ablation_reward wheeled
-#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_obs uav
-#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_obs wheeled
-#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_uncertainty uav
-#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_uncertainty wheeled
+#   sbatch --array=0-89  step4_5_6_ablations.sh ablation_reward       uav      # 3 cond × 10 sets × 3 seeds = 90
+#   sbatch --array=0-89  step4_5_6_ablations.sh ablation_reward       wheeled  # 3 cond × 10 sets × 3 seeds = 90
+#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_obs          uav      # 4 cond × 10 sets × 3 seeds = 120
+#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_obs          wheeled  # 4 cond × 10 sets × 3 seeds = 120
+#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_uncertainty  uav      # 4 cond × 10 sets × 3 seeds = 120
+#   sbatch --array=0-119 step4_5_6_ablations.sh ablation_uncertainty  wheeled  # 4 cond × 10 sets × 3 seeds = 120
 #
 # Fixed: CrossQ, N=3 (or env-defined for wheeled), 2M timesteps
 # Grid:
@@ -90,12 +90,12 @@ if [ "$EXPERIMENT" == "ablation_reward" ]; then
 # Step 5: Observation space
 #   full         positions + velocities + visited/goal decimal
 #   no_pos       visited/goal decimal only
-#   no_inf_hist  positions + velocities only
+#   no_vis_hist  positions + velocities only
 #   pos_only     robot positions only (2N)
 # ============================================================
 elif [ "$EXPERIMENT" == "ablation_obs" ]; then
 
-    obs_modes=("full" "no_pos" "no_inf_hist" "pos_only")
+    obs_modes=("full" "no_pos" "no_vis_hist" "pos_only")
     obs_mode=${obs_modes[$cond_idx]}
 
     echo "S5-ablation-obs | robot=$ROBOT_TYPE | obs=$obs_mode | set=$set | seed=$seed | job=$SLURM_ARRAY_TASK_ID"
@@ -140,6 +140,10 @@ elif [ "$EXPERIMENT" == "ablation_uncertainty" ]; then
         --log_steps   10000 \
         --device      cuda
 
+else
+    echo "ERROR: Unknown experiment '$EXPERIMENT'."
+    echo "       Valid options: ablation_reward, ablation_obs, ablation_uncertainty"
+    exit 1
 fi
 
 wait

@@ -16,7 +16,7 @@ set -e
 # Activate your specific conda environment
 # We use 'source' to ensure the shell handles the activation correctly in Slurm
 conda_env="robot_env"
-source ~/miniconda3/bin/activate $conda_env
+source /homes/choton/miniconda3/bin/activate $conda_env
 
 echo "Using conda env: $conda_env"
 

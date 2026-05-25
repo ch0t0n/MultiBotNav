@@ -23,10 +23,10 @@ from src.utils import (
 #       "no_term"    → collision penalty and success bonus disabled
 #       "no_path"    → energy, speed, path, and time penalties disabled
 #
-#   obs_mode         : "full" | "no_pos" | "no_inf_hist" | "pos_only"
+#   obs_mode         : "full" | "no_pos" | "no_vis_hist" | "pos_only"
 #       "full"       → positions(2N) + velocities(2N) + visited_decimal(1) = 4N+1
 #       "no_pos"     → visited_decimal(1)
-#       "no_inf_hist"→ positions(2N) + velocities(2N) = 4N
+#       "no_vis_hist"→ positions(2N) + velocities(2N) = 4N
 #       "pos_only"   → robot positions only (2N)
 #
 #   uncertainty_mode : "full" | "wind_only" | "act_only" | "deterministic"
@@ -69,7 +69,7 @@ class MultiUAV(gym.Env):
             f"Unknown dr_mode: {dr_mode}"
         assert reward_ablation in ("full", "no_term", "no_path"), \
             f"Unknown reward_ablation: {reward_ablation}"
-        assert obs_mode in ("full", "no_pos", "no_inf_hist", "pos_only"), \
+        assert obs_mode in ("full", "no_pos", "no_vis_hist", "pos_only"), \
             f"Unknown obs_mode: {obs_mode}"
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         
@@ -155,10 +155,10 @@ class MultiUAV(gym.Env):
         # ── Observation space — depends on obs_mode ─────────────────
         # "full"        positions(2N) + velocities(2N) + visited_decimal(1) = 4N+1
         # "no_pos"      visited_decimal(1)  [remove all kinematics]
-        # "no_inf_hist" positions(2N) + velocities(2N) = 4N
+        # "no_vis_hist" positions(2N) + velocities(2N) = 4N
         # "pos_only"    positions(2N)
         N = num_robots
-        _obs_dims = {"full": 4*N+1, "no_pos": 1, "no_inf_hist": 4*N, "pos_only": 2*N}
+        _obs_dims = {"full": 4*N+1, "no_pos": 1, "no_vis_hist": 4*N, "pos_only": 2*N}
         self.observation_space = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float32)
 
@@ -186,7 +186,7 @@ class MultiUAV(gym.Env):
                                     np.array([infected_decimal], dtype=np.float32)])
         elif self.obs_mode == "no_pos":
             state = np.array([infected_decimal], dtype=np.float32)
-        elif self.obs_mode == "no_inf_hist":
+        elif self.obs_mode == "no_vis_hist":
             state = np.concatenate([self.robot_positions.flatten(),
                                     self.robot_velocities.flatten()])
         elif self.obs_mode == "pos_only":
@@ -339,16 +339,16 @@ class MultiUAV(gym.Env):
 
         # ── Terminal signals ──────────────────────────────────────────────────────
         term_cond = ""
-        
-        # Win condition: All targets visited
+
+        # Win condition: All targets visited (checked first — success takes priority)
         if len(self.infected_locations) == 0:
             if self.reward_ablation != "no_term":
                 rewards += 5000      # Matches reference env success bonus
             term_cond  = "visited_all"
             terminated = True
 
-        # Lose condition: Robots crashed into each other
-        if self.num_robots > 1 and compute_min_dist(self.robot_positions) < self.robot_size:
+        # Lose condition: Robots crashed into each other (only if not already done)
+        if not terminated and self.num_robots > 1 and compute_min_dist(self.robot_positions) < self.robot_size:
             if self.reward_ablation != "no_term":
                 rewards -= 5000     # Crash penalty
             term_cond  = "collision"
@@ -432,10 +432,10 @@ class MultiUAV(gym.Env):
 #                (bicycle-model kinematics)
 #
 #   reward_ablation  : "full" | "no_term" | "no_path"
-#   obs_mode         : "full" | "no_pos" | "no_inf_hist" | "pos_only"
+#   obs_mode         : "full" | "no_pos" | "no_vis_hist" | "pos_only"
 #       "full"        (x,y,θ,v,δ)(5N) + goal_decimal(1) = 5N+1
 #       "no_pos"      (θ,v,δ)(3N)     + goal_decimal(1) = 3N+1
-#       "no_inf_hist" (x,y,θ,v,δ)(5N)
+#       "no_vis_hist" (x,y,θ,v,δ)(5N)
 #       "pos_only"    (x,y)(2N)
 #   uncertainty_mode : "full" | "wind_only" | "act_only" | "deterministic"
 #   dr_mode          : "none" | "wind" | "full"
@@ -476,7 +476,7 @@ class MultiWheeled(gym.Env):
             f"Unknown dr_mode: {dr_mode}"
         assert reward_ablation in ("full", "no_term", "no_path"), \
             f"Unknown reward_ablation: {reward_ablation}"
-        assert obs_mode in ("full", "no_pos", "no_inf_hist", "pos_only"), \
+        assert obs_mode in ("full", "no_pos", "no_vis_hist", "pos_only"), \
             f"Unknown obs_mode: {obs_mode}"
         assert render_mode is None or render_mode in self.metadata["render_modes"]
 
@@ -548,9 +548,9 @@ class MultiWheeled(gym.Env):
         self._nominal_action_noise_std = _noise["action"]
 
         N = self.NUM_ROBOTS
-        _obs_dims = {"full": 5*N+1, "no_pos": 3*N+1, "no_inf_hist": 5*N, "pos_only": 2*N}
+        _obs_dims = {"full": 5*N+1, "no_pos": 3*N+1, "no_vis_hist": 5*N, "pos_only": 2*N}
         self.observation_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float64)
+            low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float32)
 
         self.action_space = gym.spaces.Box(
             low=-1.0, high=1.0, shape=(self.NUM_ROBOTS, 2), dtype=np.float32)
@@ -570,14 +570,14 @@ class MultiWheeled(gym.Env):
             obs = np.concatenate([self.robots.flatten(), np.array([self.dec_g])])
         elif self.obs_mode == "no_pos":
             obs = np.concatenate([self.robots[:, 2:].flatten(), np.array([self.dec_g])])
-        elif self.obs_mode == "no_inf_hist":
+        elif self.obs_mode == "no_vis_hist":
             obs = self.robots.flatten().copy()
         elif self.obs_mode == "pos_only":
             obs = self.robots[:, :2].flatten().copy()
 
-        obs = obs.astype(np.float64)
+        obs = obs.astype(np.float32)
         if self.obs_noise_std > 0:
-            obs += np.random.normal(0, self.obs_noise_std, size=obs.shape)
+            obs += np.random.normal(0, self.obs_noise_std, size=obs.shape).astype(np.float32)
 
         info = {f'robot{i}': self.robots[i, :2].copy() for i in range(self.NUM_ROBOTS)}
         return obs, info
@@ -621,7 +621,7 @@ class MultiWheeled(gym.Env):
             theta += np.random.normal(0, self.init_heading_noise)
             self.robots.append([x, y, theta, 0.0, 0.0])
 
-        self.robots            = np.array(self.robots, dtype=np.float64)
+        self.robots            = np.array(self.robots, dtype=np.float32)
         self.total_path_length = 0.0
         self.prev_positions    = self.robots[:, :2].copy()
 

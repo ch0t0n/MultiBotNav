@@ -235,14 +235,14 @@ Observations provide a noisy, partial view of the true state. The visit history 
     \midrule
     \texttt{full}        & position + velocity + $\phi(\mathbf{b})$ ($4N+1$) & full kin.\ + $\phi(\mathbf{b})$ ($5N+1$) \\
     \texttt{no\_pos}     & $\phi(\mathbf{b})$ only ($1$) & $(\theta,v,\delta)$ per robot + $\phi(\mathbf{b})$ ($3N+1$) \\
-    \texttt{no\_inf\_hist} & position + velocity ($4N$) & full kin.\ only ($5N$) \\
+    \texttt{no\_vis\_hist} & position + velocity ($4N$) & full kin.\ only ($5N$) \\
     \texttt{pos\_only}   & position only ($2N$) & position only ($2N$) \\
     \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Observation Function.}
-$O : S \to \Delta(\Omega)$ maps each true state to a distribution over noisy observations as described above. The mode \texttt{no\_inf\_hist} withholds the visit history $\phi(\mathbf{b})$ entirely, corresponding to a robot that cannot recall which targets have already been visited.
+$O : S \to \Delta(\Omega)$ maps each true state to a distribution over noisy observations as described above. The mode \texttt{no\_vis\_hist} withholds the visit history $\phi(\mathbf{b})$ entirely, corresponding to a robot that cannot recall which targets have already been visited.
 
 \paragraph{Transition Function.}
 $\trans : S \times A \to \Delta(S)$ governs the stochastic dynamics. For UAV robots it integrates Eqs.~\eqref{eq:uav_vel}--\eqref{eq:uav_pos} including wind and actuation noise. For wheeled robots it integrates Eqs.~\eqref{eq:whl_vel}--\eqref{eq:whl_pos}. In both cases the visit flags update via Eq.~\eqref{eq:coverage}.
@@ -418,7 +418,7 @@ We ablate reward terms, observation spaces, and uncertainty parameters using Cro
 
 \textbf{Reward ablations} compare the IQM of episode lengths, where episodes terminate either on complete target coverage (all $m$ targets visited) or on a collision. Removing $\rterm$ prevents the policy from learning collision avoidance and coverage incentives. Removing $\rpath$ eliminates energy and path-efficiency penalties; because the discount factor $\gamma$ still implicitly penalizes slow episodes, the impact is expected to be moderate.
 
-\textbf{Observation ablations} evaluate the effect of withholding kinematic information (\texttt{no\_pos}), visit history (\texttt{no\_inf\_hist}), or both (retaining \texttt{pos\_only}). We hypothesize that removing position information is catastrophic since robots cannot navigate, and that withholding visit history has a milder effect as robots can re-discover targets.
+\textbf{Observation ablations} evaluate the effect of withholding kinematic information (\texttt{no\_pos}), visit history (\texttt{no\_vis\_hist}), or both (retaining \texttt{pos\_only}). We hypothesize that removing position information is catastrophic since robots cannot navigate, and that withholding visit history has a milder effect as robots can re-discover targets.
 
 \textbf{Uncertainty ablations} isolate the contributions of wind noise (\texttt{wind\_only}), actuation noise (\texttt{act\_only}), neither (\texttt{deterministic}), or both (\texttt{full}). This identifies which noise source is the primary driver of performance degradation.
 

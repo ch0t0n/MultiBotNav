@@ -6,7 +6,7 @@ Handles all experiment steps via command-line arguments:
   Step 1  --experiment main     (default HPs)
   Step 3  --experiment main     --hyperparams_json <path>   (tuned HPs)
   Step 4  --experiment ablation_reward  --ablation {full|no_term|no_path}
-  Step 5  --experiment ablation_obs     --ablation {full|no_pos|no_inf_hist|pos_only}
+  Step 5  --experiment ablation_obs     --ablation {full|no_pos|no_vis_hist|pos_only}
   Step 6  --experiment ablation_uncertainty  --ablation {full|wind_only|act_only|deterministic}
   Step 7  --experiment dr       --ablation {none|wind|full}
 
@@ -61,7 +61,7 @@ EXPERIMENT_MAP = {
 VALID_ABLATIONS = {
     "main":                  {None},
     "ablation_reward":       {"full", "no_term", "no_path"},
-    "ablation_obs":          {"full", "no_pos", "no_inf_hist", "pos_only"},
+    "ablation_obs":          {"full", "no_pos", "no_vis_hist", "pos_only"},
     "ablation_uncertainty":  {"full", "wind_only", "act_only", "deterministic"},
     "dr":                    {"none", "wind", "full"},
 }

@@ -109,7 +109,7 @@ class MultiWheeled(gym.Env):
             f"Unknown dr_mode: {dr_mode}"
         assert reward_ablation in ("full", "no_term", "no_path"), \
             f"Unknown reward_ablation: {reward_ablation}"
-        assert obs_mode in ("full", "no_pos", "no_inf_hist", "pos_only"), \
+        assert obs_mode in ("full", "no_pos", "no_vis_hist", "pos_only"), \
             f"Unknown obs_mode: {obs_mode}"
         assert render_mode is None or render_mode in self.metadata["render_modes"]
 
@@ -172,10 +172,10 @@ class MultiWheeled(gym.Env):
         # Observation space — size depends on obs_mode
         # "full"        (x,y,θ,v,δ)(5N) + goal_decimal(1) = 5N+1
         # "no_pos"      (θ,v,δ)(3N)     + goal_decimal(1) = 3N+1
-        # "no_inf_hist" (x,y,θ,v,δ)(5N)
+        # "no_vis_hist" (x,y,θ,v,δ)(5N)
         # "pos_only"    (x,y)(2N)
         N = self.NUM_ROBOTS
-        _obs_dims = {"full": 5*N+1, "no_pos": 3*N+1, "no_inf_hist": 5*N, "pos_only": 2*N}
+        _obs_dims = {"full": 5*N+1, "no_pos": 3*N+1, "no_vis_hist": 5*N, "pos_only": 2*N}
         self.observation_space = gym.spaces.Box(
             low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float64)
 
@@ -195,7 +195,7 @@ class MultiWheeled(gym.Env):
             obs = np.concatenate([self.robots.flatten(), np.array([self.dec_g])])
         elif self.obs_mode == "no_pos":
             obs = np.concatenate([self.robots[:, 2:].flatten(), np.array([self.dec_g])])
-        elif self.obs_mode == "no_inf_hist":
+        elif self.obs_mode == "no_vis_hist":
             obs = self.robots.flatten().copy()
         elif self.obs_mode == "pos_only":
             obs = self.robots[:, :2].flatten().copy()
@@ -443,50 +443,51 @@ class MultiWheeled(gym.Env):
             self.screen = None
 
 # ================================
-if 'MultiWheeled-v0' not in gym.envs.registry:
-    gym.register(id='MultiWheeled-v0', entry_point=MultiWheeled, max_episode_steps=1000)
+if __name__ == "__main__":
+    if 'MultiWheeled-v0' not in gym.envs.registry:
+        gym.register(id='MultiWheeled-v0', entry_point=MultiWheeled, max_episode_steps=1000)
 
-env_params = load_env_from_json(wheeled_json_path, key=env_key)
+    env_params = load_env_from_json(wheeled_json_path, key=env_key)
 
-# Make the environment
-env = gym.make('MultiWheeled-v0', env_params=env_params, render_mode='human', max_steps=max_steps)
-env.unwrapped.metadata['render_fps'] = 30
-obs, info = env.reset()
-env.render()
-pygame.image.save(env.unwrapped.screen, f"wheeled_init_{env_key}.jpg")
-
-total_rewards = 0
-total_steps   = 0
-
-for i in range(10000):
-    action = env.action_space.sample()
-    obs, reward, terminated, truncated, info = env.step(action)
-    total_rewards += reward
-    total_steps   += 1
-
+    # Make the environment
+    env = gym.make('MultiWheeled-v0', env_params=env_params, render_mode='human', max_steps=max_steps)
+    env.unwrapped.metadata['render_fps'] = 30
+    obs, info = env.reset()
     env.render()
+    pygame.image.save(env.unwrapped.screen, f"wheeled_init_{env_key}.jpg")
 
-    # Drain the event queue so the OS doesn't mark the window as "not responding"
-    # and so the user can close it with the X button.
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            env.close()
-            raise SystemExit("Window closed by user.")
+    total_rewards = 0
+    total_steps   = 0
 
-    if terminated or truncated:
-        print(f"Episode ended | steps: {total_steps} | reward: {total_rewards:.1f} "
-              f"| term_cond: {info.get('term_cond', '?')}")
-        print(f"Observation: {obs}")
+    for i in range(10000):
+        action = env.action_space.sample()
+        obs, reward, terminated, truncated, info = env.step(action)
+        total_rewards += reward
+        total_steps   += 1
 
-        pause_ms   = 1
-        start_tick = pygame.time.get_ticks()
-        while pygame.time.get_ticks() - start_tick < pause_ms:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    env.close()
-                    raise SystemExit("Window closed by user.")
+        env.render()
 
-        obs, _ = env.reset()
-        total_rewards, total_steps = 0, 0
+        # Drain the event queue so the OS doesn't mark the window as "not responding"
+        # and so the user can close it with the X button.
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                env.close()
+                raise SystemExit("Window closed by user.")
 
-env.close()
+        if terminated or truncated:
+            print(f"Episode ended | steps: {total_steps} | reward: {total_rewards:.1f} "
+                  f"| term_cond: {info.get('term_cond', '?')}")
+            print(f"Observation: {obs}")
+
+            pause_ms   = 1
+            start_tick = pygame.time.get_ticks()
+            while pygame.time.get_ticks() - start_tick < pause_ms:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        env.close()
+                        raise SystemExit("Window closed by user.")
+
+            obs, _ = env.reset()
+            total_rewards, total_steps = 0, 0
+
+    env.close()

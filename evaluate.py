@@ -121,6 +121,7 @@ def already_evaluated(output_csv: str, args, ablation_val: str) -> bool:
                         and row.get("robot_type")    == args.robot_type
                         and row.get("experiment")    == args.experiment
                         and row.get("ablation")      == ablation_val
+                        and row.get("hp_tag")        == args.hp_tag
                         and row.get("num_robots")    == str(args.num_robots)
                         and row.get("env_set")       == str(args.set)
                         and row.get("seed")          == str(args.seed)
@@ -175,12 +176,13 @@ def build_eval_env_kwargs(args, env_config: dict,
     kwarg_name = EXPERIMENT_MAP[args.experiment]
     if kwarg_name is not None:
         ablation_val = args.ablation or EXPERIMENT_DEFAULTS[args.experiment]
-        kwargs[kwarg_name] = ablation_val
-        # Is this better?
-        # if args.experiment == "dr" and wind_speed is not None:
-        #     kwargs[kwarg_name] = "none"
-        # else:
-        #     kwargs[kwarg_name] = ablation_val
+        if args.experiment == "dr" and wind_speed is not None:
+            # When an explicit eval-wind range is provided, override dr_mode to
+            # "none" so the env uses the fixed wind_par instead of resampling.
+            # The model loaded is still the one trained with DR (ablation_val).
+            kwargs[kwarg_name] = "none"
+        else:
+            kwargs[kwarg_name] = ablation_val
 
     if args.eval_uncertainty_mode is not None:
         kwargs["uncertainty_mode"] = args.eval_uncertainty_mode

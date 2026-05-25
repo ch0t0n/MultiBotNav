@@ -67,7 +67,9 @@ def parse_args():
                    help="Path to the journal log file, e.g. "
                         "logs/optuna_studies/CrossQ_journal.log")
     p.add_argument("--study_name",  required=True)
-    p.add_argument("--output_json", default="logs/best_hyperparams.json")
+    p.add_argument("--output_json", default=None,
+                   help="Path to best hyperparams JSON. "
+                        "Defaults to logs/best_hyperparams_<robot_type>.json")
     p.add_argument("--log_root",    default="logs/step2_tune")
     return p.parse_args()
 
@@ -188,7 +190,7 @@ def make_objective(alg_name, AlgClass, policy, env_id, env_kwargs, device, tune_
 
         except Exception as e:
             print(f"[trial {trial.number}] FAILED: {e}")
-            return float("-inf")
+            raise optuna.TrialPruned()
 
         finally:
             vec_env.close()
@@ -268,6 +270,10 @@ def update_best_json(output_json: str, alg_name: str, iqm: float, params: dict):
 def run_tuning(args):
     os.makedirs(args.log_root, exist_ok=True)
 
+    if args.output_json is None:
+        args.output_json = os.path.join(
+            "logs", f"best_hyperparams_{args.robot_type}.json")
+
     # Load env config
     if args.robot_type == "uav":
         json_dict  = read_uav_json(UAV_JSON_PATH)
@@ -316,25 +322,12 @@ def run_tuning(args):
         show_progress_bar=False,
     )
 
-    best = study.best_trial
-    print(f"BEST (so far): IQM={best.value:.4f} | {best.params}")
-
-    # output_dir = os.path.dirname(os.path.abspath(args.output_json))
-    # os.makedirs(output_dir, exist_ok=True)
-
-    # best_all = {}
-    # if os.path.exists(args.output_json):
-    #     with open(args.output_json) as f:
-    #         best_all = json.load(f)
-
-    # best_all[alg_name] = {"iqm": best.value, "params": best.params}
-
-    # with open(args.output_json, "w") as f:
-    #     json.dump(best_all, f, indent=2)
-
-    # print(f"Updated -> {args.output_json}")
-    
-    update_best_json(args.output_json, alg_name, best.value, best.params)
+    try:
+        best = study.best_trial
+        print(f"BEST (so far): IQM={best.value:.4f} | {best.params}")
+        update_best_json(args.output_json, alg_name, best.value, best.params)
+    except ValueError:
+        print("WARNING: No completed trials found — best_hyperparams JSON not updated.")
 
 if __name__ == "__main__":
     run_tuning(parse_args())
