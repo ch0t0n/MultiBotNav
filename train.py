@@ -138,16 +138,6 @@ def parse_args():
 # Utilities
 # ================================================================
 
-# def load_hyperparams(json_path: str, algorithm: str) -> dict:
-#     """Load tuned hyperparameters for one algorithm from JSON."""
-#     if json_path is None or not os.path.exists(json_path):
-#         return {}
-#     with open(json_path) as f:
-#         data = json.load(f)
-#     hp = data.get(algorithm, {}).get("params", {})
-#     print(f"  Loaded tuned HPs for {algorithm}: {hp}")
-#     return hp
-
 def load_hyperparams(json_path: str, algorithm: str) -> dict:
     """Load tuned hyperparameters for one algorithm from JSON."""
     if json_path is None:

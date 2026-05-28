@@ -14,6 +14,14 @@ wheeled_json_path = os.path.join('exp_sets', 'wheeled', 'wheeled_configs.json')
 env_key           = 'env10'   # change to 'env2' … 'env10' to simulate other environments
 
 
+def _scale_polygon_about_centroid(poly_pts, scale):
+    """Scale polygon vertices about their centroid by *scale* (< 1 shrinks)."""
+    pts      = np.asarray(poly_pts, dtype=np.float64)
+    centroid = np.mean(pts, axis=0)
+    scaled   = centroid + scale * (pts - centroid)
+    return [tuple(p) for p in scaled.tolist()]
+
+
 def load_env_from_json(json_path, key='env1'):
     """
     Load a single wheeled-robot environment config from the consolidated JSON.
@@ -27,6 +35,10 @@ def load_env_from_json(json_path, key='env1'):
         ROBOT_INIT_CONFIGS  ← list of (x, y, theta_rad),
         NUM_GOALS, GOAL_SIZE, GOAL_POSITIONS,
         NUM_OBSTACLES, OBSTACLES.
+
+    Obstacles in env2–env9 are shrunk to 30 % of their original area (matching
+    the scaling applied by src/utils.py read_wheeled_json) so the visualiser
+    shows the same maps that the trained policy sees.
     """
     with open(json_path, 'r') as f:
         raw = json.load(f)
@@ -39,6 +51,12 @@ def load_env_from_json(json_path, key='env1'):
     r   = cfg['robots']
     g   = cfg['goals']
     obs = cfg['obstacles']
+
+    # Apply the same 30 % obstacle shrink used during training for env2–env9.
+    if key.startswith('env'):
+        env_idx = int(key.replace('env', ''))
+        if 2 <= env_idx <= 9:
+            obs = [_scale_polygon_about_centroid(poly, 0.30) for poly in obs]
 
     return {
         'SCREEN_WIDTH':       float(cfg['screen']['width']),
@@ -177,7 +195,7 @@ class MultiWheeled(gym.Env):
         N = self.NUM_ROBOTS
         _obs_dims = {"full": 5*N+1, "no_pos": 3*N+1, "no_vis_hist": 5*N, "pos_only": 2*N}
         self.observation_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float64)
+            low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float32)
 
         self.action_space = gym.spaces.Box(
             low=-1.0, high=1.0, shape=(self.NUM_ROBOTS, 2), dtype=np.float32)
@@ -200,9 +218,9 @@ class MultiWheeled(gym.Env):
         elif self.obs_mode == "pos_only":
             obs = self.robots[:, :2].flatten().copy()
 
-        obs = obs.astype(np.float64)
+        obs = obs.astype(np.float32)
         if self.obs_noise_std > 0:
-            obs += np.random.normal(0, self.obs_noise_std, size=obs.shape)
+            obs += np.random.normal(0, self.obs_noise_std, size=obs.shape).astype(np.float32)
 
         info = {f'robot{i}': self.robots[i, :2].copy() for i in range(self.NUM_ROBOTS)}
         return obs, info

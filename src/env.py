@@ -550,7 +550,7 @@ class MultiWheeled(gym.Env):
         N = self.NUM_ROBOTS
         _obs_dims = {"full": 5*N+1, "no_pos": 3*N+1, "no_vis_hist": 5*N, "pos_only": 2*N}
         self.observation_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(_obs_dims[self.obs_mode],), dtype=np.float64)
+            low=-np.inf, high=np.inf, shape=(_obs_dims[self.obs_mode],), dtype=np.float32)
 
         self.action_space = gym.spaces.Box(
             low=-1.0, high=1.0, shape=(self.NUM_ROBOTS, 2), dtype=np.float32)
@@ -584,9 +584,9 @@ class MultiWheeled(gym.Env):
         elif self.obs_mode == "pos_only":
             obs = self.robots[:, :2].flatten().copy()
 
-        obs = obs.astype(np.float64)
+        obs = obs.astype(np.float32)
         if self.obs_noise_std > 0:
-            obs += np.random.normal(0, self.obs_noise_std, size=obs.shape)
+            obs += np.random.normal(0, self.obs_noise_std, size=obs.shape).astype(np.float32)
 
         info = {f'robot{i}': self.robots[i, :2].copy() for i in range(self.NUM_ROBOTS)}
         return obs, info
@@ -638,6 +638,16 @@ class MultiWheeled(gym.Env):
         if self.render_mode == "human":
             self._render_pygame()
         return self._get_obs()
+
+    # ── helpers ──────────────────────────────────────────────────────
+    def _nearest_unvisited_goal_dists(self, positions: np.ndarray) -> np.ndarray:
+        """Return the distance from each robot to its nearest unvisited goal (shape: N,)."""
+        unvisited = [gp for gp, vis in zip(self.goal_positions, self.goal_visited) if not vis]
+        if not unvisited:
+            return np.zeros(self.NUM_ROBOTS, dtype=np.float64)
+        target_arr = np.array(unvisited, dtype=np.float64)
+        dists = np.linalg.norm(positions[:, None] - target_arr[None, :], axis=2)
+        return np.min(dists, axis=1)
 
     # ── step ─────────────────────────────────────────────────────────
     def step(self, action):

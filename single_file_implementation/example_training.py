@@ -57,6 +57,13 @@ def binary_list_to_decimal(bin_list):
     """Convert a list of 0/1 values to its decimal integer equivalent."""
     return int("".join(str(int(b)) for b in bin_list), 2)
 
+def scale_polygon_about_centroid(poly_pts, scale):
+    """Scale polygon vertices about their centroid by *scale* (0 < scale ≤ 1 shrinks)."""
+    pts = np.asarray(poly_pts, dtype=np.float64)
+    centroid = np.mean(pts, axis=0)
+    scaled = centroid + scale * (pts - centroid)
+    return [tuple(p) for p in scaled.tolist()]
+
 def get_robot_polygon(x, y, theta, robot_length, robot_width):
     """Return a Shapely Polygon for the robot's rectangular footprint."""
     dx = robot_length / 2
@@ -107,6 +114,10 @@ def read_wheeled_json(json_path):
     with open(json_path, "r") as f:
         raw = json.load(f)
 
+    # Cluttered maps (env2-env9) benefit from reduced obstacle footprints
+    # so the policy can discover feasible paths during early training.
+    obstacle_scale_env2_9 = 0.30
+
     configs = {}
     for i, (key, cfg) in enumerate(sorted(raw.items(),
                                           key=lambda kv: int(kv[0].replace("env", ""))),
@@ -114,6 +125,11 @@ def read_wheeled_json(json_path):
         r   = cfg["robots"]
         g   = cfg["goals"]
         obs = cfg["obstacles"]
+        if key.startswith("env"):
+            env_idx = int(key.replace("env", ""))
+            if 2 <= env_idx <= 9:
+                obs = [scale_polygon_about_centroid(poly, obstacle_scale_env2_9)
+                       for poly in obs]
         env_params = {
             "SCREEN_WIDTH":      float(cfg["screen"]["width"]),
             "SCREEN_HEIGHT":     float(cfg["screen"]["height"]),
@@ -453,8 +469,8 @@ class MultiUAV(gym.Env):
             term_cond  = "visited_all"
             terminated = True
 
-        # Lose condition: Robots crashed into each other
-        if self.num_robots > 1 and compute_min_dist(self.robot_positions) < self.robot_size:
+        # Lose condition: Robots crashed into each other (only if not already done)
+        if not terminated and self.num_robots > 1 and compute_min_dist(self.robot_positions) < self.robot_size:
             if self.reward_ablation != "no_term":
                 rewards -= 5000     # Crash penalty
             term_cond  = "collision"
@@ -540,6 +556,7 @@ class MultiWheeled(gym.Env):
     def __init__(
         self,
         env_params,
+        num_robots=None,
         render_mode=None,
         wind_par=None,
         max_steps=1000,
@@ -576,8 +593,17 @@ class MultiWheeled(gym.Env):
 
         self.ROBOT_LENGTH = env_params['ROBOT_LENGTH']
         self.ROBOT_WIDTH  = env_params['ROBOT_WIDTH']
-        self.NUM_ROBOTS   = env_params['NUM_ROBOTS']
-        self.init_ROBOTS  = env_params['ROBOT_INIT_CONFIGS']
+
+        # num_robots override: the JSON stores the maximum (5); passing num_robots=N
+        # uses only the first N starting positions, supporting 2-/3-/4-/5-robot runs.
+        max_configs = len(env_params['ROBOT_INIT_CONFIGS'])
+        if num_robots is not None:
+            assert 1 <= num_robots <= max_configs, (
+                f"num_robots={num_robots} exceeds available configs ({max_configs})")
+            self.NUM_ROBOTS = int(num_robots)
+        else:
+            self.NUM_ROBOTS = int(env_params['NUM_ROBOTS'])
+        self.init_ROBOTS = env_params['ROBOT_INIT_CONFIGS'][:self.NUM_ROBOTS]
 
         self._nominal_max_speed   = float(env_params['MAX_SPEED'])
         self._nominal_max_steer   = float(np.radians(env_params['MAX_STEER']))
@@ -628,12 +654,20 @@ class MultiWheeled(gym.Env):
         N = self.NUM_ROBOTS
         _obs_dims = {"full": 5*N+1, "no_pos": 3*N+1, "no_vis_hist": 5*N, "pos_only": 2*N}
         self.observation_space = gym.spaces.Box(
-            low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float64)
+            low=-np.inf, high=np.inf, shape=(_obs_dims[obs_mode],), dtype=np.float32)
 
         self.action_space = gym.spaces.Box(
             low=-1.0, high=1.0, shape=(self.NUM_ROBOTS, 2), dtype=np.float32)
 
-        self.r_s, self.r_l, self.r_M = 10, 10000, 100000
+        # Reward scales tuned for dense learning in cluttered maps.
+        self.r_time         = 1.0
+        self.r_goal         = 300.0
+        self.r_success      = 2000.0
+        self.r_collision    = 1200.0
+        self.r_progress     = 8.0
+        self.r_action_coeff = 0.02
+        self.r_speed_coeff  = 0.01
+        self.r_path_coeff   = 0.02
         self.reset()
 
     def world_to_screen(self, x, y):
@@ -651,9 +685,9 @@ class MultiWheeled(gym.Env):
         elif self.obs_mode == "pos_only":
             obs = self.robots[:, :2].flatten().copy()
 
-        obs = obs.astype(np.float64)
+        obs = obs.astype(np.float32)
         if self.obs_noise_std > 0:
-            obs += np.random.normal(0, self.obs_noise_std, size=obs.shape)
+            obs += np.random.normal(0, self.obs_noise_std, size=obs.shape).astype(np.float32)
 
         info = {f'robot{i}': self.robots[i, :2].copy() for i in range(self.NUM_ROBOTS)}
         return obs, info
@@ -699,20 +733,28 @@ class MultiWheeled(gym.Env):
         self.robots            = np.array(self.robots, dtype=np.float64)
         self.total_path_length = 0.0
         self.prev_positions    = self.robots[:, :2].copy()
+        self.prev_nearest_goal_dists = self._nearest_unvisited_goal_dists(self.prev_positions)
 
         if self.render_mode == "human":
             self._render_pygame()
         return self._get_obs()
 
+    def _nearest_unvisited_goal_dists(self, positions: np.ndarray) -> np.ndarray:
+        """Return the distance from each robot to its nearest unvisited goal (shape: N,)."""
+        unvisited = [gp for gp, vis in zip(self.goal_positions, self.goal_visited) if not vis]
+        if not unvisited:
+            return np.zeros(self.NUM_ROBOTS, dtype=np.float64)
+        target_arr = np.array(unvisited, dtype=np.float64)
+        dists = np.linalg.norm(positions[:, None] - target_arr[None, :], axis=2)
+        return np.min(dists, axis=1)
+
     def step(self, action):
         terminated, truncated = False, False
         term_cond = ""
-        # Recompute dec_g fresh at the start of each step
         self.dec_g = binary_list_to_decimal(self.goal_visited)
-        reward = -(self.r_s / self.dec_g) if self.dec_g != 0 else -self.r_s
+        reward = -self.r_time
         self.t += 1
 
-        # Per-step stochastic wind
         wind_mag = self.wind_mag + np.random.normal(0, self.wind_noise_std)
         wind_dir = self.wind_dir + np.random.normal(0, self.wind_dir_noise_std)
         w_theta  = np.radians(wind_dir)
@@ -723,7 +765,7 @@ class MultiWheeled(gym.Env):
             a_noisy       = float(action[i][0]) + np.random.normal(0, self.action_noise_std)
             d_delta_noisy = float(action[i][1]) + np.random.normal(0, self.action_noise_std)
 
-            a = a_noisy * self.accel_scale
+            a       = a_noisy * self.accel_scale
             d_delta = d_delta_noisy
             x, y, theta, v, delta = self.robots[i]
 
@@ -738,8 +780,8 @@ class MultiWheeled(gym.Env):
             y      = np.clip(y, 0.0, self.world_height)
 
             if self.reward_ablation != "no_path":
-                reward -= 0.1 * (a_noisy ** 2 + d_delta_noisy ** 2)
-                reward -= 0.3 * abs(v)
+                reward -= self.r_action_coeff * (a_noisy ** 2 + d_delta_noisy ** 2)
+                reward -= self.r_speed_coeff * abs(v)
 
             robot_poly = get_robot_polygon(x, y, theta, self.ROBOT_LENGTH, self.ROBOT_WIDTH)
 
@@ -749,8 +791,8 @@ class MultiWheeled(gym.Env):
                     pt = robot_poly.intersection(obs_poly).representative_point()
                     self.collision_point = (pt.x, pt.y)
                     if self.reward_ablation != "no_term":
-                        reward = -self.r_M
-                    terminated = True                    
+                        reward = -self.r_collision
+                    terminated = True
                     self.collision_occurred = True
                     term_cond = "collision"
                     obs, info = self._get_obs()
@@ -767,7 +809,7 @@ class MultiWheeled(gym.Env):
                     pt = robot_poly.intersection(prev_poly).representative_point()
                     self.collision_point = (pt.x, pt.y)
                     if self.reward_ablation != "no_term":
-                        reward = -self.r_M
+                        reward = -self.r_collision
                     terminated = True
                     self.collision_occurred = True
                     term_cond = "collision"
@@ -783,32 +825,28 @@ class MultiWheeled(gym.Env):
 
             for j, (gx, gy) in enumerate(self.goal_positions):
                 if not self.goal_visited[j] and Point(gx, gy).buffer(self.goal_radius).intersects(robot_poly):
-                    reward += self.r_l
+                    reward += self.r_goal
                     self.goal_visited[j] = True
 
             self.robots[i] = [x, y, theta, v, delta]
             self.robot_paths[i].append((x, y))
 
-        # Path length
         current_positions   = self.robots[:, :2]
         step_path           = float(np.sum(np.linalg.norm(current_positions - self.prev_positions, axis=1)))
         self.total_path_length += step_path
         self.prev_positions     = current_positions.copy()
 
         if self.reward_ablation != "no_path":
-            reward -= 1.0 * step_path
-            reward -= 2.0
+            reward -= self.r_path_coeff * step_path
 
-        # Distance shaping to nearest unvisited goal (always active)
-        unvisited = [gp for gp, vis in zip(self.goal_positions, self.goal_visited) if not vis]
-        if unvisited:
-            target_arr = np.array(unvisited, dtype=np.float64)
-            dists_mat  = np.linalg.norm(current_positions[:, None] - target_arr[None, :], axis=2)
-            reward    += 0.5 * float(np.sum(np.exp(-np.min(dists_mat, axis=1))))
+        curr_nearest_dists = self._nearest_unvisited_goal_dists(current_positions)
+        progress = np.clip(self.prev_nearest_goal_dists - curr_nearest_dists, -5.0, 5.0)
+        reward  += self.r_progress * float(np.sum(progress))
+        self.prev_nearest_goal_dists = curr_nearest_dists
 
         if sum(self.goal_visited) >= len(self.goal_positions):
             if self.reward_ablation != "no_term":
-                reward += self.r_M
+                reward += self.r_success
             term_cond  = "all_goals"
             terminated = True
 

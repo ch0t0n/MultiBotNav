@@ -8,7 +8,7 @@ INSTRUCTIONS:
   3. After running, copy the printed IQM values into tab:obs_gap
      in writings/0_main.tex.
 
-Policy: CrossQ + full DR  (obs_mode="full", dr_mode="full")
+Policy: CrossQ main_default  (obs_mode="full", dr_mode="none", uncertainty_mode="full")
 Env:    variation 1, N=3 (MultiUAV)
 
 obs_mode="full" layout  (4N + 1):
@@ -33,7 +33,7 @@ from sb3_contrib import CrossQ
 # CONFIG
 # ────────────────────────────────────────────────────────────────
 TRAINED_MODEL_PATH = os.path.join(
-    'logs', 'dr_full',
+    'logs', 'main_default',
     'CrossQ_uav_N3_env1_seed42',
     'best_model', 'best_model.zip',
 )
@@ -286,7 +286,7 @@ def main():
         max_steps        = 1000,
         render_mode      = 'human' if RENDER_COPPELIA else None,
         obs_mode         = 'full',
-        dr_mode          = 'full',
+        dr_mode          = 'none',
         uncertainty_mode = 'full',
         reward_ablation  = 'full',
     )

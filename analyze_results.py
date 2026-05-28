@@ -77,6 +77,12 @@ def load_npz_ep_length_at_best(npz_path: str) -> float:
 
 
 def find_npz(log_root: str, version: str, tag: str) -> str | None:
+    # Wheeled main runs write NPZ to eval_logs_stage2/; prefer that if it exists.
+    if version.startswith("main_") and "_wheeled_" in tag:
+        stage2_path = os.path.join(
+            log_root, version, tag, "eval_logs_stage2", "evaluations.npz")
+        if os.path.exists(stage2_path):
+            return stage2_path
     path = os.path.join(log_root, version, tag, "eval_logs", "evaluations.npz")
     return path if os.path.exists(path) else None
 
@@ -124,8 +130,8 @@ def cvar_0_1(vals: np.ndarray) -> float:
     return float(np.mean(np.sort(vals)[:n]))
 
 
-def mannwhitney_pval(a: np.ndarray, b: np.ndarray) -> float:
-    """Two-sided Mann-Whitney U test (Wilcoxon rank-sum) for independent samples."""
+def ranksum_pval(a: np.ndarray, b: np.ndarray) -> float:
+    """Two-sided Wilcoxon rank-sum test for two independent samples."""
     if len(a) < 2 or len(b) < 2: return 1.0
     _, p = ranksums(a, b)
     return float(p)
@@ -146,7 +152,7 @@ def mark_best(df_summary: pd.DataFrame, value_col: str = "mean_reward",
         second_idx = sorted_grp.index[1]
         a = np.array(grp.loc[best_idx,   "raw_rewards"])
         b = np.array(grp.loc[second_idx, "raw_rewards"])
-        p = mannwhitney_pval(a, b)
+        p = ranksum_pval(a, b)
         df_summary.loc[best_idx, "is_best"] = (p < alpha)
 
     return df_summary
@@ -357,7 +363,8 @@ def process_ablation_reward(log_root: str, results_dir: str,
             vis = grp["success_pct"].mean()
             col = grp["collision_pct"].mean()
             mx  = grp["max_steps_pct"].mean()
-            rates = {"Visited All": vis, "Collision": col, "Max Steps": mx}
+            # "Success" covers both UAV ("visited_all") and wheeled ("all_goals")
+            rates = {"Success": vis, "Collision": col, "Max Steps": mx}
             dom   = max(rates, key=rates.get)
             term_cond_str = f"{dom} ({rates[dom]:.0f}\\%)"
 
@@ -635,7 +642,7 @@ def write_latex_combined_ablations_dr(reward_df: pd.DataFrame, obs_df: pd.DataFr
         mask = [False] * len(df)
         if len(sorted_idx) >= 2 and "raw_rewards" in df.columns:
             a, b = np.array(df["raw_rewards"].iloc[sorted_idx[0]]), np.array(df["raw_rewards"].iloc[sorted_idx[1]])
-            if mannwhitney_pval(a, b) < 0.05: mask[sorted_idx[0]] = True
+            if ranksum_pval(a, b) < 0.05: mask[sorted_idx[0]] = True
         elif sorted_idx.size >= 1:
             mask[sorted_idx[0]] = True
         return mask

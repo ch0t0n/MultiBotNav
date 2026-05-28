@@ -30,7 +30,7 @@ available in `single_file_implementation/`.
 ## Repository Layout
 
 ```
-learning_to_navigate/
+MultiBotNav/
 ├── src/
 │   ├── env.py                  ← MultiUAV + MultiWheeled gym envs
 │   ├── utils.py                ← seeding, geometry, config loaders
@@ -88,6 +88,12 @@ logs/main_default/CrossQ_uav_N3_env1_seed42/
     eval_logs/evaluations.npz
 ```
 
+> **Wheeled note:** The wheeled `main` experiment uses a two-stage curriculum.
+> Artifacts land in `best_model_stage2/best_model.zip` and
+> `eval_logs_stage2/evaluations.npz` rather than the standard paths above.
+> `evaluate.py` and `analyze_results.py` detect and prefer the stage-2 paths
+> automatically.
+
 Switching to the wheeled platform is a one-flag change (`--robot_type wheeled`).
 
 For the **full** reproduction pipeline — six algorithms, all env sets, three
@@ -111,9 +117,15 @@ an HPC cluster.
 | `train_single_env` worker   | `train.py` (with full CLI)                     |
 | `main()` multi-seed loop    | `slurm/step1_*.sh` (job arrays) + `INSTRUCTIONS.MD` local loops |
 
-The single-file versions contain the same logic flattened into one Python
-file so you can read the entire pipeline top-to-bottom in one place — useful
-for inspection or for running a quick smoke test on a desktop.
+The single-file versions contain the logic flattened into one Python file so
+you can read the entire pipeline top-to-bottom in one place — useful for
+inspection or for running a quick smoke test on a desktop.
+
+> **Reference for the wheeled robot:** `single_file_implementation/v2_wheeled.py`
+> reflects the production wheeled environment (modern reward shaping, two-stage
+> curriculum) and is a closer reference than `example_training.py`.
+> `example_training.py` covers the UAV environment and a simplified wheeled
+> variant for initial exploration.
 
 ---
 
@@ -139,10 +151,13 @@ counts, and merge commands.
 
 ## Simulation (CoppeliaSim, UAV only)
 
-Install CoppeliaSim from <https://coppeliarobotics.com/>, open the scene file
-`simulation/sim_envs/coppeliasim_scene_for_spraying_v3.ttt`, then follow the
-walkthrough in `simulation/new_env_sim_v3.ipynb`.  The Table 8 sim-to-real
-observation-gap experiment is produced by `sim2real.py`.
+Install CoppeliaSim from <https://coppeliarobotics.com/>.  The scene file
+(`simulation/sim_envs/coppeliasim_scene_for_spraying_v3.ttt`) and the
+companion notebook (`simulation/new_env_sim_v3.ipynb`) are **not included
+in this repository** — they are available as a separate download from the
+paper's supplementary materials.  The Table 4 (`tab:obs_gap`) sim-to-real
+observation-gap experiment is produced by `sim2real.py` (runs without
+CoppeliaSim when `RENDER_COPPELIA = False`).
 
 > **IMPORTANT:** Reopen the CoppeliaSim scene before each run.  Never save
 > changes to the scene file when closing.
@@ -151,4 +166,4 @@ observation-gap experiment is produced by `sim2real.py`.
 
 ## License
 
-See [`LICENSE`](LICENSE).
+A LICENSE file will be added before public release.

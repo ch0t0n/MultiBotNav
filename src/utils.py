@@ -3,12 +3,9 @@ import re
 import json
 import random
 import configparser
-import inspect
 import numpy as np
 import torch
 from shapely import Polygon
-from stable_baselines3 import A2C, PPO
-from sb3_contrib import TRPO, ARS, CrossQ, TQC
 
 
 # ================================
@@ -170,7 +167,7 @@ def read_wheeled_json(json_path):
             "ROBOT_LENGTH":      float(r["length"]),
             "ROBOT_WIDTH":       float(r["width"]),
             "MAX_SPEED":         float(r["max_speed"]),
-            "MAX_STEER":         float(r["max_steer"]),
+            "MAX_STEER":         float(r["max_steer"]),   # stored in DEGREES; MultiWheeled converts to radians
             "NUM_ROBOTS":        int(r["num_robots"]),
             # theta stored in degrees in JSON; MultiWheeled expects radians
             "ROBOT_INIT_CONFIGS": [
@@ -269,40 +266,6 @@ def load_experiment_dict_json(json_path):
 
 
 # ================================
-# Model loading
-# ================================
-
-_ALG_CLASSES = {
-    "A2C":    A2C,
-    "PPO":    PPO,
-    "TRPO":   TRPO,
-    "ARS":    ARS,
-    "CrossQ": CrossQ,
-    "TQC":    TQC,
-}
-
-
-def load_model(algorithm, model_path, device="cpu"):
-    """Load a saved SB3 / sb3-contrib model.
-
-    Parameters
-    ----------
-    algorithm : str
-        One of 'A2C', 'PPO', 'TRPO', 'ARS', 'CrossQ', 'TQC'.
-    model_path : str
-        Path to the saved zip (with or without the .zip extension).
-    device : str
-        Torch device ('cpu' or 'cuda').
-    """
-    if algorithm not in _ALG_CLASSES:
-        raise ValueError(
-            f"Unknown algorithm '{algorithm}'. Choose from "
-            f"{sorted(_ALG_CLASSES)}."
-        )
-    return _ALG_CLASSES[algorithm].load(model_path, device=device)
-
-
-# ================================
 # Misc helpers
 # ================================
 
@@ -318,12 +281,6 @@ def parse_bool(string):
     if s in _FALSE_STRINGS:
         return False
     raise ValueError(f"Cannot interpret {string!r} as a boolean.")
-
-
-def filter_args(args, model):
-    """Filter out arguments not present in a model's constructor."""
-    model_kwargs = inspect.getfullargspec(model).args
-    return {k: args[k] for k in args if k in model_kwargs}
 
 
 # ================================

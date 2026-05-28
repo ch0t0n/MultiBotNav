@@ -143,7 +143,19 @@ def find_model_path(log_root: str, algorithm: str, robot_type: str,
     else:
         version = f"{experiment}_{ablation or EXPERIMENT_DEFAULTS[experiment]}"
 
-    tag     = f"{algorithm}_{robot_type}_N{num_robots}_env{env_set}_seed{seed}"
+    tag = f"{algorithm}_{robot_type}_N{num_robots}_env{env_set}_seed{seed}"
+
+    # Wheeled main runs use a two-stage curriculum; the best model ends up in
+    # best_model_stage2/.  Fall back to best_model/ for all other cases.
+    if robot_type == "wheeled" and experiment == "main":
+        stage2_pattern = os.path.join(
+            log_root, version, tag, "best_model_stage2", "best_model.zip")
+        matches = sorted(glob.glob(stage2_pattern))
+        if matches:
+            path = matches[0]
+            print(f"  Using model (stage 2): {path}")
+            return os.path.splitext(path)[0]
+
     pattern = os.path.join(log_root, version, tag, "best_model", "best_model.zip")
     matches = sorted(glob.glob(pattern))
 

@@ -42,8 +42,10 @@ Follow **Part A** to run the experiments on a local machine (this may take a
 long time).  Follow **Part B** if you have access to an HPC cluster with
 SLURM.  A **single-file reference implementation** that bundles both
 environments, the helpers, the gym registration, and the training launcher
-is available at `single_file_implementation/example_training.py` — useful for quickly
-inspecting the full pipeline in one place.  Once policies are trained, see
+is available in `single_file_implementation/`.  `example_training.py` covers
+the UAV environment and a simplified wheeled variant; `v2_wheeled.py` is the
+closer reference for the production wheeled environment (modern reward shaping,
+two-stage curriculum).  Once policies are trained, see
 the **Simulation** section near the end of this document to run the trained
 UAV models inside CoppeliaSim.
 
@@ -775,16 +777,19 @@ First, download and install the CoppeliaSim robotics simulator from
 simulator, then follow the instructions in
 `simulation/new_env_sim_v3.ipynb`.
 
-For the sim-to-real **observation gap** experiment (Table 4, `tab:obs_gap`) on
-the UAV platform, run:
+For the sim-to-real **observation gap** experiment (Table 4 in `0_main.tex`,
+label `tab:obs_gap`) on the UAV platform, run:
 
 ```bash
 python sim2real.py
 ```
 
 This loads `logs/main_default/CrossQ_uav_N3_env1_seed42/best_model/best_model.zip`
-and runs 50 episodes per perturbation condition.  Edit `TRAINED_MODEL_PATH`
-inside the script if your model lives elsewhere.
+(the default model path in `sim2real.py`) and runs 50 episodes per perturbation
+condition.  Edit `TRAINED_MODEL_PATH` inside the script if your model lives
+elsewhere.  Set `RENDER_COPPELIA = False` (the default) to run without
+CoppeliaSim; set it to `True` only when the simulator is open and the scene
+file is loaded.
 
 > **IMPORTANT:** Reopen the CoppeliaSim scene each time before running the
 > simulation.  Never save changes to the scene file when closing.
