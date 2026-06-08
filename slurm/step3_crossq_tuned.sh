@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# Step 3 — Main results, TUNED hyperparameters, CrossQ (GPU)
+# Step 3 — Main results, TUNED hyperparameters, CrossQ (CPU)
 #
 # Identical grid to Step 1 but passes --hyperparams_json so
 # train.py loads the Optuna-tuned HPs produced by Step 2.
@@ -20,15 +20,9 @@
 #SBATCH --error=logs/slurm_errors/s3_crossq_tuned/%x_%A_%a.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
-#SBATCH --gpus-per-node=1
 #SBATCH --mem=8G
 #SBATCH --time=48:00:00
-#SBATCH --partition=ksu-gen-gpu.q
-#SBATCH --gres=gpu:1
 #SBATCH --export=NONE
-
-# --- COMMAND TO EXCLUDE RTX_PRO_6000 (not supported by torch==2.4.0)
-#SBATCH --exclude=warlock[41-42]
 
 ROBOT_TYPE=${1:-uav}
 
@@ -71,6 +65,6 @@ echo "S3-CrossQ-tuned | robot=$ROBOT_TYPE | alg=$algorithm | set=$set | N=$num_r
     --hyperparams_json $BEST_JSON \
     --verbose          1 \
     --log_steps        10000 \
-    --device           cuda
+    --device           cpu
 
 wait

@@ -25,8 +25,6 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --mem=4G
 #SBATCH --time=2:00:00
-#SBATCH --partition=ksu-gen-gpu.q
-#SBATCH --gres=gpu:1
 #SBATCH --export=NONE
 
 ROBOT_TYPE=${1:-uav}
@@ -75,6 +73,6 @@ echo "wind_sweep | robot_type=$ROBOT_TYPE | dr_mode=$dr_mode | wind=[$wind_min,$
     --eval_wind_max  $wind_max \
     --output_csv     $OUT_CSV \
     --n_eval_eps     50 \
-    --device         cuda
+    --device         cpu
 
 wait

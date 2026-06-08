@@ -21,9 +21,6 @@
 #SBATCH --time=48:00:00
 #SBATCH --export=NONE
 
-# --- COMMAND TO EXCLUDE RTX_PRO_6000 (not supported by torch==2.4.0)
-#SBATCH --exclude=warlock[41-42]
-
 ROBOT_TYPE=${1:-uav}
 
 algorithms=("A2C" "ARS" "PPO" "TQC" "TRPO")

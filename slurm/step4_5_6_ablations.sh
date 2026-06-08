@@ -28,15 +28,9 @@
 #SBATCH --error=logs/slurm_errors/s4_5_6_ablations/%x_%A_%a.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
-#SBATCH --gpus-per-node=1
 #SBATCH --mem=8G
 #SBATCH --time=24:00:00
-#SBATCH --partition=ksu-gen-gpu.q
-#SBATCH --gres=gpu:1
 #SBATCH --export=NONE
-
-# --- COMMAND TO EXCLUDE RTX_PRO_6000 (not supported by torch==2.4.0)
-#SBATCH --exclude=warlock[41-42]
 
 EXPERIMENT=${1:-ablation_reward}
 ROBOT_TYPE=${2:-uav}
@@ -84,7 +78,7 @@ if [ "$EXPERIMENT" == "ablation_reward" ]; then
         --ablation    $condition \
         --verbose     1 \
         --log_steps   10000 \
-        --device      cuda
+        --device      cpu
 
 # ============================================================
 # Step 5: Observation space
@@ -111,7 +105,7 @@ elif [ "$EXPERIMENT" == "ablation_obs" ]; then
         --ablation    $obs_mode \
         --verbose     1 \
         --log_steps   10000 \
-        --device      cuda
+        --device      cpu
 
 # ============================================================
 # Step 6: Physical uncertainty model
@@ -138,7 +132,7 @@ elif [ "$EXPERIMENT" == "ablation_uncertainty" ]; then
         --ablation    $uncertainty_mode \
         --verbose     1 \
         --log_steps   10000 \
-        --device      cuda
+        --device      cpu
 
 else
     echo "ERROR: Unknown experiment '$EXPERIMENT'."

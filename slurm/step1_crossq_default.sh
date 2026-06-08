@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# Step 1 — Main results, DEFAULT hyperparameters, CrossQ (GPU)
+# Step 1 — Main results, DEFAULT hyperparameters, CrossQ (CPU)
 #
 # Pass robot type as first argument (default: uav).
 #
@@ -25,15 +25,9 @@
 #SBATCH --error=logs/slurm_errors/s1_crossq_default/%x_%A_%a.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
-#SBATCH --gpus-per-node=1
 #SBATCH --mem=4G
 #SBATCH --time=48:00:00
-#SBATCH --partition=ksu-gen-gpu.q
-#SBATCH --gres=gpu:1
 #SBATCH --export=NONE
-
-# --- COMMAND TO EXCLUDE RTX_PRO_6000 (not supported by torch==2.4.0)
-#SBATCH --exclude=warlock[41-42]
 
 ROBOT_TYPE=${1:-uav}
 
@@ -73,6 +67,6 @@ echo "S1-CrossQ-default | robot=$ROBOT_TYPE | alg=$algorithm | set=$set | N=$num
     --experiment  main \
     --verbose     1 \
     --log_steps   10000 \
-    --device      cuda
+    --device      cpu
 
 wait

@@ -22,11 +22,8 @@
 #SBATCH --error=logs/slurm_errors/step8_sens/%x_%j.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
-#SBATCH --gpus-per-node=1
 #SBATCH --mem=8G
 #SBATCH --time=12:00:00
-#SBATCH --partition=ksu-gen-gpu.q
-#SBATCH --gres=gpu:1
 #SBATCH --export=NONE
 
 ROBOT_TYPE=${1:-uav}
@@ -36,12 +33,7 @@ algorithms=("A2C" "ARS" "PPO" "TRPO" "CrossQ" "TQC")
 index=$SLURM_ARRAY_TASK_ID
 algorithm=${algorithms[$index]}
 
-# Device logic
-if [[ "$algorithm" == "CrossQ" || "$algorithm" == "TQC" ]]; then
-    device="cuda"
-else
-    device="cpu"
-fi
+device="cpu"
 
 BEST_JSON="logs/best_hyperparams_${ROBOT_TYPE}.json"
 RESULTS_DIR="logs/results"

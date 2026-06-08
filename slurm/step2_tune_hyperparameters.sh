@@ -22,8 +22,8 @@
 #   1 → ARS    (cpu)
 #   2 → PPO    (cpu)
 #   3 → TRPO   (cpu)
-#   4 → CrossQ (cuda)
-#   5 → TQC    (cuda)
+#   4 → CrossQ (cpu)
+#   5 → TQC    (cpu)
 # ============================================================
 
 #SBATCH --array=0-299
@@ -32,15 +32,9 @@
 #SBATCH --error=logs/slurm_errors/s2_tune/%x_%A_%a.err
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
-#SBATCH --gpus-per-node=1
 #SBATCH --mem=8G
 #SBATCH --time=48:00:00
-#SBATCH --partition=ksu-gen-gpu.q
-#SBATCH --gres=gpu:1
 #SBATCH --export=NONE
-
-# --- COMMAND TO EXCLUDE RTX_PRO_6000 (not supported by torch==2.4.0)
-#SBATCH --exclude=warlock[41-42]
 
 ROBOT_TYPE=${1:-uav}
 
@@ -51,7 +45,7 @@ mkdir -p "$JOURNAL_DIR"
 
 # ── Algorithm table ────────────────────────────────────────────────
 algorithms=("A2C" "ARS" "PPO" "TRPO" "CrossQ" "TQC")
-devices=("cpu" "cpu" "cpu" "cpu" "cuda" "cuda")
+devices=("cpu" "cpu" "cpu" "cpu" "cpu" "cpu")
 
 # ── Decode index ───────────────────────────────────────────────────
 alg_idx=$(( SLURM_ARRAY_TASK_ID / 50 ))
