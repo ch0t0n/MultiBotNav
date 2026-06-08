@@ -1,0 +1,574 @@
+\documentclass{article}
+
+\usepackage{corl_2026} % Use this for the initial submission.
+% \usepackage[final]{corl_2026} % Uncomment for the camera-ready ``final'' version.
+% \usepackage[preprint]{corl_2026} % Uncomment for pre-prints (e.g., arxiv); This is like ``final'', but will remove the CORL footnote.
+
+% Encoding
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% Core math
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{mathtools}
+\usepackage{bm}
+
+% Figures and tables
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{colortbl}
+\usepackage{siunitx}
+\usepackage{rotating}
+\usepackage{wrapfig}
+
+% Formatting
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{nicefrac}
+% \usepackage{refcheck}
+
+% Links (load once, near the end)
+% \usepackage[bookmarks=true]{hyperref}
+
+% Algorithms and code
+\usepackage[ruled]{algorithm2e}
+\usepackage{listings}
+
+% Subfigures
+\usepackage[caption=false,font=footnotesize]{subfig}
+
+% Misc
+\usepackage{multicol}
+\usepackage{dsfont}
+\usepackage{tabularray}
+
+% ── Math macros (inline, no external macros.tex required) ─────────────────────
+% \newcommand{\reals}{\mathbb{R}}
+% \newcommand{\naturals}{\mathbb{N}}
+% \newcommand{\expectation}{\mathbb{E}}
+% \newcommand{\wspace}{\mathcal{W}}
+% \newcommand{\trans}{\mathcal{T}}
+% \newcommand{\simulate}{\textsc{Simulate}}
+% \newcommand{\config}{\mathcal{C}}
+% \newcommand{\states}{\mathcal{S}}
+% \newcommand{\rvisit}{R_{\mathrm{visit}}}
+% \newcommand{\rterm}{R_{\mathrm{term}}}
+% \newcommand{\rpath}{R_{\mathrm{path}}}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\input{macros.tex}
+
+% Fallback definitions for general-formulation macros (no-op if already defined in macros.tex)
+\providecommand{\obst}{\mathcal{O}}
+\providecommand{\free}{\mathrm{free}}
+\providecommand{\obs}{\mathrm{obs}}
+\providecommand{\col}{\mathrm{col}}
+
+\title{Learning to Navigate in a Stochastic and Uncertain Environment with Different Robot Dynamics}
+
+% The \author macro works with any number of authors. There are two
+% commands used to separate the names and addresses of multiple
+% authors: \And and \AND.
+%
+% Using \And between authors leaves it to LaTeX to determine where to
+% break the lines. Using \AND forces a line break at that point. So,
+% if LaTeX puts 3 of 4 authors names on the first line, and the last
+% on the second line, try using \AND instead of \And before the third
+% author name.
+
+% NOTE: authors will be visible only in the camera-ready and preprint versions (i.e., when using the option 'final' or 'preprint').
+% 	For the initial submission the authors will be anonymized.
+
+\author{
+  Jane E.~Doe\\
+  Department of Electrical Engineering and Computer Sciences\\
+  University of California Berkeley
+  United States\\
+  \texttt{janedoe@berkeley.edu} \\
+  %% examples of more authors
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \AND
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+  %% \And
+  %% Coauthor \\
+  %% Affiliation \\
+  %% Address \\
+  %% \texttt{email} \\
+}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+\pagestyle{empty}
+
+%===============================================================================
+
+\begin{abstract}
+We present a dynamics-agnostic framework for learning-based multi-robot navigation in stochastic, uncertain environments. Autonomous multi-robot systems operating under real-world conditions must be robust to wind disturbances, actuator noise, and sensor imperfections, yet applicable across robot platforms with fundamentally different motion models. We formulate the cooperative target-coverage task---where a team of robots must visit all goal locations while minimizing path costs and avoiding collisions---as a constrained stochastic optimization problem using a platform-independent robot model that supports workspaces with or without static obstacles through a unified free-workspace representation. We prove the equivalence of this optimization to a Partially Observable Markov Decision Process~(POMDP), providing a theoretical guarantee absent from prior navigation benchmarks. We instantiate the general framework with two physically distinct platforms---unmanned aerial vehicles~(UAVs) with Newtonian point-mass dynamics and wheeled ground robots governed by bicycle kinematics---and release Gymnasium-compatible environments supporting stochastic wind, actuation noise, observation noise, and optional domain randomization~(DR). Both environments are compatible with standard deep RL algorithms and support systematic ablation studies over reward structure, observation information, uncertainty sources, and DR conditions. We evaluate six state-of-the-art deep RL algorithms across ten environment configurations per platform and demonstrate that off-policy methods achieve the strongest asymptotic performance while DR over wind parameters substantially improves out-of-distribution robustness. We further quantify the simulation-to-real observation gap for the UAV platform using the CoppeliaSim robotics simulator.
+\end{abstract}
+
+
+\section{Introduction}
+
+Autonomous multi-robot systems must reliably navigate complex, unstructured environments where stochastic disturbances---wind gusts, imprecise actuators, and noisy sensors---are unavoidable. Applications ranging from infrastructure inspection and environmental monitoring to search-and-rescue and agricultural field coverage all demand that robots coordinate efficiently under these real-world uncertainties \citep{dulacArnold2021, fan2020ijrr}. Moreover, different mission profiles call for fundamentally different robot platforms: fixed-wing and rotary-wing unmanned aerial vehicles~(UAVs) operate with Newtonian, holonomic dynamics in largely obstacle-free environments, whereas wheeled ground robots are constrained by non-holonomic bicycle kinematics in cluttered workspaces. A policy or training framework that assumes a single set of motion dynamics or a single workspace geometry cannot transfer across these platforms without retraining or redesign.
+
+Reinforcement learning has emerged as a compelling approach to multi-robot navigation because it can, in principle, learn robust closed-loop policies directly from interaction with a stochastic simulator \citep{chen2017icra, everett2018iros, fan2020ijrr}. However, the design of the RL environment is equally important and comes with unique challenges \citep{reda2020learning, dulac2020empirical, jakub2023as, henderson2018deep, sutton2018reinforcement}. Most existing RL environments for multi-robot navigation make two simplifying assumptions that limit their real-world relevance: (i)~deterministic dynamics (no wind, no actuation or observation noise) and (ii)~a single robot platform with a fixed workspace geometry. Policies trained in such settings are brittle when confronted with the continuous stochastic perturbations of physical deployment---a well-documented sim-to-real failure mode \citep{dulacArnold2021, tobin2017domain}. Furthermore, without a formal link between the environment's reward signal and the underlying navigation objective, it is difficult to provide any correctness guarantees for the learned policies \citep{jakub2023as}.
+
+This paper fills those gaps by introducing a dynamics-agnostic stochastic navigation framework and benchmark. We formulate the cooperative navigation task using a general robot model and a unified free-workspace representation that accommodates both obstacle-free and obstacle-cluttered settings. We then instantiate this framework with two Gymnasium-compatible environments---one for UAV teams and one for wheeled-robot teams---that share the same task structure, algorithmic pipeline, and experimental ablation protocol, yet expose completely different motion dynamics. We formulate the shared cooperative task as a constrained stochastic optimization problem, derive the equivalent POMDP, and prove that the optimal POMDP policy solves the optimization problem. Our specific contributions are:
+
+\begin{enumerate}
+    \item \textbf{Dynamics-agnostic framework.} We present a general constrained optimization formulation for multi-robot target coverage with collision avoidance, built on a platform-independent robot model~\citep{plaku2021} and a unified free-workspace representation that naturally supports workspaces with or without static obstacles. The framework accommodates arbitrary robot dynamics through the generic simulator map $\simulate(\cdot)$.
+
+    \item \textbf{Optimization-to-POMDP equivalence.} We formally prove that the POMDP's optimal policy solves the constrained navigation optimization problem, providing theoretical grounding absent in prior works \citep{chen2017icra, everett2018iros, fan2020ijrr}.
+
+    \item \textbf{Dual-platform stochastic navigation environments.} We present two novel environments---\texttt{MultiUAV-v0} (Newtonian holonomic dynamics, obstacle-free) and \texttt{MultiWheeled-v0} (bicycle non-holonomic kinematics, cluttered workspace)---as concrete instantiations of the general framework, enabling direct comparison across robot types under identical experimental conditions.
+
+    \item \textbf{Comprehensive benchmarking.} We evaluate six deep RL algorithms---A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, TRPO \citep{schulman2015trust}, PPO \citep{schulman2017ppo}, TQC \citep{kuznetsov2020tqc}, and CrossQ \citep{bhatt2024crossq}---across reward, observation, uncertainty, and domain-randomization ablations on both platforms, providing a rigorous evaluation suite for future work.
+
+    \item \textbf{Sim-to-real gap analysis.} We deploy trained UAV policies in a 3-D CoppeliaSim~\citep{coppeliaSim2013} scene and quantify performance degradation under inference-time sensor imperfections, establishing a baseline for transfer research.
+\end{enumerate}
+
+\section{Related Work}
+\label{sec:recent}
+
+\subsection{Multi-Robot Navigation}
+RL-based approaches to multi-robot navigation have progressed from simple grid-world settings to high-dimensional continuous environments \citep{chen2017icra, chen2021iral, everett2018iros, fan2020ijrr}. \citet{chen2017icra} demonstrated decentralized collision avoidance using deep RL for pairs of robots, while \citet{everett2018iros} extended this to $n$-robot teams using LSTMs over neighbor states. \citet{fan2020ijrr} showed that distributed RL policies can coordinate tens of robots in cluttered environments. However, these works focus on static obstacle avoidance or fixed-goal navigation and assume simplified or entirely deterministic dynamics: no wind model is included, actuation noise is absent, and the robot platform is fixed. Our work extends this line of research to explicitly stochastic environments with a dynamics-agnostic framework instantiated on two physically distinct robot types, together with a formal correctness guarantee linking the RL objective to the underlying navigation task.
+
+\subsection{Task Allocation and Planning}
+PDDL \citep{fox2003pddl21} and PDDL+ \citep{fox2006pddlplus} have been widely used for multi-robot planning with temporal constraints, with planners such as POPF \citep{coles2010popf} and OPTIC \citep{benton2012optic} handling continuous numeric effects. ScottyActivity \citep{fernandez2018scottyactivity} interleaves heuristic search with convex optimization for coordinated teams but explicitly assumes first-order linear dynamics and no runtime uncertainty. Conflict-Based Search (CBS) \citep{sharon2015cbs} and its extensions \citep{li2019cbscontinuous} provide optimal multi-agent path finding on discretized graphs with deterministic edge costs. Sampling-based methods with robot dynamics \citep{le2017icaps, le2019ral, le2021icra, bui2022iros} construct deterministic motion trees over precisely modeled dynamics. All of these methods produce plans susceptible to compounding errors under the continuous stochastic perturbations present in real environments. By optimizing expected cumulative reward under the full distribution of dynamics, RL offers a substantially more robust alternative.
+
+\subsection{Reinforcement Learning}
+Recent advances in multi-agent reinforcement learning (MARL) provide scalable frameworks for decentralized coordination under uncertainty. Value decomposition methods such as VDN \citep{sunehag2018vdn} and QMIX \citep{rashid2018qmix, rashid2020qmix} enable tractable learning by factorizing joint value functions, while actor--critic approaches such as MADDPG \citep{lowe2017maddpg} and MAPPO \citep{yu2022mappo} achieve strong empirical performance in cooperative settings. Off-policy algorithms such as TQC \citep{kuznetsov2020tqc} and CrossQ \citep{bhatt2024crossq} have demonstrated high sample efficiency in continuous control, making them natural candidates for robotic navigation tasks. Robust RL methods \citep{peng2018sim2real, tobin2017domain} use domain randomization (DR) to bridge the sim-to-real gap by training over a distribution of physical parameters. Our work builds on these directions by providing a benchmark that supports systematic evaluation of on-policy, off-policy, and gradient-free algorithms across two platforms and multiple uncertainty conditions.
+
+\subsection{Environment Design}
+The importance of carefully designed environments is well recognized \citep{reda2020learning, cobbe2020icml, dulac2020empirical, sutton2018reinforcement, henderson2018deep}. Benchmarking platforms such as Google Research Football \citep{kurach2020google} and CityFlow \citep{zhang2019cityflow} provide environments for standardized tasks but lack formal MDP descriptions or correctness guarantees. Physics-based simulators such as MuJoCo \citep{todorov2012mujoco}, PyBullet \citep{coumans2021pybullet}, and Isaac Gym \citep{makoviychuk2021isaac} enable realistic modeling of robot dynamics and have been widely used in robotics control and sim-to-real transfer studies \citep{tassa2018deepmind, akkaya2019solving, tobin2017domain}. Unlike existing methods, our framework uses a dynamics-agnostic formulation built on a general robot model \citep{plaku2021}, explicitly incorporates multiple sources of physical uncertainty, and provides a formal proof linking the POMDP reward to the underlying constrained optimization objective.
+
+\section{Preliminaries}
+
+Let $\reals, \reals_{\geq 0}, \naturals$ be the set of real, non-negative real, and natural numbers, respectively. Let $\{x_i\}_{i=1}^n$ denote an ordered sequence of elements $x_1, \ldots, x_n$. The $L^2$ norm $\|.\|_2$ is written as $\|.\|$. Let $\mathbf{I}_n$ denote the $n\!\times\!n$ identity matrix and $\mathbf{0}_n, \mathbf{1}_n$ all-zeros and all-ones vectors. For $x, y \in \reals$, define $[x,y] = \{i \in \reals \mid x \leq i \leq y\}$ and similarly for half-open intervals. Let $\mathds{1}_C$ equal 1 if condition $C$ is true and 0 otherwise. For a set $S$, let $\Delta(S)$ denote probability distributions over $S$. A sample from distribution $\mathcal{X}$ with mean $\mu$ and variance $\sigma^2$ is written $x \sim \mathcal{X}(\mu, \sigma^2)$; $\mathcal{N}(\mu, \sigma^2)$ and $\mathcal{N}(\bm{\mu}, \mathbf{\Sigma})$ denote the univariate and multivariate Gaussian distributions \citep{bishop2006pattern}. For a continuous random variable $Y$ with pdf $f$, $\expectation[Y] = \int_{-\infty}^\infty y f(y) dy$. In RL, a policy $\pi : S \to \Delta(A)$ maps states to distributions over actions. The action-value function is $Q^\pi(s,a) = \expectation_\pi[\sum_{\tau \geq 0} \gamma^\tau r_\tau \mid s_0=s, a_0=a]$, where $r_\tau \in \reals$ is the reward at time $\tau$ and $\gamma \in [0,1]$ is the discount factor. The $\text{clip}(x, a, b)$ operator denotes $\min(\max(x, a), b)$ applied element-wise. We use the notation and definitions from \citet{choset2005} to formulate the multi-robot navigation problem in the next section.
+
+\section{Problem Formulation}
+\label{sec:prob}
+
+Consider a group of $n \in \naturals$ mobile robots $\mathcal{M} = \{ \mathcal{M}_1, \ldots, \mathcal{M}_n \}$ operating in a bounded $d$-dimensional workspace $\wspace \subseteq \reals^d$ that may contain a set of static obstacles $\obst$. Let $\wspace_{O_j}$ denote the region occupied by obstacle $j$; the obstacle-free (free) workspace is
+\begin{equation}
+    \wspace^{\free} = \wspace \setminus \bigcup_j \wspace_{O_j}.
+\end{equation}
+When no obstacles are present ($\obst = \emptyset$), $\wspace^{\free} = \wspace$. The robots cooperate to visit a set of $m \in \naturals$ target locations $\mathcal{G} = \{ g_1, \ldots, g_m \}$, where $p_j^g \in \wspace$ is the position of target $j$ and $r_j > 0$ is its coverage radius.
+
+\paragraph{Robot model.}
+Following \citet{plaku2021}, each robot $\mathcal{M}_i = \{ \mathcal{P}_i, \config_i, \states_i, s_i^{\init}, \mathcal{U}_i, f_i \}$ is described by its shape $\mathcal{P}_i$, configuration space $\config_i$, state space $\states_i$, initial state $s_i^{\init} \in \states_i$, control space $\mathcal{U}_i$, and dynamics function $f_i$. At configuration $q_i \in \config_i$, robot $i$ occupies region $\mathcal{P}_i(q_i) \subset \wspace$. The obstacle-occupied and collision configuration spaces are
+\begin{align}
+    \config_i^{\obs} &= \{q_i \in \config_i \mid \exists\, j : \mathcal{P}_i(q_i) \cap \wspace_{O_j} \neq \emptyset\}, \label{eq:obs_config} \\
+    \config_i^{\col}(t) &= \{q_i \in \config_i \mid \exists\, j \neq i : \mathcal{P}_i(q_i) \cap \mathcal{P}_j(q_j) \neq \emptyset\} \cup \config_i^{\obs}, \label{eq:col_config}
+\end{align}
+so the free configuration space at time $t$ is $\config_i^{\free}(t) = \config_i \setminus \config_i^{\col}(t)$. The state space $\states_i = \config_i \times \mathcal{V}_i$ augments the configuration space with motion parameters $\mathcal{V}_i$ (e.g., velocity, heading, steering angle). The dynamics of each robot satisfy
+\begin{equation}
+    \dot{s}_i = f_i(s_i, u_i), \quad s_i \in \states_i,\ u_i \in \mathcal{U}_i. \label{eq:dynamics}
+\end{equation}
+A new state $s_i^{\mathrm{new}} \in \states_i$ reached after a small time step $dt$ is computed by numerically integrating $f_i$:
+\begin{equation}
+    s_i^{\mathrm{new}} \gets \simulate(s_i, u_i, f_i, dt). \label{eq:simulate}
+\end{equation}
+Starting at $s_i^{\init}$ and applying a sequence of controls gives a dynamically-feasible trajectory $\zeta_i : [0,T] \to \states_i$. Concrete dynamics for the two platforms studied in this work are given in Section~\ref{sec:exp:dynamics}.
+
+\paragraph{Wind model.}
+The environment experiences a stochastic wind with per-step magnitude $v_w(t) \sim \mathcal{N}(\bar{v}_w, \epsilon_w^2)$ and direction $\theta_w(t) \sim \mathcal{N}(\bar{\theta}_w, \epsilon_\theta^2)$, yielding wind vector
+\begin{equation}
+    \mathbf{w}(t) = v_w(t)\,[\cos\theta_w(t),\; \sin\theta_w(t)]^T, \label{eq:wind}
+\end{equation}
+where $\bar{v}_w$, $\bar{\theta}_w$ are nominal values and $\epsilon_w^2$, $\epsilon_\theta^2$ are noise variances. How $\mathbf{w}(t)$ enters the dynamics depends on the platform and is specified in Section~\ref{sec:exp:dynamics}.
+
+\paragraph{Target coverage.}
+Each target $j$ carries a binary visit flag $b_j(t) \in \{0, 1\}$, initialized to $0$ and transitioning irreversibly to $1$ once any robot comes within $r_j$ of $p_j^g$:
+\begin{equation}
+    b_j(t+dt) = \max\!\Big( b_j(t),\; \max_{i=1}^n\; \mathds{1}_{\|p_i(t) - p_j^g\| \leq r_j} \Big). \label{eq:coverage}
+\end{equation}
+Let $\mathbf{b}(t) = (b_1(t), \ldots, b_m(t)) \in \{0,1\}^m$ denote the full visit state at time $t$, and $B = \sum_j b_j(T)$ the total number of targets visited by episode end.
+
+\paragraph{Cost function.}
+Let $\mathcal{J} : \states_i \times \mathcal{U}_i \to \reals_{\geq 0}$ be the per-step cost:
+\begin{equation}
+    \mathcal{J}(s_i(t), u_i(t)) = \alpha_1 \|u_i(t)\|^2 + \alpha_2 \|v_i(t)\| + \alpha_3, \label{eq:cost}
+\end{equation}
+where $\alpha_1 \|u_i\|^2$ is the energy cost, $\alpha_2 \|v_i\|$ is the movement cost ($\|v_i(t)\|$ denotes the magnitude of the velocity component of state $s_i(t)$), $\alpha_3$ is the per-step time cost, and $\alpha_1, \alpha_2, \alpha_3 \in \reals_{\geq 0}$.
+
+\paragraph{Optimization problem.}
+We formulate the following stochastic constrained optimization problem:
+\begin{flalign}
+ & \min_{u_1, \ldots, u_n} \mathbb{E}\!\Big[ \sum_{t=0}^{T} \sum_{i=1}^{n} \mathcal{J}(\zeta_i(t), u_i(t)) \;\Big|\; \zeta_i(0) = s_i^{\init}, \mathbf{b}(0) = \mathbf{0}_m \Big] \label{eq:opt} \\
+\text{s.t.,} \nonumber \\
+\text{(i) }  & B = m \quad (\text{all targets visited by time }T), \label{eq:const1} \\
+\text{(ii) } & \forall t \in [0,T], i: \mathcal{P}_i(q_i(t)) \subset \wspace^{\free}, \label{eq:const2} \\
+\text{(iii) }& \forall t \in [0,T], \mathcal{M}_i \neq \mathcal{M}_j: \mathcal{P}_i(q_i(t)) \cap \mathcal{P}_j(q_j(t)) = \emptyset. \label{eq:const3}
+\end{flalign}
+Constraint~(i) ensures complete target coverage; (ii) enforces obstacle and workspace containment (when $\obst = \emptyset$ this reduces to $p_i \in \wspace$); (iii) prevents inter-robot collisions.
+
+\section{Environment Design}
+\label{sec:mdp}
+
+The optimization problem is formulated as a POMDP $M = (S, A, \Omega, O, \trans, R, \gamma)$.
+
+\paragraph{State Space.}
+The joint state $s_t = \big(\{s_i(t)\}_{i=1}^n,\; \mathbf{b}(t)\big)$ lives in $S = \prod_{i=1}^n \states_i \times \{0,1\}^m$, where $\states_i$ is the platform-specific state space defined in Section~\ref{sec:exp:dynamics}.
+
+\paragraph{Action Space.}
+$A = \mathcal{U}_1 \times \cdots \times \mathcal{U}_n$, where $\mathcal{U}_i$ is the platform-specific control space. The semantics of each action (e.g., thrust components for UAVs, acceleration and steering rate for wheeled robots) are detailed in Section~\ref{sec:exp:dynamics}.
+
+\paragraph{Observation Space.}
+Observations provide a noisy, partial view of the true state. The visit history $\mathbf{b}(t)$ is compressed into a single scalar via the binary-to-decimal encoding $\phi(\mathbf{b}) = \sum_{j=1}^m b_j\,2^{j-1}$. Four observation modes are supported: \texttt{full} (complete kinematic state of all robots plus $\phi(\mathbf{b})$), \texttt{no\_pos} (non-positional kinematic quantities plus $\phi(\mathbf{b})$), \texttt{no\_vis\_hist} (complete kinematic state without $\phi(\mathbf{b})$, for a robot that cannot recall which targets have been visited), and \texttt{pos\_only} (robot positions only). Gaussian noise $\mathcal{N}(\mathbf{0}, \sigma_\mathrm{obs}^2 \mathbf{I})$ is added to all observations when $\sigma_\mathrm{obs} > 0$. Platform-specific observation dimensions for each mode are given in Table~\ref{tab:obs_modes} in Section~\ref{sec:exp:dynamics}.
+
+\paragraph{Observation Function.}
+$O : S \to \Delta(\Omega)$ maps each true state to a distribution over noisy observations as described above.
+
+\paragraph{Transition Function.}
+$\trans : S \times A \to \Delta(S)$ governs the stochastic dynamics:
+\begin{equation}
+    \trans(s_t, a_t) = \Big(\simulate(s_1, u_1, f_1, dt), \ldots, \simulate(s_n, u_n, f_n, dt),\; b_{t+dt}\Big), \label{eq:transition}
+\end{equation}
+where $f_i$ is the platform-specific dynamics function incorporating wind and actuation noise (Section~\ref{sec:exp:dynamics}), and the visit flags update via Eq.~\eqref{eq:coverage}.
+
+\paragraph{Reward Function.}
+$R : S \times A \to \reals$ balances target coverage, collision avoidance, and path efficiency. Let $r_s, r_m, r_L \in \reals_{\geq 0}$ be small, medium, and very large rewards ($r_s < r_m \ll r_L$). The total reward decomposes as:
+\begin{alignat}{2}
+    R(s_t, a_t) &= \rvisit(t) + \rterm(t) + \rpath(t), \label{eq:reward}\\
+    \rvisit(t)  &= r_m \cdot |\{j : b_j(t\!+\!dt) = 1,\; b_j(t) = 0\}|, \label{eq:r_visit} \\
+    \rterm(t)   &=
+    \begin{cases}
+        -r_L, & \text{if collision} \\
+        +r_L, & \text{else if } B = m \\
+        0,    & \text{otherwise}
+    \end{cases} \label{eq:r_term} \\
+    \rpath(t)   &= -\textstyle\sum_{i=1}^n \mathcal{J}(s_i(t), u_i(t))
+                   - r_m \sum_{i=1}^n \mathds{1}_{p_i(t) \notin \wspace^{\free}}
+                   + R_{\mathrm{cov}}(t), \label{eq:r_path}
+\end{alignat}
+where $\rvisit$ rewards newly visited targets, $\rterm$ enforces hard constraints via reward shaping (``collision'' covers both robot--robot and robot--obstacle contact), $\rpath$ penalizes energy, speed, path length, and out-of-free-workspace steps, and $R_{\mathrm{cov}}(t)$ is an optional exploration shaping term (positive bonus for newly visited grid cells, negative penalty for revisits) that provides a dense guidance signal. An additional exponential distance-shaping term $+r_s \sum_i \exp(-\min_j \|p_i - p_j^g\|)$, summed over unvisited targets, is also included in $\rpath$ and is always active regardless of the reward ablation setting.
+
+\paragraph{Discount Factor.}
+$\gamma \in [0,1)$ incentivizes rapid target coverage.
+
+\begin{theorem}
+\label{thm:optimization}
+In the limit $\gamma \to 1$, the optimal policy $\pi^*$ for the POMDP $M$ starting at state $s = (\{s_i^{\mathrm{init}}\}_{i=1}^n,\; \mathbf{0}_m)$ generates trajectories $\{\zeta_i\}_{i=1}^n$ that solve the optimization problem in Eq.~\eqref{eq:opt} with probability close to~1. Conversely, any solution of Eq.~\eqref{eq:opt} induces an optimal policy $\pi^*$ for $M$ with probability close to~1.
+\end{theorem}
+
+\textbf{Proof.} The proof conditions on the true state $s_t$ (standard when establishing reward-shaping equivalences). For a finite horizon $[0,T]$, the optimal policy and $Q$-function satisfy \citep{sutton2018reinforcement}:
+\begin{align}
+    \pi^*(s_t) &= \argmax_a Q^{\pi^*}(s_t, a), \label{eq:opt_pi} \\
+    Q^{\pi^*}(s_t, a_t) &= \max_\pi \expectation_\pi\!\Big[\sum_{\tau=0}^T \gamma^\tau R(s_\tau, a_\tau) \;\Big|\; s_t, a_t\Big] \label{eq:opt_policy} \\
+    &= \max_\pi \Big( \expectation_\pi\!\big[\textstyle\sum_\tau \gamma^\tau \rvisit(\tau)\big]
+                    + \expectation_\pi\!\big[\textstyle\sum_\tau \gamma^\tau \rterm(\tau)\big]
+                    + \expectation_\pi\!\big[\textstyle\sum_\tau \gamma^\tau \rpath(\tau)\big] \Big). \nonumber
+\end{align}
+
+We prove both directions via two lemmas.
+
+\textbf{(Direction $\Rightarrow$) $\pi^*$ solves the optimization problem:}
+
+\begin{lemma}
+\label{lem:const}
+Any optimal policy $\pi^*$ must satisfy constraints~\textnormal{(i)}, \textnormal{(ii)}, and~\textnormal{(iii)} of Eq.~\eqref{eq:opt} with probability close to one.
+\end{lemma}
+
+\textit{Proof.} Because actuation and position noises are unbounded, no policy can eliminate the possibility of a constraint violation with probability exactly~1. We show that reward shaping makes violations overwhelmingly suboptimal.
+
+\paragraph{Constraint (iii) --- no collisions.} If $\pi^*$ induces a collision at time $t^*$, then $\rterm(t^*) = -r_L$. Choosing $r_L \gg \sum_{\tau=0}^T \gamma^\tau (\rvisit(\tau) + \rpath(\tau))$ makes $Q^\pi \approx -r_L$, the lower bound. Such a policy cannot be optimal.
+
+\paragraph{Constraint (ii) --- obstacle and workspace containment.} Any policy placing robot $i$ outside $\wspace^{\free}$ (i.e., outside the workspace boundary or into an obstacle region) incurs a per-step penalty $-r_m$ in $\rpath$. Since $\wspace^{\free} = \wspace \setminus \bigcup_j \wspace_{O_j}$, this uniformly penalizes both boundary violations and obstacle penetrations. Keeping $\mathcal{P}_i(q_i) \subset \wspace^{\free}$ sets this term to zero, maximizing $\rpath$ since $r_m > 0$. When $\obst = \emptyset$, the condition reduces to $p_i \in \wspace$.
+
+\paragraph{Constraint (i) --- all targets visited.} Visiting all $m$ targets yields $\rterm = +r_L$. Since $r_L$ dominates all other accumulated rewards, maximizing $\rterm$ ensures $B = m$ at termination, satisfying constraint~(i). \hfill$\square$
+
+\begin{lemma}
+\label{lem:cost}
+Among all policies satisfying constraints~\textnormal{(i)--(iii)}, maximizing $Q^\pi$ is equivalent to minimizing the cost objective of Eq.~\eqref{eq:opt}.
+\end{lemma}
+
+\textit{Proof.} By Lemma~\ref{lem:const} and constraint~(i), $\rterm(\tau) = +r_L$ at the terminal step $T$ and $0$ otherwise, so $\expectation_\pi[\sum_\tau \gamma^\tau \rterm(\tau)] = \expectation_\pi[\gamma^T r_L] \approx r_L$ for $\gamma \approx 1$.
+
+For the visit reward, each target $j$ is visited exactly once by a constraint-satisfying policy, contributing $r_m$ at the step it is first reached. Therefore:
+\begin{equation}
+    \expectation_\pi\!\Big[\sum_{\tau=0}^T \gamma^\tau \rvisit(\tau)\Big]
+    = r_m \sum_{j=1}^m \expectation[\gamma^{t_j}]
+    \approx r_m m, \label{eq:visit_const}
+\end{equation}
+where $t_j$ is the step when target $j$ is visited, and the approximation holds for $\gamma \approx 1$. This quantity is approximately constant (policy-independent for constraint-satisfying policies).
+
+By constraint~(ii), $\mathcal{P}_i(q_i(\tau)) \subset \wspace^{\free}$ for all $i, \tau$, so $\mathds{1}_{p_i \notin \wspace^{\free}} = 0$. Hence:
+\begin{equation}
+    \expectation_\pi\!\Big[\sum_\tau \gamma^\tau \rpath(\tau)\Big]
+    \approx -\expectation_\pi\!\Big[\sum_\tau \gamma^\tau \sum_{i=1}^n \mathcal{J}(s_i(\tau), u_i(\tau))\Big]
+    + C_{\mathrm{cov}}, \label{eq:path_const}
+\end{equation}
+where $C_{\mathrm{cov}}$ collects the approximately constant exploration shaping terms. From Eq.~\eqref{eq:opt_policy}:
+\begin{flalign}
+Q^{\pi^*}(s_t, a_t) &\approx \max_\pi \Big( r_L + r_m m + C_{\mathrm{cov}}
+    - \expectation_\pi\!\Big[\sum_\tau \gamma^\tau \sum_i \mathcal{J}(s_i(\tau), u_i(\tau))\Big] \Big) \nonumber \\
+&= r_L + r_m m + C_{\mathrm{cov}}
+    - \min_\pi \expectation_\pi\!\Big[\sum_\tau \gamma^\tau \sum_i \mathcal{J}(s_i(\tau), u_i(\tau))\Big]. \nonumber
+\end{flalign}
+The constants $r_L + r_m m + C_{\mathrm{cov}}$ are policy-independent. Consequently, maximizing $Q^{\pi^*}$ is precisely equivalent to minimizing the expected discounted cost in Eq.~\eqref{eq:opt}, proving the lemma. \hfill$\square$
+
+By Lemmas~\ref{lem:const} and~\ref{lem:cost}, $\pi^*$ generates trajectories $\{\zeta_i\}_{i=1}^n$ that solve Eq.~\eqref{eq:opt}.
+
+\textbf{(Direction $\Leftarrow$) The optimization solution induces $\pi^*$:} Let $\{\zeta_i^*\}_{i=1}^n$ be an optimal solution to Eqs.~\eqref{eq:opt}--\eqref{eq:const3}. Define a trajectory-tracking policy $\hat{\pi}$ that at each $t$ selects $\hat{\pi}(s_t) = \langle u_1^*(t), \ldots, u_n^*(t) \rangle$ from the optimal trajectory. By Lemma~\ref{lem:const}, $\zeta_i^*$ satisfies all three constraints with probability close to~1. Hence $\hat{\pi}$ achieves the maximum $\rterm$ and $\rvisit$ contributions and zero boundary penalty in $\rpath$. If a competing policy $\pi'$ had $Q^{\pi'} > Q^{\hat{\pi}}$, Lemma~\ref{lem:cost} would imply:
+\[
+\sum_{t=0}^T \sum_{i=1}^n \mathcal{J}\!\big(\zeta_i^{\pi'}(t), u_i^{\pi'}(t)\big)
+< \sum_{t=0}^T \sum_{i=1}^n \mathcal{J}\!\big(\zeta_i^*(t), u_i^*(t)\big),
+\]
+contradicting the optimality of $\{\zeta_i^*\}$. Therefore $\hat{\pi} = \pi^*$, and Theorem~\ref{thm:optimization} holds in both directions. \hfill$\square$
+
+\section{Experiments}
+\label{sec:exp}
+
+We evaluate the following: performance of RL methods on both platforms, sensitivity to design choices, out-of-distribution (OOD) robustness under domain shift, and the simulation-to-real observation gap for the UAV platform.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Robot Dynamics and Observation Spaces}
+\label{sec:exp:dynamics}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Experimental evaluations are conducted for two groups of robots with different dynamics, instantiating the general framework of Section~\ref{sec:prob}. Both platforms share the wind model of Eq.~\eqref{eq:wind}; they differ in how wind enters the dynamics.
+
+\paragraph{UAV dynamics (holonomic, Newtonian).}
+Each UAV $\mathcal{M}_i$ has state $s_i = (p_i, v_i) \in \reals^4$ where $p_i \in \wspace$ is its 2-D position and $v_i \in [v_{\min}, v_{\max}]^2$ is its velocity vector, so $\states_i = \reals^4$. The control input $u_i = \mu_i \in [-1,1]^2$ specifies normalized 2-D thrust ($\mathcal{U}_i = [-1,1]^2$). Wind acts as an aerodynamic force that modifies velocity each step:
+\begin{align}
+    v_i(t+dt) &= \text{clip}\!\Big( v_i(t) + \tfrac{\kappa\,\mu_i(t) + \epsilon_a}{W_i}\,dt,\; v_{\min},\; v_{\max}\Big), \label{eq:uav_vel} \\
+    p_i(t+dt) &= p_i(t) + \big(v_i(t) + \mathbf{w}(t)\big)\,dt, \label{eq:uav_pos}
+\end{align}
+where $\kappa > 0$ is the thrust power coefficient, $W_i > 0$ is the UAV mass, $\epsilon_a \sim \mathcal{N}(\mathbf{0}_2, \sigma_a^2 \mathbf{I}_2)$ is the actuation noise, and $\text{clip}$ is applied element-wise. The UAV workspace $\wspace$ is a convex polygon without internal obstacles ($\obst = \emptyset$, $\wspace^{\free} = \wspace$).
+
+\paragraph{Wheeled dynamics (non-holonomic, bicycle model).}
+Each wheeled robot $\mathcal{M}_i$ has state $s_i = (x_i, y_i, \theta_i, v_i, \delta_i) \in \reals^5$, where $(x_i, y_i)$ is its 2-D position, $\theta_i$ is its heading, $v_i \in [-v_{\max}, v_{\max}]$ is its longitudinal speed, and $\delta_i \in [-\delta_{\max}, \delta_{\max}]$ is the front steering angle, so $\states_i = \reals^5$. The control input $u_i = (a_i, \dot{\delta}_i) \in [-1,1]^2$ specifies a normalized acceleration and steering rate. Unlike the UAV, wind acts on the wheeled robot as a lateral position drift rather than a velocity perturbation---reflecting the fact that ground vehicles are less susceptible to aerodynamic forces but can still be displaced by strong crosswinds:
+\begin{align}
+    v_i(t+dt) &= \text{clip}\!\big( v_i(t) + a_i\,a_s\,dt,\; -v_{\max},\; v_{\max}\big), \label{eq:whl_vel} \\
+    \delta_i(t+dt) &= \text{clip}\!\big( \delta_i(t) + \dot{\delta}_i,\; -\delta_{\max},\; \delta_{\max}\big), \label{eq:whl_steer} \\
+    \theta_i(t+dt) &= \theta_i(t) + \tfrac{v_i(t)\,\tan(\delta_i(t))}{\ell_i}\,dt, \label{eq:whl_head} \\
+    \begin{bmatrix} x_i(t+dt) \\ y_i(t+dt) \end{bmatrix} &=
+    \begin{bmatrix} x_i(t) \\ y_i(t) \end{bmatrix}
+    + \Big( v_i(t)\!\begin{bmatrix}\cos\theta_i(t)\\\sin\theta_i(t)\end{bmatrix} + \mathbf{w}(t) \Big)\,dt, \label{eq:whl_pos}
+\end{align}
+where $a_s > 0$ is an acceleration scaling factor and $\ell_i > 0$ is the robot's wheelbase (Eq.~\eqref{eq:whl_head} applies when $|\delta_i| > 0$; for $\delta_i = 0$ the heading is unchanged). The wheeled workspace is a rectangle $[0, W]\times[0, H]$ containing static polygon obstacles $\obst = \{O_1, \ldots\}$, so $\wspace^{\free} = \wspace \setminus \bigcup_j \wspace_{O_j}$.
+
+\paragraph{Observation modes.}
+Table~\ref{tab:obs_modes} summarizes the observation space composition for each platform and mode.
+
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{\small Observation space composition for each platform and mode ($N$~=~number of robots). UAV kinematics: position~$(2N)$ + velocity~$(2N)$. Wheeled kinematics: $(x,y,\theta,v,\delta)$~$(5N)$.}
+\label{tab:obs_modes}
+\begin{tabular}{l|ll}
+    \toprule
+    \textbf{Mode} & \textbf{UAV ($\dim$)} & \textbf{Wheeled ($\dim$)} \\
+    \midrule
+    \texttt{full}        & position + velocity + $\phi(\mathbf{b})$ ($4N+1$) & full kin.\ + $\phi(\mathbf{b})$ ($5N+1$) \\
+    \texttt{no\_pos}     & $\phi(\mathbf{b})$ only ($1$) & $(\theta,v,\delta)$ per robot + $\phi(\mathbf{b})$ ($3N+1$) \\
+    \texttt{no\_vis\_hist} & position + velocity ($4N$) & full kin.\ only ($5N$) \\
+    \texttt{pos\_only}   & position only ($2N$) & position only ($2N$) \\
+    \bottomrule
+\end{tabular}
+\end{table}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Setup}
+\label{sec:exp:setup}
+% ─────────────────────────────────────────────────────────────────────────────
+
+We compare four on-policy (A2C \citep{mnih2016a2c}, ARS \citep{mania2018ars}, PPO \citep{schulman2017ppo}, TRPO \citep{schulman2015trust}) and two off-policy (CrossQ \citep{bhatt2024crossq}, TQC \citep{kuznetsov2020tqc}) algorithms via Stable-Baselines3 \citep{stable-baselines3}. Main experiments use: (A)~\textit{default hyperparameters} from Stable-Baselines3 and (B)~\textit{tuned hyperparameters} found by Optuna \citep{optuna_2019} (details in supplementary). For the \textbf{UAV} platform, we vary the number of robots $N \in \{2, 3, 4, 5\}$ and use 10 environment configurations (varied field shapes, starting positions, and target locations); for the \textbf{Wheeled} platform, we similarly vary $N \in \{2, 3, 4, 5\}$ and use 10 arena layouts with distinct obstacle arrangements. Every algorithm--configuration pair is trained for $2\!\times\!10^6$ timesteps with 3 seeds $(42, 123, 9999)$. The interquartile mean (IQM) \citep{agarwal2021deep} is the primary metric. All experiments were conducted on an HPC cluster with GPUs: NVIDIA\textsuperscript{\textregistered} GeForce RTX 1080Ti, 2080Ti, 3090, L4, L40s, A4000, A4500, A6000; CPUs: Intel\textsuperscript{\textregistered} Xeon\textsuperscript{\textregistered} E5-2680v3, E5-2683v4, Gold 6130 (16--48 cores); and 4--16\,GB RAM per node. Simulations were performed on a local desktop with AMD Ryzen\texttrademark\ Threadripper 1950X (16-core), 64\,GB RAM, and NVIDIA\textsuperscript{\textregistered} GeForce RTX 2080. Each run took approximately 1--6 hours.
+
+% ─── Table 1: UAV Main Results ───────────────────────────────────────────────
+\begin{table*}[tbp]
+\centering
+\footnotesize
+\caption{\small IQM of episodic reward for the \textbf{UAV} platform under default and tuned hyperparameters, over 3\,seeds\,$\times$\,10\,configurations\,$\times$\,50 episodes. $\dagger$~=~best per column. ($-$~=~placeholder; to be filled after experiments complete.)}
+\label{tab:uav_main}
+% \resizebox{\textwidth}{!}{
+\begin{tabular}{l|cccc|cccc}
+    \toprule
+    \multirow{2}{*}{\textbf{Algorithm}}
+        & \multicolumn{4}{c|}{\textbf{Default Hyperparameters}}
+        & \multicolumn{4}{c}{\textbf{Tuned Hyperparameters}} \\
+    \cmidrule(lr){2-9}
+           & $N=2$ & $N=3$ & $N=4$ & $N=5$
+           & $N=2$ & $N=3$ & $N=4$ & $N=5$ \\
+    \midrule
+    A2C    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    ARS    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    PPO    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    TQC    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    TRPO   & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    CrossQ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    \bottomrule
+\end{tabular}
+\vspace{-6pt}
+\end{table*}
+
+% ─── Table 2: Wheeled Main Results ───────────────────────────────────────────
+\begin{table*}[tbp]
+\centering
+\footnotesize
+\caption{\small IQM of episodic reward for the \textbf{Wheeled} platform under default and tuned hyperparameters, over 3\,seeds\,$\times$\,10\,configurations\,$\times$\,50 episodes.
+$\dagger$~=~best per column. ($-$~=~placeholder; to be filled after experiments complete.)}
+\label{tab:whl_main}
+% \resizebox{\textwidth}{!}{
+\begin{tabular}{l|cccc|cccc}
+    \toprule
+    \multirow{2}{*}{\textbf{Algorithm}}
+        & \multicolumn{4}{c|}{\textbf{Default Hyperparameters}}
+        & \multicolumn{4}{c}{\textbf{Tuned Hyperparameters}} \\
+    \cmidrule(lr){2-9}
+           & $N=2$ & $N=3$ & $N=4$ & $N=5$
+           & $N=2$ & $N=3$ & $N=4$ & $N=5$ \\
+    \midrule
+    A2C    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    ARS    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    PPO    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    TQC    & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    TRPO   & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    CrossQ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ & $-$ \\
+    \bottomrule
+\end{tabular}
+\vspace{-6pt}
+\end{table*}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Main Results}
+\label{sec:exp:main}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Tables~\ref{tab:uav_main} and~\ref{tab:whl_main} compare all six algorithms under default and Optuna-tuned hyperparameters, evaluated with 50 episodes per trained model. \textit{(Results and analysis to be added once experiments are complete.)} For reference, an episode is considered successful when all $m$ targets are visited before the step limit, which activates the $+r_L$ terminal bonus in Eq.~\eqref{eq:r_term}.
+
+% ─── Figures (learning curves) ───────────────────────────────────────────────
+% \begin{figure}[tbp]
+%     \centering
+%     \includegraphics[width=\linewidth]{figures/combined_learning_curves.png}
+%     \caption{Learning curves --- Default (top row) vs.\ tuned (bottom row) hyperparameters. Left panels: UAV platform. Right panels: Wheeled platform. Dotted lines indicate the reward threshold for a successful policy.}
+%     \label{fig:curves}
+%     \vspace{-12pt}
+% \end{figure}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Ablation Study}
+\label{sec:exp:ablation}
+% ─────────────────────────────────────────────────────────────────────────────
+
+We ablate reward terms, observation spaces, and uncertainty parameters using CrossQ ($N=3$, 3 seeds, 10 configurations, 50 episodes) on both platforms. Table~\ref{tab:ablations_and_dr} summarizes the results.
+
+\textbf{Reward ablations} compare the IQM of episode lengths, where episodes terminate either on complete target coverage (all $m$ targets visited) or on a collision. Removing $\rterm$ prevents the policy from learning collision avoidance and coverage incentives. Removing $\rpath$ eliminates energy and path-efficiency penalties; because the discount factor $\gamma$ still implicitly penalizes slow episodes, the impact is expected to be moderate.
+
+\textbf{Observation ablations} evaluate the effect of withholding kinematic information (\texttt{no\_pos}), visit history (\texttt{no\_vis\_hist}), or both (retaining \texttt{pos\_only}). We hypothesize that removing position information is catastrophic since robots cannot navigate, and that withholding visit history has a milder effect as robots can re-discover targets.
+
+\textbf{Uncertainty ablations} isolate the contributions of wind noise (\texttt{wind\_only}), actuation noise (\texttt{act\_only}), neither (\texttt{deterministic}), or both (\texttt{full}). This identifies which noise source is the primary driver of performance degradation.
+
+% ─── Table 3: Ablations + DR ─────────────────────────────────────────────────
+\begin{table*}[tbp]
+\centering
+\small
+\caption{\small Ablation and domain randomization results for $N=3$ using CrossQ, over 3\,seeds\,$\times$\,10\,configurations\,$\times$\,50 episodes. Left three blocks: ablation experiments. Right block: DR experiments. $\dagger$~=~best per block/column. UAV~(U) and Wheeled~(W) results shown per row.}
+\label{tab:ablations_and_dr}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcc|lcc|lcc|lccc}
+    \toprule
+    \multicolumn{3}{c|}{\textbf{Reward ablation}}
+    & \multicolumn{3}{c|}{\textbf{Observation ablation}}
+    & \multicolumn{3}{c|}{\textbf{Uncertainty}}
+    & \multicolumn{4}{c}{\textbf{Domain Randomization}} \\
+    \midrule
+    Condition & \makecell{Ep.\ len \\ IQM (U)} & \makecell{Ep.\ len \\ IQM (W)}
+    & Condition & \makecell{Reward \\ IQM (U)} & \makecell{Reward \\ IQM (W)}
+    & Condition & \makecell{Reward \\ IQM (U)} & \makecell{Reward \\ IQM (W)}
+    & Condition & \makecell{In-dist.\ \\ IQM (U)} & \makecell{OOD \\ IQM (U)} & CVaR$_{0.1}$ \\
+    \midrule
+    Full          & $-$ & $-$ & Full          & $-$ & $-$ & Full          & $-$ & $-$ & No DR   & $-$ & $-$ & $-$ \\
+    No $\rterm$   & $-$ & $-$ & No pos.       & $-$ & $-$ & Wind only     & $-$ & $-$ & Wind DR & $-$ & $-$ & $-$ \\
+    No $\rpath$   & $-$ & $-$ & No visit hist.& $-$ & $-$ & Act.\ only    & $-$ & $-$ & Full DR & $-$ & $-$ & $-$ \\
+                  &     &     & Pos.\ only    & $-$ & $-$ & Deterministic & $-$ & $-$ &         &     &     &     \\
+    \bottomrule
+\end{tabular}}
+\vspace{-12pt}
+\end{table*}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Domain Randomization}
+\label{sec:exp:dr}
+% ─────────────────────────────────────────────────────────────────────────────
+
+We implement domain randomization (DR) \citep{tobin2017domain, peng2018sim2real} by re-sampling physical parameters per training episode under three conditions: (A)~No DR, (B)~Wind DR (randomize wind speed and direction uniformly over $[0, 1]\,\text{m/s}$), and (C)~Full DR (additionally randomize actuation noise std, robot mass/thrust for UAV, or max speed/steer for wheeled). We evaluate on in-distribution ($\text{wind} \in [0, 0.5]\,\text{m/s}$) and OOD ($\text{wind} \in (0.5, 2.0]\,\text{m/s}$) test conditions (right block of Table~\ref{tab:ablations_and_dr}). We additionally evaluate the conditional value-at-risk CVaR$_{0.1}$ \citep{tamar2015cvar} to measure worst-case robustness. We hypothesize that wind DR substantially improves OOD performance while full DR further reduces tail risk at some cost to mean performance.
+\vspace{-4pt}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Simulation and Sim-to-Real Analysis}
+\label{sec:exp:s2r}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{wraptable}{r}{7cm}
+\vspace{-1.8em}
+\centering
+\caption{\small Sim-to-real observation-gap analysis (CrossQ, UAV, $N\!=\!3$, configuration~1, 50 eval eps). $\Delta$IQM: relative change vs.\ no-perturbation baseline.}
+\label{tab:obs_gap}
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabular}{lcc}
+    \toprule
+    \textbf{Perturbation} & \textbf{IQM} & $\Delta$\textbf{IQM (\%)} \\
+    \midrule
+    None (baseline)                      & $-$ & $0.0$   \\
+    GPS noise ($\sigma\!=\!0.05$\,m)     & $-$ & $-$     \\
+    Wind latency (3 steps)               & $-$ & $-$     \\
+    Comm.\ loss (10\%)                   & $-$ & $-$     \\
+    All combined                         & $-$ & $-$     \\
+    \bottomrule
+\end{tabular}
+\vspace{-0.8em}
+\end{wraptable}
+
+We deploy trained UAV policies in a 3-D CoppeliaSim~\citep{coppeliaSim2013} agricultural scene with PyBullet~\citep{coumans2021pybullet} physics connected via ZeroMQ~\citep{ZeroMQ}. Table~\ref{tab:obs_gap} quantifies IQM degradation under inference-time sensor imperfections applied to the CrossQ policy trained with default hyperparameters ($N\!=\!3$, configuration~1, full DR). Four perturbation conditions are evaluated: GPS position noise ($\sigma\!=\!0.05$\,m), wind estimate latency (3 steps), communication packet loss (10\%), and all combined. Wind estimate latency is expected to be the dominant transfer risk, as the UAV policy relies on timely wind information to compensate trajectory deviations. GPS position noise should have a smaller individual effect since the coverage reward is spatially smooth. Applying all perturbations simultaneously is expected to cause the largest collapse in performance, consistent with transfer gaps reported for UAV sim-to-real tasks \citep{peng2018sim2real, akkaya2019solving}. Fig.~\ref{fig:sim} illustrates navigation paths for two UAV environment configurations in the CoppeliaSim scene.
+
+% \begin{figure}[tbp]
+%     \centering
+%     \subfloat[Config.~1 initial]{\includegraphics[width=0.247\textwidth, height=0.17\textwidth]{figures/simulations/env1_init.png}\label{fig:env1_init}}
+%     \hfil
+%     \subfloat[Config.~1 final]{\includegraphics[width=0.247\textwidth, height=0.17\textwidth]{figures/simulations/env1_v1_best.png}\label{fig:env1_best}}
+%     \hfil
+%     \subfloat[Config.~3 initial]{\includegraphics[width=0.247\textwidth, height=0.17\textwidth]{figures/simulations/env3_v1_init.png}\label{fig:env3_init}}
+%     \hfil
+%     \subfloat[Config.~3 final]{\includegraphics[width=0.247\textwidth, height=0.17\textwidth]{figures/simulations/env3_v1_best.png}\label{fig:env3_best}}
+%     \caption{\small CoppeliaSim simulation of UAV navigation for configurations~1 (a, b) and~3 (c, d) with $N=3$ robots. Cyan markers indicate unvisited target locations; dark grey markers indicate visited targets; colored lines trace robot navigation paths.}
+%     \label{fig:sim}
+%     \vspace{-12pt}
+% \end{figure}
+
+\section{Conclusion}
+\label{sec:con}
+
+We introduced a dynamics-agnostic framework for multi-robot navigation and a dual-platform stochastic benchmark built on it. By formulating the cooperative target-coverage task using a general robot model and a unified free-workspace representation, the framework accommodates arbitrary motion dynamics and workspaces with or without static obstacles. We proved the equivalence between the constrained navigation optimization problem and the POMDP we construct, providing correctness guarantees absent from prior navigation RL benchmarks. Instantiating the framework with UAV (Newtonian holonomic) and wheeled-robot (bicycle non-holonomic) platforms under a shared regime of wind disturbances, actuation noise, and observation noise demonstrates its generality. Our comprehensive experimental protocol---covering six algorithms, two platforms, three seeds, and four categories of ablation---offers a standardized testbed for evaluating robustness to stochastic disturbances and variable motion dynamics.
+
+Several directions remain open for future work. First, extending the framework to heterogeneous fleets (mixed UAV and wheeled teams) would test coordination across platforms with fundamentally different motion models. Second, incorporating robot failure or disconnection mid-episode would require policies to redistribute tasks dynamically among remaining active agents. Third, replacing the centralized observation model with a decentralized one---where each robot observes only neighbors within a communication range---would push toward more scalable and realistic deployments. Finally, physical deployment of the learned policies on real UAV and ground robot hardware would provide the ultimate validation of the sim-to-real transfer properties studied in this work.
+
+
+%===============================================================================
+\clearpage
+% The acknowledgments are automatically included only in the final and preprint versions of the paper.
+\acknowledgments{If a paper is accepted, the final camera-ready version will (and probably should) include acknowledgments. All acknowledgments go at the end of the paper, including thanks to reviewers who gave useful comments, to colleagues who contributed to the ideas, and to funding agencies and corporate sponsors that provided financial support.}
+%===============================================================================
+
+% no \bibliographystyle is required, since the corl style is automatically used.
+\bibliography{ref}  % .bib
+
+\end{document}

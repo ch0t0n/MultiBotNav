@@ -1,0 +1,1546 @@
+@inproceedings{tang2025,
+author = {Tang, Chen and Abbatematteo, Ben and Hu, Jiaheng and Chandra, Rohan and Mart\'{\i}n-Mart\'{\i}n, Roberto and Stone, Peter},
+title = {Deep reinforcement learning for robotics: a survey of real-world successes},
+year = {2025},
+isbn = {978-1-57735-897-8},
+publisher = {AAAI Press},
+url = {https://doi.org/10.1609/aaai.v39i27.35095},
+doi = {10.1609/aaai.v39i27.35095},
+abstract = {Reinforcement learning (RL), particularly its combination with deep neural networks referred to as deep RL (DRL), has shown tremendous promise across a wide range of applications, suggesting its potential for enabling the development of sophisticated robotic behaviors. Robotics problems, however, pose fundamental difficulties for the application of RL, stemming from the complexity and cost of interacting with the physical world. This overview article provides a concise summary of our recently released survey paper "Deep Reinforcement Learning for Robotics: A Survey of Real-World Successes", which has been accepted for publication in Annual Review of Control, Robotics, and Autonomous Systems. The survey paper provides a modern survey of DRL for robotics, with a particular focus on evaluating the real-world successes achieved with DRL in realizing several key robotic competencies. Our analysis aims to identify the key factors underlying those exciting successes, reveal underexplored areas, and provide an overall characterization of the status of DRL in robotics. We highlight several important avenues for future work, emphasizing the need for stable and sample-efficient real-world RL paradigms, holistic approaches for discovering and integrating various competencies to tackle complex long-horizon, open-world tasks, and principled development and evaluation procedures. The survey is designed to offer insights for both RL practitioners and roboticists toward harnessing RL's power to create generally capable real-world robotic systems. Full Version — https://www.arxiv.org/abs/2408.03539},
+booktitle = {Proceedings of the Thirty-Ninth AAAI Conference on Artificial Intelligence and Thirty-Seventh Conference on Innovative Applications of Artificial Intelligence and Fifteenth Symposium on Educational Advances in Artificial Intelligence},
+articleno = {3197},
+numpages = {5},
+series = {AAAI'25/IAAI'25/EAAI'25}
+}
+
+@ARTICLE{han2022iral,
+  author={Han, Ruihua and Chen, Shengduo and Wang, Shuaijun and Zhang, Zeqing and Gao, Rui and Hao, Qi and Pan, Jia},
+  journal={IEEE Robotics and Automation Letters}, 
+  title={Reinforcement Learned Distributed Multi-Robot Navigation With Reciprocal Velocity Obstacle Shaped Rewards}, 
+  year={2022},
+  volume={7},
+  number={3},
+  pages={5896-5903},
+  keywords={Collision avoidance;Robots;Robot sensing systems;Robot kinematics;Navigation;Sensors;Feature extraction;Collision avoidance;reinforcement learning;multi-robot systems},
+  doi={10.1109/LRA.2022.3161699}}
+
+@ARTICLE{long2017iral,
+  author={Long, Pinxin and Liu, Wenxi and Pan, Jia},
+  journal={IEEE Robotics and Automation Letters}, 
+  title={Deep-Learned Collision Avoidance Policy for Distributed Multiagent Navigation}, 
+  year={2017},
+  volume={2},
+  number={2},
+  pages={656-663},
+  keywords={Collision avoidance;Robot sensing systems;Navigation;Noise measurement;Velocity measurement;Collision avoidance;deep learning;distributed robot systems;multi-agent navigation},
+  doi={10.1109/LRA.2017.2651371}}
+
+@article{fan2020ijrr,
+author = {Tingxiang Fan and Pinxin Long and Wenxi Liu and Jia Pan},
+title ={Distributed multi-robot collision avoidance via deep reinforcement learning for navigation in complex scenarios},
+journal = {The International Journal of Robotics Research},
+volume = {39},
+number = {7},
+pages = {856-892},
+year = {2020},
+doi = {10.1177/0278364920916531},
+URL = {https://doi.org/10.1177/0278364920916531},
+eprint = {https://doi.org/10.1177/0278364920916531},
+abstract = { Developing a safe and efficient collision-avoidance policy for multiple robots is challenging in the decentralized scenarios where each robot generates its paths with limited observation of other robots’ states and intentions. Prior distributed multi-robot collision-avoidance systems often require frequent inter-robot communication or agent-level features to plan a local collision-free action, which is not robust and computationally prohibitive. In addition, the performance of these methods is not comparable with their centralized counterparts in practice. In this article, we present a decentralized sensor-level collision-avoidance policy for multi-robot systems, which shows promising results in practical applications. In particular, our policy directly maps raw sensor measurements to an agent’s steering commands in terms of the movement velocity. As a first step toward reducing the performance gap between decentralized and centralized methods, we present a multi-scenario multi-stage training framework to learn an optimal policy. The policy is trained over a large number of robots in rich, complex environments simultaneously using a policy-gradient-based reinforcement-learning algorithm. The learning algorithm is also integrated into a hybrid control framework to further improve the policy’s robustness and effectiveness. We validate the learned sensor-level collision-3avoidance policy in a variety of simulated and real-world scenarios with thorough performance evaluations for large-scale multi-robot systems. The generalization of the learned policy is verified in a set of unseen scenarios including the navigation of a group of heterogeneous robots and a large-scale scenario with 100 robots. Although the policy is trained using simulation data only, we have successfully deployed it on physical robots with shapes and dynamics characteristics that are different from the simulated agents, in order to demonstrate the controller’s robustness against the simulation-to-real modeling error. Finally, we show that the collision-avoidance policy learned from multi-robot navigation tasks provides an excellent solution for safe and effective autonomous navigation for a single robot working in a dense real human crowd. Our learned policy enables a robot to make effective progress in a crowd without getting stuck. More importantly, the policy has been successfully deployed on different types of physical robot platforms without tedious parameter tuning. Videos are available at https://sites.google.com/view/hybridmrca.}
+}
+
+@inproceedings{everett2018iros,
+author = {Everett, Michael and Chen, Yu Fan and How, Jonathan P.},
+title = {Motion Planning Among Dynamic, Decision-Making Agents with Deep Reinforcement Learning},
+year = {2018},
+publisher = {IEEE Press},
+url = {https://doi.org/10.1109/IROS.2018.8593871},
+doi = {10.1109/IROS.2018.8593871},
+abstract = {Robots that navigate among pedestrians use collision avoidance algorithms to enable safe and efficient operation. Recent works present deep reinforcement learning as a framework to model the complex interactions and cooperation. However, they are implemented using key assumptions about other agents' behavior that deviate from reality as the number of agents in the environment increases. This work extends our previous approach to develop an algorithm that learns collision avoidance among a variety of types of dynamic agents without assuming they follow any particular behavior rules. This work also introduces a strategy using LSTM that enables the algorithm to use observations of an arbitrary number of other agents, instead of previous methods that have a fixed observation size. The proposed algorithm outperforms our previous approach in simulation as the number of agents increases, and the algorithm is demonstrated on a fully autonomous robotic vehicle traveling at human walking speed.},
+booktitle = {2018 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+pages = {3052–3059},
+numpages = {8},
+location = {Madrid, Spain}
+}
+
+@article{ibarz2021ijrr,
+author = {Julian Ibarz and Jie Tan and Chelsea Finn and Mrinal Kalakrishnan and Peter Pastor and Sergey Levine},
+title ={How to train your robot with deep reinforcement learning: lessons we have learned},
+journal = {The International Journal of Robotics Research},
+volume = {40},
+number = {4-5},
+pages = {698-721},
+year = {2021},
+doi = {10.1177/0278364920987859},
+URL = {https://doi.org/10.1177/0278364920987859},
+eprint = {https://doi.org/10.1177/0278364920987859},
+abstract = { Deep reinforcement learning (RL) has emerged as a promising approach for autonomously acquiring complex behaviors from low-level sensor observations. Although a large portion of deep RL research has focused on applications in video games and simulated control, which does not connect with the constraints of learning in real environments, deep RL has also demonstrated promise in enabling physical robots to learn complex skills in the real world. At the same time, real-world robotics provides an appealing domain for evaluating such algorithms, as it connects directly to how humans learn: as an embodied agent in the real world. Learning to perceive and move in the real world presents numerous challenges, some of which are easier to address than others, and some of which are often not considered in RL research that focuses only on simulated domains. In this review article, we present a number of case studies involving robotic deep RL. Building off of these case studies, we discuss commonly perceived challenges in deep RL and how they have been addressed in these works. We also provide an overview of other outstanding challenges, many of which are unique to the real-world robotics setting and are not often the focus of mainstream RL research. Our goal is to provide a resource both for roboticists and machine learning researchers who are interested in furthering the progress of deep RL in the real world.}}
+
+@article{Sunderhauf2018ijrr,
+author = {Niko Sünderhauf and Oliver Brock and Walter Scheirer and Raia Hadsell and Dieter Fox and Jürgen Leitner and Ben Upcroft and Pieter Abbeel and Wolfram Burgard and Michael Milford and Peter Corke},
+title ={The limits and potentials of deep learning for robotics},
+journal = {The International Journal of Robotics Research},
+volume = {37},
+number = {4-5},
+pages = {405-420},
+year = {2018},
+doi = {10.1177/0278364918770733},
+URL = {https://doi.org/10.1177/0278364918770733},
+eprint = {https://doi.org/10.1177/0278364918770733},
+abstract = { The application of deep learning in robotics leads to very specific problems and research questions that are typically not addressed by the computer vision and machine learning communities. In this paper we discuss a number of robotics-specific learning, reasoning, and embodiment challenges for deep learning. We explain the need for better evaluation metrics, highlight the importance and unique challenges for deep robotic learning in simulation, and explore the spectrum between purely data-driven and model-driven approaches. We hope this paper provides a motivating overview of important research directions to overcome the current limitations, and helps to fulfill the promising potentials of deep learning in robotics.}
+}
+
+@INPROCEEDINGS{chen2017icra,
+  author={Chen, Yu Fan and Liu, Miao and Everett, Michael and How, Jonathan P.},
+  booktitle={2017 IEEE International Conference on Robotics and Automation (ICRA)}, 
+  title={Decentralized non-communicating multiagent collision avoidance with deep reinforcement learning}, 
+  year={2017},
+  volume={},
+  number={},
+  pages={285-292},
+  keywords={Collision avoidance;Learning (artificial intelligence);Kinematics;Decision making;Real-time systems;Navigation;Planning},
+  doi={10.1109/ICRA.2017.7989037}}
+
+@INPROCEEDINGS{le2021,
+  author={Le, Duong and Plaku, Erion},
+  booktitle={2021 IEEE International Conference on Robotics and Automation (ICRA)}, 
+  title={Multi-Robot Motion Planning with Unlabeled Goals for Mobile Robots with Differential Constraints}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={7950-7956},
+  keywords={Costs;Automation;Conferences;Dynamics;Planning;Trajectory;Nonlinear dynamical systems;Motion and Path Planning;Nonholonomic Motion Planning;Multi-Robot Systems},
+  doi={10.1109/ICRA48506.2021.9560883}}
+
+
+@book{tao2011,
+    author    = {Terence Tao},
+    title     = {An Introduction to Measure Theory},
+    year      = {2011},
+    publisher = {American Mathematical Society},
+    address   = {Providence, RI}
+}
+
+@INPROCEEDINGS{plaku2021,
+  author={Le, Duong and Plaku, Erion},
+  booktitle={2021 IEEE International Conference on Robotics and Automation (ICRA)}, 
+  title={Multi-Robot Motion Planning with Unlabeled Goals for Mobile Robots with Differential Constraints}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={7950-7956},
+  keywords={Costs;Automation;Conferences;Dynamics;Planning;Trajectory;Nonlinear dynamical systems;Motion and Path Planning;Nonholonomic Motion Planning;Multi-Robot Systems},
+  doi={10.1109/ICRA48506.2021.9560883}}
+
+
+@book{Royden2010RealAnalysis,
+  author    = {Halsey L. Royden and Patrick M. Fitzpatrick},
+  title     = {Real Analysis},
+  edition   = {4th},
+  year      = {2010},
+  publisher = {Prentice Hall},
+  address   = {Upper Saddle River, NJ},
+  isbn      = {9780131437470},
+  note      = {Fourth edition, revised reprint},
+}
+
+@MISC{coumans2021pybullet,
+author =   {Erwin Coumans and Yunfei Bai},
+title =    {PyBullet, a Python module for physics simulation for games, robotics and machine learning},
+howpublished = {\url{http://pybullet.org}},
+year = {2016--2021}
+}
+
+@inproceedings{zhang2019cityflow,
+author = {Zhang, Huichu and Feng, Siyuan and Liu, Chang and Ding, Yaoyao and Zhu, Yichen and Zhou, Zihan and Zhang, Weinan and Yu, Yong and Jin, Haiming and Li, Zhenhui},
+title = {CityFlow: A Multi-Agent Reinforcement Learning Environment for Large Scale City Traffic Scenario},
+year = {2019},
+isbn = {9781450366748},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3308558.3314139},
+doi = {10.1145/3308558.3314139},
+abstract = {Traffic signal control is an emerging application scenario for reinforcement learning. Besides being as an important problem that affects people's daily life in commuting, traffic signal control poses its unique challenges for reinforcement learning in terms of adapting to dynamic traffic environment and coordinating thousands of agents including vehicles and pedestrians. A key factor in the success of modern reinforcement learning relies on a good simulator to generate a large number of data samples for learning. The most commonly used open-source traffic simulator SUMO is, however, not scalable to large road network and large traffic flow, which hinders the study of reinforcement learning on traffic scenarios. This motivates us to create a new traffic simulator CityFlow with fundamentally optimized data structures and efficient algorithms. CityFlow can support flexible definitions for road network and traffic flow based on synthetic and real-world data. It also provides user-friendly interface for reinforcement learning. Most importantly, CityFlow is more than twenty times faster than SUMO and is capable of supporting city-wide traffic simulation with an interactive render for monitoring. Besides traffic signal control, CityFlow could serve as the base for other transportation studies and can create new possibilities to test machine learning methods in the intelligent transportation domain.},
+booktitle = {The World Wide Web Conference},
+pages = {3620–3624},
+numpages = {5},
+keywords = {Reinforcement Learning Platform, Mobility, Microscopic Traffic Simulation},
+location = {San Francisco, CA, USA},
+series = {WWW '19}
+}
+
+@inproceedings{kurach2020google,
+  title={Google research football: A novel reinforcement learning environment},
+  author={Kurach, Karol and Raichuk, Anton and Sta{\'n}czyk, Piotr and Zaj{\k{a}}c, Micha{\l} and Bachem, Olivier and Espeholt, Lasse and Riquelme, Carlos and Vincent, Damien and Michalski, Marcin and Bousquet, Olivier and others},
+  booktitle={Proceedings of the AAAI conference on artificial intelligence},
+  volume={34},
+  number={04},
+  pages={4501--4510},
+  year={2020}
+}
+
+@inproceedings{levine2013guided,
+  title={Guided policy search},
+  author={Levine, Sergey and Koltun, Vladlen},
+  booktitle={International conference on machine learning},
+  pages={1--9},
+  year={2013},
+  organization={PMLR}
+}
+
+@inproceedings{bhatt2024crossq,
+  title={CrossQ: Batch Normalization in Deep Reinforcement Learning for Greater Sample Efficiency and Simplicity},
+  author={Bhatt, A and Palenicek, D and Belousov, B and Argus, Max and Amiranashvili, Artemij and Brox, Thomas and Peters, J},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2024}
+}
+
+@inproceedings{kuznetsov2020tqc,
+  title={Controlling overestimation bias with truncated mixture of continuous distributional quantile critics},
+  author={Kuznetsov, Arsenii and Shvechikov, Pavel and Grishin, Alexander and Vetrov, Dmitry},
+  booktitle={International conference on machine learning},
+  pages={5556--5566},
+  year={2020},
+  organization={PMLR}
+}
+
+@inproceedings{fujimoto2018td3,
+  title={Addressing function approximation error in actor-critic methods},
+  author={Fujimoto, Scott and Hoof, Herke and Meger, David},
+  booktitle={International conference on machine learning},
+  pages={1587--1596},
+  year={2018},
+  organization={PMLR}
+}
+
+@inproceedings{meng2021memory,
+  title={Memory-based deep reinforcement learning for pomdps},
+  author={Meng, Lingheng and Gorbet, Rob and Kuli{\'c}, Dana},
+  booktitle={2021 IEEE/RSJ international conference on intelligent robots and systems (IROS)},
+  pages={5619--5626},
+  year={2021},
+  organization={IEEE}
+}
+
+@article{risi2015neuroevolution,
+  title={Neuroevolution in games: State of the art and open challenges},
+  author={Risi, Sebastian and Togelius, Julian},
+  journal={IEEE Transactions on Computational Intelligence and AI in Games},
+  volume={9},
+  number={1},
+  pages={25--41},
+  year={2015},
+  publisher={IEEE}
+}
+
+@article{islam2017reproducibility,
+  title={Reproducibility of benchmarked deep reinforcement learning tasks for continuous control},
+  author={Islam, Riashat and Henderson, Peter and Gomrokchi, Maziar and Precup, Doina},
+  journal={arXiv preprint arXiv:1708.04133},
+  year={2017}
+}
+
+@article{salimans2017,
+  title={Evolution strategies as a scalable alternative to reinforcement learning},
+  author={Salimans, Tim and Ho, Jonathan and Chen, Xi and Sidor, Szymon and Sutskever, Ilya},
+  journal={arXiv preprint arXiv:1703.03864},
+  year={2017}
+}
+
+@article{dulacArnold2021,
+	title        = {Challenges of real-world reinforcement learning: definitions,  benchmarks and analysis},
+	author       = {Dulac-Arnold,  Gabriel and Levine,  Nir and Mankowitz,  Daniel J. and Li,  Jerry and Paduraru,  Cosmin and Gowal,  Sven and Hester,  Todd},
+	year         = 2021,
+	month        = apr,
+	journal      = {Machine Learning},
+	publisher    = {Springer Science and Business Media LLC},
+	volume       = 110,
+	number       = 9,
+	pages        = {2419–2468},
+	doi          = {10.1007/s10994-021-05961-4},
+	issn         = {1573-0565},
+	url          = {http://dx.doi.org/10.1007/s10994-021-05961-4}
+}
+
+@article{latif2021energy,
+  title={Energy-aware multi-robot task allocation in persistent tasks},
+  author={Latif, Ehsan and Gui, Yikang and Munir, Aiman and Parasuraman, Ramviyas},
+  journal={arXiv preprint arXiv:2112.15282},
+  year={2021}
+}
+
+@article{ito2025energy,
+  title={Energy-Aware Task Allocation for Teams of Multi-mode Robots},
+  author={Ito, Takumi and Funada, Riku and Sampei, Mitsuji and Notomista, Gennaro},
+  journal={arXiv preprint arXiv:2503.12787},
+  year={2025}
+}
+
+@article{notomista2021resilient,
+  title={A resilient and energy-aware task allocation framework for heterogeneous multirobot systems},
+  author={Notomista, Gennaro and Mayya, Siddharth and Emam, Yousef and Kroninger, Christopher and Bohannon, Addison and Hutchinson, Seth and Egerstedt, Magnus},
+  journal={IEEE Transactions on Robotics},
+  volume={38},
+  number={1},
+  pages={159--179},
+  year={2021},
+  publisher={IEEE}
+}
+
+@Inbook{luo2019,
+	author="Luo, Chunbo	and Miao, Wang and Ullah, Hanif	and McClean, Sally and Parr, Gerard and Min, Geyong",
+	title="Unmanned Aerial Vehicles for Disaster Management",
+	bookTitle="Geological Disaster Monitoring Based on Sensor Networks",
+	year="2019",
+	publisher="Springer Singapore",
+	address="Singapore",
+	pages="83--107",
+	abstract="This chapter highlights the communication and network technologies that contribute to UAV disaster management systems, surveys the latest development of UAV-assisted disaster management applications, including early warning system, search and rescue, data gathering, emergency communication, and logistics, and presents our preliminary work to demonstrate the benefits and challenges of UAV systems for emergency communication. Finally, we discuss the characteristics and design challenges of UAV disaster management systems.",
+	isbn="978-981-13-0992-2",
+	doi="10.1007/978-981-13-0992-2_7",
+	url="https://doi.org/10.1007/978-981-13-0992-2_7"
+}
+
+@Article{yuan2017,
+	author={Yuan, Chi
+	and Liu, Zhixiang
+	and Zhang, Youmin},
+	title={Aerial Images-Based Forest Fire Detection for Firefighting Using Optical Remote Sensing Techniques and Unmanned Aerial Vehicles},
+	journal={Journal of Intelligent {\&} Robotic Systems},
+	year={2017},
+	month={Dec},
+	day={01},
+	volume={88},
+	number={2},
+	pages={635-654},
+	abstract={Due to their fast response capability, low cost and without danger to personnel safety since there is no human pilot on-board, unmanned aerial vehicles (UAVs) with vision-based systems have great potential for monitoring and detecting forest fires. This paper proposes a novel forest fire detection method using both color and motion features for processing images captured from the camera mounted on a UAV which is moving during the whole mission period. First, a color-based fire detection algorithm with light computational demand is designed to extract fire-colored pixels as fire candidate regions by making use of chromatic feature of fire and obtaining fire candidate regions for further analysis. As the pose variations and low-frequency vibrations of UAV cause all objects and background in the images are moving, it is challenging to identify fires defending on a single motion based method. Two types of optical flow algorithms, a classical optical flow algorithm and an optimal mass transport optical flow algorithm, are then combined to compute motion vectors of the fire candidate regions. Fires are thereby expected to be distinguished from other fire analogues based on their motion features. Several groups of experiments are conducted to validate that the proposed method can effectively extract and track fire pixels in aerial video sequences. The good performance is anticipated to significantly improve the accuracy of forest fire detection and reduce false alarm rates without increasing much computation efforts.},
+	issn={1573-0409},
+	doi={10.1007/s10846-016-0464-7},
+	url={https://doi.org/10.1007/s10846-016-0464-7}
+}
+
+@INPROCEEDINGS{pham2017,
+	author={Pham, Huy X. and La, Hung M. and Feil-Seifer, David and Deans, Matthew},
+	booktitle={2017 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 
+	title={A distributed control framework for a team of unmanned aerial vehicles for dynamic wildfire tracking}, 
+	year={2017},
+	volume={},
+	number={},
+	pages={6648-6653},
+	doi={10.1109/IROS.2017.8206579}}
+
+@INPROCEEDINGS{deng2020,
+	author={Jing, Wei and Deng, Di and Wu, Yan and Shimada, Kenji},
+	booktitle={2020 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 
+	title={Multi-UAV Coverage Path Planning for the Inspection of Large and Complex Structures}, 
+	year={2020},
+	volume={},
+	number={},
+	pages={1480-1486},
+	doi={10.1109/IROS45743.2020.9341089}}
+
+
+% Warehouse
+@article{varma2021self,
+  title={A self-adaptive network for multi-robot warehouse communication},
+  author={Varma, Ashwini Kumar and Karjee, Jyotirmoy and Mitra, Debjani and Rath, Hemant Kumar and Pal, Arpan},
+  journal={Computing},
+  volume={103},
+  number={2},
+  pages={333--356},
+  year={2021},
+  publisher={Springer}
+}
+
+@inproceedings{chen2019coordinated,
+  title={A coordinated path planning algorithm for multi-robot in intelligent warehouse},
+  author={Chen, Xin and Li, Yanjie and Liu, Lintao},
+  booktitle={2019 IEEE International Conference on Robotics and Biomimetics (ROBIO)},
+  pages={2945--2950},
+  year={2019},
+  organization={IEEE}
+}
+
+@inproceedings{tsang2018novel,
+  title={A novel warehouse multi-robot automation system with semi-complete and computationally efficient path planning and adaptive genetic task allocation algorithms},
+  author={Tsang, Kam Fai Elvis and Ni, Yuqing and Wong, Cheuk Fung Raphael and Shi, Ling},
+  booktitle={2018 15th international conference on control, automation, robotics and vision (icarcv)},
+  pages={1671--1676},
+  year={2018},
+  organization={IEEE}
+}
+
+@article{gupta2022logiswarm,
+  title={LOGISWARM: A low-cost multi-robot testbed for cooperative transport research},
+  author={Gupta, Shreshtha and Shekhar, Shashank and Karpe, Kedar and Ghosh, Aninda and Js, Gautham and Srinivas, Pranav and Kumar, Mayank and Sharma, Preshit and Sinha, Avinash and Singh, Kushagra and others},
+  journal={Multimedia Tools and Applications},
+  volume={81},
+  number={19},
+  pages={27339--27362},
+  year={2022},
+  publisher={Springer}
+}
+
+@article{zhang2023multi,
+  title={Multi-robot coordination and layout design for automated warehousing},
+  author={Zhang, Yulun and Fontaine, Matthew C and Bhatt, Varun and Nikolaidis, Stefanos and Li, Jiaoyang},
+  journal={arXiv preprint arXiv:2305.06436},
+  year={2023}
+}
+
+
+
+% Search and rescue
+@Article{cho2022,
+	AUTHOR = {Cho, Sung-Won and Park, Jin-Hyoung and Park, Hyun-Ji and Kim, Seongmin},
+	TITLE = {Multi-UAV Coverage Path Planning Based on Hexagonal Grid Decomposition in Maritime Search and Rescue},
+	JOURNAL = {Mathematics},
+	VOLUME = {10},
+	YEAR = {2022},
+	NUMBER = {1},
+	ARTICLE-NUMBER = {83},
+	URL = {https://www.mdpi.com/2227-7390/10/1/83},
+	ISSN = {2227-7390},
+	ABSTRACT = {In the event of a maritime accident, surveying the maximum area efficiently in the least amount of time is crucial for rescuing survivors. Increasingly, unmanned aerial vehicles (UAVs) are being used in search and rescue operations. This study proposes a method to generate a search path that covers all generated nodes in the shortest amount of time with multiple heterogeneous UAVs. The proposed model, which is a mixed-integer linear programming (MILP) model based on a hexagonal grid-based decomposition method, was verified through a simulation analysis based on the performance of an actual UAV. This study presents both the optimization technique&rsquo;s calculation time as a function of the search area size and the various UAV routes derived as the search area grows. The results of this study can have wide-ranging applications for emergency search and rescue operations.},
+	DOI = {10.3390/math10010083}
+}
+
+
+@article{cai2022multi,
+  title={A multi-robot coverage path planning method for maritime search and rescue using multiple AUVs},
+  author={Cai, Chang and Chen, Jianfeng and Yan, Qingli and Liu, Fen},
+  journal={Remote Sensing},
+  volume={15},
+  number={1},
+  pages={93},
+  year={2022},
+  publisher={MDPI}
+}
+
+@mastersthesis{osooli2024multi,
+  title={A multi-robot task assignment framework for search and rescue with heterogeneous teams},
+  author={Osooli, Hamid},
+  year={2024},
+  school={University of Massachusetts Lowell}
+}
+
+@article{queralta2020collaborative,
+  title={Collaborative multi-robot systems for search and rescue: Coordination and perception},
+  author={Queralta, Jorge Pena and Taipalmaa, Jussi and Pullinen, Bilge Can and Sarker, Victor Kathan and Gia, Tuan Nguyen and Tenhunen, Hannu and Gabbouj, Moncef and Raitoharju, Jenni and Westerlund, Tomi},
+  journal={arXiv preprint arXiv:2008.12610},
+  year={2020}
+}
+
+
+%%%%%%%%%%%%%%%%%
+@inproceedings{sidiropoulos2024,
+	title        = {Reinforcement Learning Agents in Precision Agriculture},
+	author       = {Sidiropoulos, George and Kiourt, Chairi},
+	year         = 2024,
+	booktitle    = {Extended Selected Papers of the 14th International Conference on Information, Intelligence, Systems, and Applications},
+	publisher    = {Springer Nature Switzerland},
+	address      = {Cham},
+	pages        = {188--211},
+	isbn         = {978-3-031-67426-6},
+	editor       = {Bourbakis, Nikolaos and Tsihrintzis, George A. and Virvou, Maria and Jain, Lakhmi C.},
+	abstract     = {In the domain of precision agriculture, the convergence of Artificial Intelligence and precision techniques has revolutionized farming practices. This, has marked an era of enhanced efficiency, productivity, and sustainability through exploiting scientific fields such as Machine Learning, Big Data, Computer Vision, Internet of Things and Robotics being applied in agriculture more and more. Given the frequent need for ongoing decision-making inside dynamically changing environments, precision agriculture emerges as a prime domain for the application of Reinforcement Learning techniques, with multiple future promising outcomes. We analyze the literature and identify three main application categories that have been focused on, namely crop management, water management and robot control. Moreover, we highlight the importance and advantages of exploiting Reinforcement Learning in agriculture and highlight the gaps that exist in the literature. Lastly, we propose a general framework towards the future applications of Reinforcement Learning in the field of agriculture.}
+}
+
+@inproceedings{choton2023icra,
+	title        = {Optimal Multi-Robot Coverage Path Planning for Agricultural Fields using Motion Dynamics},
+	author       = {Choton, Jahid Chowdhury and Prabhakar, Pavithra},
+	year         = 2023,
+	booktitle    = {2023 IEEE International Conference on Robotics and Automation (ICRA)},
+	volume       = {},
+	number       = {},
+	pages        = {11817--11823},
+	doi          = {10.1109/ICRA48891.2023.10160265},
+	keywords     = {Surveys;Heuristic algorithms;Dynamics;Merging;Aerospace electronics;Robot sensing systems;Trajectory}
+}
+
+@inproceedings{choton2023iccps,
+	title        = {An End-to-End Multi-Robot Framework for Weed Control in Agricultural Fields},
+	author       = {Choton, Jahid Chowdhury and Jugulam, Mithila and Prabhakar, Pavithra},
+	year         = 2023,
+	booktitle    = {Proceedings of the ACM/IEEE 14th International Conference on Cyber-Physical Systems (with CPS-IoT Week 2023)},
+	location     = {San Antonio, TX, USA},
+	publisher    = {Association for Computing Machinery},
+	address      = {New York, NY, USA},
+	series       = {ICCPS '23},
+	pages        = {243–244},
+	doi          = {10.1145/3576841.3589617},
+	isbn         = 9798400700361,
+	url          = {https://doi.org/10.1145/3576841.3589617},
+	abstract     = {Weed management is one of the major concerns for crop production in agricultural fields. In this work, we developed a novel multi-robot framework to control weeds in an agricultural field using two groups of mobile robots and a base station. Our framework consists of three modules: (i) the coverage module will take the field boundary as input and generate an optimal coverage path for a group of survey robots; (ii) the weed detection module will collect images of field locations along the coverage path, analyze the collected images, and return the weed locations; and (iii) the planning module will compute an optimal path and send commands to a group of sprayer robots to selectively spray herbicides at the weed locations. All three modules will run on the base station in a step-by-step manner.},
+	numpages     = 2,
+	keywords     = {robotics, automation, path planning, weed management, crop production}
+}
+
+@inproceedings{ratan2020,
+	title        = {Time-Optimal Multi-Quadrotor Trajectory Planning for Pesticide Spraying},
+	author       = {Lal, Ratan and Prabhakar, Pavithra},
+	year         = 2021,
+	booktitle    = {2021 IEEE International Conference on Robotics and Automation (ICRA)},
+	volume       = {},
+	number       = {},
+	pages        = {7965--7971},
+	doi          = {10.1109/ICRA48506.2021.9561972}
+}
+
+@article{baltazar2021smarter,
+	title        = {Smarter Robotic Sprayer System for Precision Agriculture},
+	author       = {André Rodrigues Baltazar and Filipe Neves dos Santos and António Paulo Moreira and António Valente and José Boaventura Cunha},
+	year         = 2021,
+	journal      = {Electronics},
+	publisher    = {MDPI},
+	volume       = 10,
+	number       = 17,
+	pages        = 2061
+}
+
+@INPROCEEDINGS{ratan2017,
+  author={Lal, Ratan and Sharda, Ajay and Prabhakar, Pavithra},
+  booktitle={2017 IEEE 56th Annual Conference on Decision and Control (CDC)}, 
+  title={Optimal multi-robot path planning for pesticide spraying in agricultural fields}, 
+  year={2017},
+  volume={},
+  number={},
+  pages={5815-5820},
+  keywords={Spraying;Urban areas;Robot kinematics;Path planning;Resource management},
+  doi={10.1109/CDC.2017.8264538}}
+
+@article{ju2022cea,
+	title        = {A review on multirobot systems in agriculture},
+	author       = {Chanyoung Ju and Jeongeun Kim and Jaehwi Seol and Hyoung Il Son},
+	year         = 2022,
+	journal      = {Computers and Electronics in Agriculture},
+	volume       = 202,
+	pages        = 107336,
+	doi          = {https://doi.org/10.1016/j.compag.2022.107336},
+	issn         = {0168-1699},
+	url          = {https://www.sciencedirect.com/science/article/pii/S0168169922006457},
+	keywords     = {Multirobot systems, Agricultural robotics, Field robots, Heterogeneous multirobot, Literature review},
+	abstract     = {Agricultural multirobot systems (MRSs) are expected to be essential in future agriculture. Therefore, MRSs comprising an aerial robot, a ground robot, and a manipulator are being actively studied for application in agriculture. However, MRSs are still being researched and several challenges need to be addressed. Moreover, no comprehensive surveys or detailed analyses of agricultural MRSs exist. Therefore, we systematically investigated and reviewed an MRS used in agriculture in terms of platforms, control, and application. This review primarily considers state-of-the-art research on agricultural MRSs and covers the developed platforms and controls applied to the field with subtasks. Furthermore, we introduce recent trends and analyze the problems and limitations of various MRSs. Finally, we discuss the points that need to be considered for commercializing agricultural MRSs and the expansion of their applications to the fields of geosciences and life sciences. Future research on the proposed agricultural MRS can help with advancements in the robotics market.}
+}
+
+@article{towers2024gymnasium,
+	title        = {Gymnasium: A Standard Interface for Reinforcement Learning Environments},
+	author       = {Towers, Mark and Kwiatkowski, Ariel and Terry, Jordan and Balis, John U and De Cola, Gianluca and Deleu, Tristan and Goul{\~a}o, Manuel and Kallinteris, Andreas and Krimmel, Markus and KG, Arjun and others},
+	year         = 2024,
+	journal      = {arXiv preprint arXiv:2407.17032}
+}
+@misc{pygame,
+	title        = {Pygame},
+	author       = {{Pygame community}},
+	year         = {2000-2024},
+	note         = {Version 2.1.0},
+	howpublished = {\url{https://www.pygame.org/}}
+}
+
+@book{euclid1956,
+  author    = {Euclid},
+  title     = {The Thirteen Books of Euclid's Elements},
+  translator= {Thomas L. Heath},
+  year      = {1956},
+  publisher = {Dover Publications},
+  note      = {Original work published ca. 300 BCE}
+}
+
+@book{sutton2018reinforcement,
+	title        = {Reinforcement Learning: An Introduction},
+	author       = {Sutton, Richard S. and Barto, Andrew G.},
+	year         = 2018,
+	publisher    = {MIT Press},
+	address      = {Cambridge, MA},
+	edition      = 2
+}
+
+@book{choset2005,
+	title        = {Principles of Robot Motion: Theory, Algorithms, and Implementations},
+	author       = {Howie Choset and Kevin M. Lynch and Seth Hutchinson and George A. Kantor and Wolfram Burgard and Lydia E. Kavraki and Sebastian Thrun},
+	year         = 2005,
+	publisher    = {The MIT Press}
+}
+
+\begin{thebibliography}{00}
+
+@BOOK{linearAlgebra,
+	TITLE = {The Linear Algebra Survival Guide},
+	SUBTITLE = {Illustrated with Mathematica},
+	AUTHOR = {Fred E. Szabo},
+	YEAR = {2015}, 
+	PUBLISHER = {Elsevier}}
+
+@BOOK{feedback2020,
+	TITLE = {Feedback Systems},
+	SUBTITLE = {An Introduction for Scientists and Engineers},
+	AUTHOR = {Karl J. Åström and Richard M. Murray},
+	YEAR = {2020}, 
+	PUBLISHER = {Princeton University Press}}
+
+@book{steven2006,
+    author = {LaValle, Steven M.},
+    title = {Planning Algorithms},
+    year = {2006},
+    isbn = {0521862051},
+    publisher = {Cambridge University Press},
+    address = {USA}
+}
+
+@article{dubins1957,
+ ISSN = {00029327, 10806377},
+ URL = {http://www.jstor.org/stable/2372560},
+ author = {L. E. Dubins},
+ journal = {American Journal of Mathematics},
+ number = {3},
+ pages = {497--516},
+ publisher = {Johns Hopkins University Press},
+ title = {On Curves of Minimal Length with a Constraint on Average Curvature, and with Prescribed Initial and Terminal Positions and Tangents},
+ urldate = {2022-09-05},
+ volume = {79},
+ year = {1957}
+}
+
+@ARTICLE{tanSurvey2021,
+	author={Tan, Chee Sheng and Mohd-Mokhtar, Rosmiwati and Arshad, Mohd Rizal},
+	journal={IEEE Access}, 
+	title={A Comprehensive Review of Coverage Path Planning in Robotics Using Classical and Heuristic Algorithms}, 
+	year={2021},
+	volume={9},
+	number={},
+	pages={119310-119342},
+	doi={10.1109/ACCESS.2021.3108177}}
+
+@Article{almadhounSurvey2019,
+	author={Almadhoun, Randa
+	and Taha, Tarek
+	and Seneviratne, Lakmal
+	and Zweiri, Yahya},
+	title={A survey on multi-robot coverage path planning for model reconstruction and mapping},
+	journal={SN Applied Sciences},
+	year={2019},
+	month={Jul},
+	day={10},
+	volume={1},
+	number={8},
+	pages={847},
+	abstract={There has been an increasing interest in researching, developing and deploying multi-robot systems. This has been driven mainly by: the maturity of the practical deployment of a single-robot system and its ability to solve some of the most challenging tasks. Coverage path planning (CPP) is one of the active research topics that could benefit greatly from multi-robot systems. In this paper, we surveyed the research topics related to multi-robot CPP for the purpose of mapping and model reconstructions. We classified the topics into: viewpoints generation approaches; coverage planning strategies; coordination and decision-making processes; communication mechanism and mapping approaches. This paper provides a detailed analysis and comparison of the recent research work in this area, and concludes with a critical analysis of the field, and future research perspectives.},
+	issn={2523-3971},
+	doi={10.1007/s42452-019-0872-y},
+	url={https://doi.org/10.1007/s42452-019-0872-y}
+}
+
+@article{galceranSurvey2013,
+	author = {Galceran, Enric and Carreras, Marc},
+	year = {2013},
+	month = {12},
+	pages = {1258–1276},
+	title = {A survey on coverage path planning for robotics},
+	volume = {61},
+	journal = {Robotics and Autonomous Systems},
+	doi = {10.1016/j.robot.2013.09.004}
+}
+
+@Article{cabreiraSurvey2019,
+	AUTHOR = {Cabreira, Tauã M. and Brisolara, Lisane B. and Ferreira Jr., Paulo R.},
+	TITLE = {Survey on Coverage Path Planning with Unmanned Aerial Vehicles},
+	JOURNAL = {Drones},
+	VOLUME = {3},
+	YEAR = {2019},
+	NUMBER = {1},
+	ARTICLE-NUMBER = {4},
+	URL = {https://www.mdpi.com/2504-446X/3/1/4},
+	ISSN = {2504-446X},
+	ABSTRACT = {Coverage path planning consists of finding the route which covers every point of a certain area of interest. In recent times, Unmanned Aerial Vehicles (UAVs) have been employed in several application domains involving terrain coverage, such as surveillance, smart farming, photogrammetry, disaster management, civil security, and wildfire tracking, among others. This paper aims to explore and analyze the existing studies in the literature related to the different approaches employed in coverage path planning problems, especially those using UAVs. We address simple geometric flight patterns and more complex grid-based solutions considering full and partial information about the area of interest. The surveyed coverage approaches are classified according to a classical taxonomy, such as no decomposition, exact cellular decomposition, and approximate cellular decomposition. This review also contemplates different shapes of the area of interest, such as rectangular, concave and convex polygons. The performance metrics usually applied to evaluate the success of the coverage missions are also presented.},
+	DOI = {10.3390/drones3010004}
+}
+
+@Article{kanellakis2017,
+	author={Kanellakis, Christoforos
+	and Nikolakopoulos, George},
+	title={Survey on Computer Vision for UAVs: Current Developments and Trends},
+	journal={Journal of Intelligent {\&} Robotic Systems},
+	year={2017},
+	month={Jul},
+	day={01},
+	volume={87},
+	number={1},
+	pages={141-168},
+	abstract={During last decade the scientific research on Unmanned Aerial Vehicless (UAVs) increased spectacularly and led to the design of multiple types of aerial platforms. The major challenge today is the development of autonomously operating aerial agents capable of completing missions independently of human interaction. To this extent, visual sensing techniques have been integrated in the control pipeline of the UAVs in order to enhance their navigation and guidance skills. The aim of this article is to present a comprehensive literature review on vision based applications for UAVs focusing mainly on current developments and trends. These applications are sorted in different categories according to the research topics among various research groups. More specifically vision based position-attitude control, pose estimation and mapping, obstacle detection as well as target tracking are the identified components towards autonomous agents. Aerial platforms could reach greater level of autonomy by integrating all these technologies onboard. Additionally, throughout this article the concept of fusion multiple sensors is highlighted, while an overview on the challenges addressed and future trends in autonomous agent development will be also provided.},
+	issn={1573-0409},
+	doi={10.1007/s10846-017-0483-z},
+	url={https://doi.org/10.1007/s10846-017-0483-z}
+}
+
+@INPROCEEDINGS{huang2001,
+	author={Huang, W.H.},
+	booktitle={Proceedings 2001 ICRA. IEEE International Conference on Robotics and Automation (Cat. No.01CH37164)}, 
+	title={Optimal line-sweep-based decompositions for coverage algorithms}, 
+	year={2001},
+	volume={1},
+	number={},
+	pages={27-32 vol.1},
+	doi={10.1109/ROBOT.2001.932525}}
+
+@INPROCEEDINGS{huang2016,
+	author={Nam, L. H. and Huang, L. and Li, X. J. and Xu, J. F.},
+	booktitle={2016 IEEE 14th International Workshop on Advanced Motion Control (AMC)}, 
+	title={An approach for coverage path planning for UAVs}, 
+	year={2016},
+	volume={},
+	number={},
+	pages={411-416},
+	doi={10.1109/AMC.2016.7496385}
+}
+
+@Article{huang2021,
+	author={Huang, Kuo-Chun	and Lian, Feng-Li and Chen, Chien-Tung and Wu, Chung-Hou and Chen, Chao-Cheng},
+	title={A novel solution with rapid Voronoi-based coverage path planning in irregular environment for robotic mowing systems},
+	journal={International Journal of Intelligent Robotics and Applications},
+	year={2021},
+	month={Dec},
+	day={01},
+	volume={5},
+	number={4},
+	pages={558-575},
+	abstract={This paper presents a novel solution of coverage path planning for robotic mowing applications. The planning algorithm is based on the Boustrophedon motions and the rapid Voronoi diagram. The coordinate conversion and the sweeping vector is defined by minimum bounding box and the Voronoi travel paths are designed to reduce the computational cost and execution time compared to conventional heuristic methods. The tracked path is controlled via dynamic feedback in standard lawn mowing robots under robot operating system (ROS). Within ROS, the information exchanging among different tasks of both extensive simulation cases and experimental field tests can be conducted easily. When meeting unknown obstacles, the proposed algorithm can re-plan its paths dynamically. The performance of the proposed algorithm is compared to several conventional coverage algorithms in terms of time efficiency, coverage, repetition, and robustness with respect to both concave and convex shapes. The field tests are conducted to demonstrate that the applicability of the sensor fusion and robustness of the proposed algorithm for the complete coverage tasks by robotic mowers.},
+	issn={2366-598X},
+	doi={10.1007/s41315-021-00199-8},
+	url={https://doi.org/10.1007/s41315-021-00199-8}
+}
+
+@INPROCEEDINGS{wang2016,
+	author={Wang, Pengcheng and Man, Zhihong and Cao, Zhenwei and Zheng, Jinchuan and Zhao, Yong},
+	booktitle={2016 International Conference on Advanced Mechatronic Systems (ICAMechS)}, 
+	title={Dynamics modelling and linear control of quadcopter}, 
+	year={2016},
+	volume={},
+	number={},
+	pages={498-503},
+	doi={10.1109/ICAMechS.2016.7813499}}
+
+@article{tahir2016,
+	author = {Tahir, Zaid and Jamil, Mohsin and Liaqat, Saad and Mubarak, Lubva and Gilani, Syed},
+	year = {2016},
+	month = {07},
+	pages = {},
+	title = {State Space System Modeling of a Quad Copter UAV},
+	volume = {9},
+	journal = {Indian Journal of Science and Technology},
+	doi = {10.17485/ijst/2016/v9i27/96613}
+}
+
+@INPROCEEDINGS{yong2006,
+	author={Yong, Chao and Barth, Eric J.},
+	booktitle={Proceedings of the 45th IEEE Conference on Decision and Control}, 
+	title={Real-time Dynamic Path Planning for Dubins' Nonholonomic Robot}, 
+	year={2006},
+	volume={},
+	number={},
+	pages={2418-2423},
+	doi={10.1109/CDC.2006.377829}}
+
+@INPROCEEDINGS{ibrahim2017,
+	author={Hameed, Ibrahim A.},
+	booktitle={2017 IEEE International Conference on Real-time Computing and Robotics (RCAR)}, 
+	title={Coverage path planning software for autonomous robotic lawn mower using Dubins' curve}, 
+	year={2017},
+	volume={},
+	number={},
+	pages={517-522},
+	doi={10.1109/RCAR.2017.8311915}}
+
+@article{seidel1991,
+	title = {A simple and fast incremental randomized algorithm for computing trapezoidal decompositions and for triangulating polygons},
+	journal = {Computational Geometry},
+	volume = {1},
+	number = {1},
+	pages = {51-64},
+	year = {1991},
+	issn = {0925-7721},
+	doi = {https://doi.org/10.1016/0925-7721(91)90012-4},
+	url = {https://www.sciencedirect.com/science/article/pii/0925772191900124},
+	author = {Raimund Seidel},
+	abstract = {This paper presents a very simple incremental randomized algorithm for computing the trapezoidal decomposition induced by a set S of n line segments in the plane. If S is given as a simple polygonal chain the expected running time of the algorithm is O(n log* n). This leads to a simple algorithm of the same complexity for triangulating polygons. More generally, if S is presented as a plane graph with k connected components, then the expected running time of the algorithm is O(n log* n+k log n). As a by-product our algorithm creates a search structure of expected linear size that allows point location queries in the resulting trapezoidation in logarithmic expected time. The analysis of the expected performance is elementary and straightforward. All expectations are with respect to ‘coinflips’ generated by the algorithm and are not based on assumptions about the geometric distribution of the input.}
+}
+
+@article{torres2016,
+	title = {Coverage path planning with unmanned aerial vehicles for 3D terrain reconstruction},
+	journal = {Expert Systems with Applications},
+	volume = {55},
+	pages = {441-451},
+	year = {2016},
+	issn = {0957-4174},
+	doi = {https://doi.org/10.1016/j.eswa.2016.02.007},
+	url = {https://www.sciencedirect.com/science/article/pii/S0957417416300306},
+	author = {Marina Torres and David A. Pelta and José L. Verdegay and Juan C. Torres},
+	keywords = {Coverage path planning, Unmanned aerial vehicle, Heuristics, Non-convex areas, 3D terrain reconstruction},
+	abstract = {Three-dimensional terrain reconstruction from 2D aerial images is a problem of utmost importance due its wide level of applications. It is relevant in the context of intelligent systems for disaster managements (for example to analyze a flooded area), soil analysis, earthquake crisis, civil engineering, urban planning, surveillance and defense research. It is a two level problem, being the former the acquisition of the aerial images and the later, the 3D reconstruction. We focus here in the first problem, known as coverage path planning, and we consider the case where the camera is mounted on an unmanned aerial vehicle (UAV). In contrast with the case when ground vehicles are used, coverage path planning for a UAV is a lesser studied problem. As the areas to cover become complex, there is a clear need for algorithms that will provide good enough solutions in affordable times, while taking into account certain specificities of the problem at hand. Our algorithm can deal with both convex and non-convex areas and their main aim is to obtain a path that reduces the battery consumption, through minimizing the number of turns. We comment on line sweep calculation and propose improvements for the path generation and the polygon decomposition problems such as coverage alternatives and the interrupted path concept. Illustrative examples show the potential of our algorithm in two senses: ability to perform the coverage when complex regions are considered, and achievement of better solution than a published result (in terms of the number of turns used).}
+}
+
+@article{joaquin2013,
+	author = {Jose Joaquin Acevedo and Begoña C. Arrue and Ivan Maza and Anibal Ollero},
+	title ={Distributed Approach for Coverage and Patrolling Missions with a Team of Heterogeneous Aerial Robots under Communication Constraints},
+	journal = {International Journal of Advanced Robotic Systems},
+	volume = {10},
+	number = {1},
+	pages = {28},
+	year = {2013},
+	doi = {10.5772/52765},	
+	URL = { 
+	https://doi.org/10.5772/52765	
+	},
+	eprint = { 
+	https://doi.org/10.5772/52765	
+	},
+	abstract = { Using aerial robots in area coverage applications is an emerging topic. These applications need a coverage path planning algorithm and a coordinated patrolling plan. This paper proposes a distributed approach to coordinate a team of heterogeneous UAVs cooperating efficiently in patrolling missions around irregular areas, with low communication ranges and memory storage requirements. Hence it can be used with small-scale UAVs with limited and different capabilities. The presented system uses a modular architecture and solves the problem by dividing the area between all the robots according to their capabilities. Each aerial robot performs a decomposition based algorithm to create covering paths and a ‘one-to-one’ coordination strategy to decide the path segment to patrol. The system is decentralized and fault-tolerant. It ensures a finite time to share information between all the robots and guarantees convergence to the desired steady state, based on the maximal minimum frequency criteria. A set of simulations with a team of quad-rotors is used to validate the approach. }
+}
+
+@Article{franco2016,
+	author={Di Franco, Carmelo
+	and Buttazzo, Giorgio},
+	title={Coverage Path Planning for UAVs Photogrammetry with Energy and Resolution Constraints},
+	journal={Journal of Intelligent {\&} Robotic Systems},
+	year={2016},
+	month={Sep},
+	day={01},
+	volume={83},
+	number={3},
+	pages={445-462},
+	abstract={Unmanned Aerial Vehicles (UAVs) are starting to be used for photogrammetric sensing of large areas in several application domains, such as agriculture, rescuing, and surveillance. In this context, the problem of finding a path that covers the entire area of interest is known as Coverage Path Planning (CPP). Although this problem has been addressed by several authors from a geometrical point of view, other issues such as energy, speed, acceleration, and image resolution are not often taken into account. To fill this gap, this paper first proposes an energy model derived from real measurements, and then uses this model to implement a coverage path planning algorithm for reducing energy consumption, as well as guaranteeing a desired image resolution. In addition, two safety mechanisms are presented: the first, executed off-line, checks whether the energy stored in the battery is sufficient to perform the planned path; the second, performed online, triggers a safe return-to-launch (RTL) operation when the actual available energy is equal to the energy required by the UAV to go back to the starting point.},
+	issn={1573-0409},
+	doi={10.1007/s10846-016-0348-x},
+	url={https://doi.org/10.1007/s10846-016-0348-x}
+}
+
+@INPROCEEDINGS{hyeun2011,  
+	author={Hyeun Jeong Min and Papanikolopoulos, Nikolaos},  
+	booktitle={2011 IEEE International Conference on Robotics and Automation},   
+	title={The multi-robot coverage problem for optimal coordinated search with an unknown number of robots},   
+	year={2011},  
+	volume={},  
+	number={},  
+	pages={2866-2871},  
+	doi={10.1109/ICRA.2011.5979995}}
+
+@article{elmokadem2019,
+	title = {Distributed Coverage Control of Quadrotor Multi-UAV Systems for Precision Agriculture},
+	journal = {IFAC-PapersOnLine},
+	volume = {52},
+	number = {30},
+	pages = {251-256},
+	year = {2019},
+	note = {6th IFAC Conference on Sensing, Control and Automation Technologies for Agriculture AGRICONTROL 2019},
+	issn = {2405-8963},
+	doi = {https://doi.org/10.1016/j.ifacol.2019.12.530},
+	url = {https://www.sciencedirect.com/science/article/pii/S2405896319324498},
+	author = {Taha Elmokadem},
+	keywords = {Sensing, Automation with UAVs, Automation, Robotics in Agriculture, Robust Control Systems for Agriculture, Crop Monitoring, Wireless Sensor Network, Coverage Control, Multi-UAV System},
+	abstract = {A distributed control strategy of multi quadrotor UAV systems is proposed in this work to address area coverage in precision agriculture. It adopts a region-based control approach by restricting the motion of UAVs within a desired dynamical region with planned dynamics while providing collision avoidance between UAVs. Voronoi partitions that can be computed in a distributed way are used to determine UAVs positions within the moving region which provides a robust and scalable solution. Simulations are done using Gazebo and Robot Operating System (ROS) to evaluate the performance of the proposed method showing good results.}
+}
+
+@Article{nafis2021,
+	AUTHOR = {Ahmed, Nafis and Pawase, Chaitali J. and Chang, KyungHi},
+	TITLE = {Distributed 3-D Path Planning for Multi-UAVs with Full Area Surveillance Based on Particle Swarm Optimization},
+	JOURNAL = {Applied Sciences},
+	VOLUME = {11},
+	YEAR = {2021},
+	NUMBER = {8},
+	ARTICLE-NUMBER = {3417},
+	URL = {https://www.mdpi.com/2076-3417/11/8/3417},
+	ISSN = {2076-3417},
+	ABSTRACT = {Collision-free distributed path planning for the swarm of unmanned aerial vehicles (UAVs) in a stochastic and dynamic environment is an emerging and challenging subject for research in the field of a communication system. Monitoring the methods and approaches for multi-UAVs with full area surveillance is needed in both military and civilian applications, in order to protect human beings and infrastructure, as well as their social security. To perform the path planning for multiple unmanned aerial vehicles, we propose a trajectory planner based on Particle Swarm Optimization (PSO) algorithm to derive a distributed full coverage optimal path planning, and a trajectory planner is developed using a dynamic fitness function. In this paper, to obtain dynamic fitness, we implemented the PSO algorithm independently in each UAV, by maximizing the fitness function and minimizing the cost function. Simulation results show that the proposed distributed path planning algorithm generates feasible optimal trajectories and update maps for the swarm of UAVs to surveil the entire area of interest.},
+	DOI = {10.3390/app11083417}
+}
+
+@article{oksanen2009,
+	author = {Oksanen, Timo and Visala, Arto},
+	title = {Coverage path planning algorithms for agricultural field machines},
+	journal = {Journal of Field Robotics},
+	volume = {26},
+	number = {8},
+	pages = {651-668},
+	doi = {https://doi.org/10.1002/rob.20300},
+	url = {https://onlinelibrary.wiley.com/doi/abs/10.1002/rob.20300},
+	eprint = {https://onlinelibrary.wiley.com/doi/pdf/10.1002/rob.20300},
+	abstract = {Abstract In this article, a coverage path planning problem is discussed in the case of agricultural fields and agricultural machines. Methods and algorithms to solve this problem are developed. These algorithms are applicable to both robots and human-driven machines. The necessary condition is to cover the whole field, and the goal is to find as efficient a route as possible. As yet, there is no universal algorithm or method capable of solving the problem in all cases. Two new approaches to solve the coverage path planning problem in the case of agricultural fields and agricultural machines are presented for consideration. Both of them are greedy algorithms. In the first algorithm the view is from on top of the field, and the goal is to split a single field plot into subfields that are simple to drive or operate. This algorithm utilizes a trapezoidal decomposition algorithm, and a search is developed of the best driving direction and selection of subfields. This article also presents other practical aspects that are taken into account, such as underdrainage and laying headlands. The second algorithm is also an incremental algorithm, but the path is planned on the basis of the machine's current state and the search is on the next swath instead of the next subfield. There are advantages and disadvantages with both algorithms, neither of them solving the problem of coverage path planning problem optimally. Nevertheless, the developed algorithms are remarkable steps toward finding a way to solve the coverage path planning problem with nonomnidirectional vehicles and taking into consideration agricultural aspects. © 2009 Wiley Periodicals, Inc.},
+	year = {2009}
+}
+
+@INPROCEEDINGS{jiao2010,
+	author={Yu-Song Jiao and Xin-Min Wang and Hai Chen and Yan Li},
+	booktitle={2010 5th IEEE Conference on Industrial Electronics and Applications}, 
+	title={Research on the coverage path planning of UAVs for polygon areas}, 
+	year={2010},
+	volume={},
+	number={},
+	pages={1467-1472},
+	doi={10.1109/ICIEA.2010.5514816}}
+
+@INPROCEEDINGS{prasad2018,
+	author={Prasad, Amritha and Sundaram, Shreyas and Choi, Han-Lim},
+	booktitle={2018 IEEE Conference on Decision and Control (CDC)}, 
+	title={Min-Max Tours for Task Allocation to Heterogeneous Agents}, 
+	year={2018},
+	volume={},
+	number={},
+	pages={1706-1711},
+	doi={10.1109/CDC.2018.8619118}}
+
+@Article{tamayo2020,
+	AUTHOR = {Vargas Tamayo, Luis and Thron, Christopher and Fendji, Jean Louis Kedieng Ebongue and Thomas, Shauna-Kay and Förster, Anna},
+	TITLE = {Cost-Minimizing System Design for Surveillance of Large, Inaccessible Agricultural Areas Using Drones of Limited Range},
+	JOURNAL = {Sustainability},
+	VOLUME = {12},
+	YEAR = {2020},
+	NUMBER = {21},
+	ARTICLE-NUMBER = {8878},
+	URL = {https://www.mdpi.com/2071-1050/12/21/8878},
+	ISSN = {2071-1050},
+	ABSTRACT = {Drones are used increasingly for agricultural surveillance. The limited flight range of drones poses a problem for surveillance of large, inaccessible areas. One possible solution is to place autonomous, solar-powered charging stations within the area of interest, where the drone can recharge during its mission. This paper designs and implements a software system for planning low-cost drone coverage of large areas. The software produces a feasible, cost-minimizing charging station placement, as well as a drone path specification. Multiple optimizations are required, which are formulated as integer linear programs. In extensive simulations, the resulting drone paths achieved 70&ndash;90 percent of theoretical optimal performance in terms of minimizing mission time for a given number of charging stations, for a variety of field configurations.},
+	DOI = {10.3390/su12218878}}
+
+@article{carmelo2018,
+	author = {Cabreira, Taua and Di Franco, Carmelo and Ferreira Jr, Paulo},
+	year = {2018},
+	month = {07},
+	pages = {1-1},
+	title = {Energy-Aware Spiral Coverage Path Planning for UAV Photogrammetric Applications},
+	volume = {PP},
+	journal = {IEEE Robotics and Automation Letters},
+	doi = {10.1109/LRA.2018.2854967}}
+
+@INPROCEEDINGS{bouzid2017,
+	author={Bouzid, Y. and Bestaoui, Y. and Siguerdidjane, H.},
+	booktitle={2017 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}, 
+	title={Quadrotor-UAV optimal coverage path planning in cluttered environment with a limited onboard energy}, 
+	year={2017},
+	volume={},
+	number={},
+	pages={979-984},
+	doi={10.1109/IROS.2017.8202264}}
+
+@ARTICLE{cannata2011,
+	author={Cannata, Giorgio and Sgorbissa, Antonio},
+	journal={IEEE Transactions on Robotics}, 
+	title={A Minimalist Algorithm for Multirobot Continuous Coverage}, 
+	year={2011},
+	volume={27},
+	number={2},
+	pages={297-312},
+	doi={10.1109/TRO.2011.2104510}}
+
+@Article{lin2021,
+	AUTHOR = {Lin, Huei-Yung and Huang, Yi-Chun},
+	TITLE = {Collaborative Complete Coverage and Path Planning for Multi-Robot Exploration},
+	JOURNAL = {Sensors},
+	VOLUME = {21},
+	YEAR = {2021},
+	NUMBER = {11},
+	ARTICLE-NUMBER = {3709},
+	URL = {https://www.mdpi.com/1424-8220/21/11/3709},
+	PubMedID = {34073565},
+	ISSN = {1424-8220},
+	ABSTRACT = {In mobile robotics research, the exploration of unknown environments has always been an important topic due to its practical uses in consumer and military applications. One specific interest of recent investigation is the field of complete coverage and path planning (CCPP) techniques for mobile robot navigation. In this paper, we present a collaborative CCPP algorithms for single robot and multi-robot systems. The incremental coverage from the robot movement is maximized by evaluating a new cost function. A goal selection function is then designed to facilitate the collaborative exploration for a multi-robot system. By considering the local gains from the individual robots as well as the global gain by the goal selection, the proposed method is able to optimize the overall coverage efficiency. In the experiments, our CCPP algorithms are carried out on various unknown and complex environment maps. The simulation results and performance evaluation demonstrate the effectiveness of the proposed collaborative CCPP technique.},
+	DOI = {10.3390/s21113709}}
+
+@article{choi2017,
+	author = {Choi, Seungyoon and Lee, Seunggwan and Viet, Hoang Huu and Chung, Taechoong},
+	title = {B-Theta*: An Efficient Online Coverage Algorithm for Autonomous Cleaning Robots},
+	year = {2017},
+	issue_date = {August 2017},
+	publisher = {Kluwer Academic Publishers},
+	address = {USA},
+	volume = {87},
+	number = {2},
+	issn = {0921-0296},
+	url = {https://doi.org/10.1007/s10846-017-0485-x},
+	doi = {10.1007/s10846-017-0485-x},
+	abstract = {We propose a novel approach to deal with the online complete-coverage task of cleaning robots in unknown workspaces with arbitrarily-shaped obstacles. Our approach is based on the boustrophedon motions, the boundary-following motions, and the Theta* algorithm known as B-Theta*. Under control of B-Theta*, the robot performs a single boustrophedon motion to cover an unvisited region. While performing the boustrophedon motion, if the robot encounters an obstacle with a boundary that has not yet been covered, it switches to the boundary mode to cover portions along the obstacle boundary, and then continues the boustrophedon motion until it detects an ending point. To move to an unvisited region, the robot detects backtracking points based on its accumulated knowledge, and applies an intelligent backtracking mechanism thanks to the proposed Theta* for multi-goals in order to reach the next starting point. Complete coverage is achieved when no starting point exists for a new boustrophedon motion. Computer simulations and experiments on real workspaces show that our proposed B-Theta* is efficient for the complete-coverage task of cleaning robots.},
+	journal = {J. Intell. Robotics Syst.},
+	month = {aug},
+	pages = {265–290},
+	numpages = {26},
+	keywords = {Theta* algorithm, Complete coverage, Boundary-following motion, Boustrophedon motion, Cleaning robot}}
+
+@Article{majeed2019,
+	AUTHOR = {Majeed, Abdul and Lee, Sungchang},
+	TITLE = {A New Coverage Flight Path Planning Algorithm Based on Footprint Sweep Fitting for Unmanned Aerial Vehicle Navigation in Urban Environments},
+	JOURNAL = {Applied Sciences},
+	VOLUME = {9},
+	YEAR = {2019},
+	NUMBER = {7},
+	ARTICLE-NUMBER = {1470},
+	URL = {https://www.mdpi.com/2076-3417/9/7/1470},
+	ISSN = {2076-3417},
+	ABSTRACT = {This paper presents a new coverage flight path planning algorithm that finds collision-free, minimum length and flyable paths for unmanned aerial vehicle (UAV) navigation in three-dimensional (3D) urban environments with fixed obstacles for coverage missions. The proposed algorithm significantly reduces computational time, number of turns, and path overlapping while finding a path that passes over all reachable points of an area or volume of interest by using sensor footprints&rsquo; sweeps fitting and a sparse waypoint graph in the pathfinding process. We devise a novel footprints&rsquo; sweep fitting method considering UAV sensor footprint as coverage unit in the free spaces to achieve maximal coverage with fewer and longer footprints&rsquo; sweeps. After footprints&rsquo; sweeps fitting, the proposed algorithm determines the visiting sequence of footprints&rsquo; sweeps by formulating it as travelling salesman problem (TSP), and ant colony optimization (ACO) algorithm is employed to solve the TSP. Furthermore, we generate a sparse waypoint graph by connecting footprints&rsquo; sweeps&rsquo; endpoints to obtain a complete coverage flight path. The simulation results obtained from various scenarios fortify the effectiveness of the proposed algorithm and verify the aforementioned claims.},
+	DOI = {10.3390/app9071470}
+}
+
+@Article{fevgas2022,
+	AUTHOR = {Fevgas, Georgios and Lagkas, Thomas and Argyriou, Vasileios and Sarigiannidis, Panagiotis},
+	TITLE = {Coverage Path Planning Methods Focusing on Energy Efficient and Cooperative Strategies for Unmanned Aerial Vehicles},
+	JOURNAL = {Sensors},
+	VOLUME = {22},
+	YEAR = {2022},
+	NUMBER = {3},
+	ARTICLE-NUMBER = {1235},
+	URL = {https://www.mdpi.com/1424-8220/22/3/1235},
+	PubMedID = {35161979},
+	ISSN = {1424-8220},
+	ABSTRACT = {The coverage path planning (CPP) algorithms aim to cover the total area of interest with minimum overlapping. The goal of the CPP algorithms is to minimize the total covering path and execution time. Significant research has been done in robotics, particularly for multi-unmanned unmanned aerial vehicles (UAVs) cooperation and energy efficiency in CPP problems. This paper presents a review of the early-stage CPP methods in the robotics field. Furthermore, we discuss multi-UAV CPP strategies and focus on energy-saving CPP algorithms. Likewise, we aim to present a comparison between energy efficient CPP algorithms and directions for future research.},
+	DOI = {10.3390/s22031235}
+}
+
+@ARTICLE{song2018,
+	author={Song, Junnan and Gupta, Shalabh},
+	journal={IEEE Transactions on Robotics}, 
+	title={$\varepsilon ^{\star}$: An Online Coverage Path Planning Algorithm}, 
+	year={2018},
+	volume={34},
+	number={2},
+	pages={526-533},
+	doi={10.1109/TRO.2017.2780259}}
+
+@ARTICLE{xie2020,
+	author={Xie, Junfei and Garcia Carrillo, Luis Rodolfo and Jin, Lei},
+	journal={IEEE Access}, 
+	title={Path Planning for UAV to Cover Multiple Separated Convex Polygonal Regions}, 
+	year={2020},
+	volume={8},
+	number={},
+	pages={51770-51785},
+	doi={10.1109/ACCESS.2020.2980203}}
+
+@inproceedings{mickey2021,
+	author = {Li, Mickey and Richards, Arthur and Sooriyabandara, Mahesh},
+	title = {Reliability-Aware Multi-UAV Coverage Path Planning Using a Genetic Algorithm},
+	year = {2021},
+	isbn = {9781450383073},
+	publisher = {International Foundation for Autonomous Agents and Multiagent Systems},
+	address = {Richland, SC},
+	abstract = {Graceful degradation is a desirable trait in applications that require coverage with real, failure-prone robots. Thus paper uses methods informed by Reliability Engineering to study the Reliability-Aware Multi-Agent Coverage Path Planning (RA-MCPP) problem. An augmented stochastic framework is applied to evaluate a strategy's probability of mission completion. An augmented stochastic framework is applied to evaluate a strategy's probability of mission completion (PoC) on 3D lattice graph environments. A Genetic Algorithm optimisation approach is then proposed to find RA-MCPP path plans which maximise PoC. It is shown that the GA provides good solutions at reasonable runtimes, complementing previous approaches which focused on global optimality guarantees at the cost of massive computation, especially for medium and large environments.},
+	booktitle = {Proceedings of the 20th International Conference on Autonomous Agents and MultiAgent Systems},
+	pages = {1584–1586},
+	numpages = {3},
+	keywords = {multi-robot systems, coverage path planning, reliability analysis},
+	location = {Virtual Event, United Kingdom},
+	series = {AAMAS '21}
+}
+
+@INPROCEEDINGS{richards2021,
+	author={Li, Mickey and Richards, Arthur and Sooriyabandara, Mahesh},
+	booktitle={2021 IEEE International Conference on Robotics and Automation (ICRA)}, 
+	title={Asynchronous Reliability-Aware Multi-UAV Coverage Path Planning}, 
+	year={2021},
+	volume={},
+	number={},
+	pages={10023-10029},
+	doi={10.1109/ICRA48506.2021.9560770}}
+
+@article{lagkas2020,
+	title = {A compilation of UAV applications for precision agriculture},
+	journal = {Computer Networks},
+	volume = {172},
+	pages = {107148},
+	year = {2020},
+	issn = {1389-1286},
+	doi = {https://doi.org/10.1016/j.comnet.2020.107148},
+	url = {https://www.sciencedirect.com/science/article/pii/S138912862030116X},
+	author = {Panagiotis Radoglou-Grammatikis and Panagiotis Sarigiannidis and Thomas Lagkas and Ioannis Moscholios},
+	keywords = {Precision agriculture (PA), Remote sensing (RS), Unmanned aerial vehicle (UAV)},
+	abstract = {Climate change has introduced significant challenges that can affect multiple sectors, including the agricultural one. In particular, according to the Food and Agriculture Organization of the United Nations (FAO) and the International Telecommunication Union (ITU), the world population has to find new solutions to increase the food production by 70% by 2050. The answer to this crucial challenge is the suitable adoption and utilisation of the Information and Communications Technology (ICT) services, offering capabilities that can increase the productivity of the agrochemical products, such as pesticides and fertilisers and at the same time, they should minimise the functional cost. More detailed, the advent of the Internet of Things (IoT) and specifically, the rapid evolution of the Unmanned Aerial Vehicles (UAVs) and Wireless Sensor Networks (WSNs) can lead to valuable and at the same time economic Precision Agriculture (PA) applications, such as aerial crop monitoring and smart spraying tasks. In this paper, we provide a survey regarding the potential use of UAVs in PA, focusing on 20 relevant applications. More specifically, first, we provide a detailed overview of PA, by describing its various aspects and technologies, such as soil mapping and production mapping as well as the role of the Global Positioning Systems (GPS) and Geographical Information Systems (GIS). Then, we discriminate and analyse the various types of UAVs based on their technical characteristics and payload. Finally, we investigate in detail 20 UAV applications that are devoted to either aerial crop monitoring processes or spraying tasks. For each application, we examine the methodology adopted, the proposed UAV architecture, the UAV type, as well as the UAV technical characteristics and payload.
+	}}
+
+@article{mario2017,
+    author = {Mario Silvagni and Andrea Tonoli and Enrico Zenerino and Marcello Chiaberge},
+    title = {Multipurpose UAV for search and rescue operations in mountain avalanche events},
+    journal = {Geomatics, Natural Hazards and Risk},
+    volume = {8},
+    number = {1},
+    pages = {18-33},
+    year  = {2017},
+    publisher = {Taylor & Francis},
+    doi = {10.1080/19475705.2016.1238852},
+    
+    URL = {https://doi.org/10.1080/19475705.2016.1238852},
+    eprint = {https://doi.org/10.1080/19475705.2016.1238852}
+    }
+
+@Article{anania2019,
+	author={Anania, Emily C. and Rice, Stephen and Pierce, Matthew and Winter, Scott R. and Capps, John and Walters, Nathan W. and Milner, Mattie N.},
+	title={{Public support for police drone missions depends on political affiliation and neighborhood demographics}},
+	journal={Technology in Society},
+	year=2019,
+	volume={57},
+	number={C},
+	pages={95-103},
+	month={},
+	keywords={Unmanned aerial systems; Aviation; Privacy; Political affiliation},
+	doi={10.1016/j.techsoc.2018.12},
+	abstract={As unmanned aerial systems (UAS) become more common, it is important to understand public opinion and support for these UAS. The current research attempts to investigate support for law enforcement usage of UAS, and the factors affecting this support.},
+	url={https://ideas.repec.org/a/eee/teinso/v57y2019icp95-103.html}
+}
+
+@INPROCEEDINGS{henrik2009,
+  author={Ellekilde, Lars-Peter and Christensen, Henrik I.},
+  booktitle={2009 IEEE International Conference on Robotics and Automation}, 
+  title={Control of mobile manipulator using the dynamical systems approach}, 
+  year={2009},
+  volume={},
+  number={},
+  pages={1370-1376},
+  doi={10.1109/ROBOT.2009.5152231}}
+
+@inproceedings{noonan2007,
+    author = {Noonan, Andrea and Schinstock, Dale and Lewis, Chris and Spletzer, Barry},
+    title = {Optimal Turning Path Generation for Unmanned Aerial Vehicles},
+    year = {2007},
+    isbn = {9780889866669},
+    publisher = {ACTA Press},
+    address = {USA},
+    abstract = {In this paper, we present an optimal method for calculating turning maneuvers for an unmanned aerial vehicle (UAV) developed for ecological research. The algorithm calculates several possible solutions using vectors represented in complex notation, and selects the shortest turning path given constraints determined by the aircraft. This algorithm considers the UAV's turning capabilities, generating a two-dimensional path that is feasible for the UAV to fly. We generate a test flight path and show that the UAV is capable of following the turn maneuvers.},
+    booktitle = {Proceedings of the Ninth IASTED International Conference on Control and Applications},
+    pages = {21–26},
+    numpages = {6},
+    keywords = {unmanned aerial vehicle, optimal turning, path planning},
+    location = {Montreal, Quebec, Canada},
+    series = {CA '07}
+    }
+    
+
+@Article{matplot2007,
+  Author    = {Hunter, J. D.},
+  Title     = {Matplotlib: A 2D graphics environment},
+  Journal   = {Computing in Science \& Engineering},
+  Volume    = {9},
+  Number    = {3},
+  Pages     = {90--95},
+  abstract  = {Matplotlib is a 2D graphics package used for Python for
+  application development, interactive scripting, and publication-quality
+  image generation across user interfaces and operating systems.},
+  publisher = {IEEE COMPUTER SOC},
+  doi       = {10.1109/MCSE.2007.55},
+  year      = 2007
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+@article{mania2018ars,
+  author       = {Horia Mania and
+                  Aurelia Guy and
+                  Benjamin Recht},
+  title        = {Simple random search provides a competitive approach to reinforcement
+                  learning},
+  journal      = {CoRR},
+  volume       = {abs/1803.07055},
+  year         = {2018},
+  url          = {http://arxiv.org/abs/1803.07055},
+  eprinttype    = {arXiv},
+  eprint       = {1803.07055},
+  timestamp    = {Mon, 13 Aug 2018 16:47:01 +0200},
+  biburl       = {https://dblp.org/rec/journals/corr/abs-1803-07055.bib},
+  bibsource    = {dblp computer science bibliography, https://dblp.org}
+}
+
+@book{lavalle2006planning,
+  title={Planning Algorithms},
+  author={LaValle, Steven M.},
+  year={2006},
+  publisher={Cambridge University Press},
+  url={http://planning.cs.uiuc.edu/},
+}
+
+@inproceedings{sam2005,
+	title        = {Complete Multi-Robot Coverage of Unknown Environments with Minimum Repeated Coverage},
+	author       = {Shuzhi Sam Ge and Fua, C.},
+	year         = 2005,
+	booktitle    = {Proceedings of the 2005 IEEE International Conference on Robotics and Automation},
+	volume       = {},
+	number       = {},
+	pages        = {715--720},
+	doi          = {10.1109/ROBOT.2005.1570202}
+}
+
+@article{yunling2018,
+	title        = {A Path Planning Algorithm for Plant Protection UAV for Avoiding Multiple Obstruction Areas},
+	author       = {Liu Yunling and Xu Zili and Li Na and Xu Shuxiang and Yuan Gang},
+	year         = 2018,
+	journal      = {IFAC-PapersOnLine},
+	volume       = 51,
+	number       = 17,
+	pages        = {483--488},
+	doi          = {https://doi.org/10.1016/j.ifacol.2018.08.163},
+	issn         = {2405-8963},
+	url          = {https://www.sciencedirect.com/science/article/pii/S2405896318312813},
+	note         = {6th IFAC Conference on Bio-Robotics BIOROBOTICS 2018},
+	keywords     = {Plant protection, UAV, Obstacle Area, Route Planning},
+	abstract     = {China’s farmland environment is complex. The planting area often contains some irregular obstacles. It is hard for plant protection UAV (Unmanned Aerial Vehicle) to get good planning results to avoid obstacles automatically in the autonomous mode or only through sensors. In order to improve the application scope for plant UAVs with autonomous operation mode and to obtain good operation results, this paper proposes Multi-Obstacle Area Avoidance (MOAA) algorithm which is a path planning algorithm for avoiding obstacle areas. This algorithm is proposed based on the method of cattle ploughing reciprocation. According to the information of heading, spouting, operating areas and obstacle areas, the internal route of the spraying area is obtained. The order of lines and waypoints are determined by choosing the shortest route. And this algorithm uses the Ray method to avoid the polygon obstacles and multi-obstacle areas. Operating results of different obstacle zones and heading angles are tested through simulation experiments. The best optimization radio is 14.2% when obstacle area is 800m2. Then aiming at the problem of over-dispatching of routes in some cases, MOAA algorithm is further optimized. Actual optimization length in field experiments is 75 meters (optimization radio is 7.7% ) when the heading angles is 315°. Field experimental results show that MOAA algorithm can select the best path scheme based on information such as obstacle height, area, etc.and it can improve the applicability of the plant protection UAV with autonomous operations.}
+}
+
+@article{allmendinger2023weedspot,
+  title={Precise Robotic Weed Spot-Spraying for Reduced Herbicide Usage and Improved Environmental Outcomes - A Real-World Case Study},
+  author={Allmendinger, M. and others},
+  journal={arXiv preprint arXiv:2401.13931},
+  year={2023},
+  note={Available at: https://ar5iv.org}
+}
+
+@article{gage2019a,
+	title        = {Emerging Challenges for Weed Management in Herbicide-Resistant Crops},
+	author       = {Gage, Karla L. and Krausz, Ronald F. and Walters, S. Alan},
+	year         = 2019,
+	journal      = {Agriculture},
+	volume       = 9,
+	number       = 8,
+	doi          = {10.3390/agriculture9080180},
+	issn         = {2077-0472},
+	url          = {https://www.mdpi.com/2077-0472/9/8/180},
+	article-number = 180,
+	abstract     = {Since weed management is such a critical component of agronomic crop production systems, herbicides are widely used to provide weed control to ensure that yields are maximized. In the last few years, herbicide-resistant (HR) crops, particularly those that are glyphosate-resistant, and more recently, those with dicamba (3,6-dichloro-2-methoxybenzoic acid) and 2,4-D (2,4-dichlorophenoxyacetic acid) resistance are changing the way many growers manage weeds. However, past reliance on glyphosate and mistakes made in stewardship of the glyphosate-resistant cropping system have directly led to the current weed resistance problems that now occur in many agronomic cropping systems, and new technologies must be well-stewarded. New herbicide-resistant trait technologies in soybean, such as dicamba-, 2,4-D-, and isoxaflutole- ((5-cyclopropyl-4-isoxazolyl)[2-(methylsulfonyl)-4-(trifluoromethyl)phenyl]methanone) resistance, are being combined with glyphosate- and glufosinate-resistance traits to manage herbicide-resistant weed populations. In cropping systems with glyphosate-resistant weed species, these new trait options may provide effective weed management tools, although there may be increased risk of off-target movement and susceptible plant damage with the use of some of these technologies. The use of diverse weed management practices to reduce the selection pressure for herbicide-resistant weed evolution is essential to preserve the utility of new traits. The use of herbicides with differing sites of action (SOAs), ideally in combination as mixtures, but also in rotation as part of a weed management program may slow the evolution of resistance in some cases. Increased selection pressure from the effects of some herbicide mixtures may lead to more cases of metabolic herbicide resistance. The most effective long-term approach for weed resistance management is the use of Integrated Weed Management (IWM) which may build the ecological complexity of the cropping system. Given the challenges in management of herbicide-resistant weeds, IWM will likely play a critical role in enhancing future food security for a growing global population.}
+}
+
+@article{UTSTUMO2018cea,
+title = {Robotic in-row weed control in vegetables},
+journal = {Computers and Electronics in Agriculture},
+volume = {154},
+pages = {36-45},
+year = {2018},
+issn = {0168-1699},
+doi = {https://doi.org/10.1016/j.compag.2018.08.043},
+url = {https://www.sciencedirect.com/science/article/pii/S016816991830276X},
+author = {Trygve Utstumo and Frode Urdal and Anders Brevik and Jarle Dørum and Jan Netland and Øyvind Overskeid and Therese W. Berge and Jan Tommy Gravdahl},
+keywords = {Precision agriculture, Drop-on-demand, Weed control, Agricultural robotics},
+abstract = {Vegetables and other row-crops represent a large share of the agricultural production. There is a large variation in crop species, and a limited availability in specialized herbicides. The robot presented here utilizes systematic growing techniques to navigate and operate in the field. By the use of machine vision it separates seeded vegetable crops from weed. Each weed within the row is treated with individual herbicide droplets, without affecting the crop. This results in a significant reduction in herbicide use, and allows for the use of herbicides that would otherwise harm the crop. The robot is tailored to this purpose with cost, maintainability, efficient operation and robustness in mind. The three-wheeled design is unconventional, and the design maintains maneuverability and stability with the benefit of reduced weight, complexity and cost. Indoor pot trials with four weed species demonstrated that the Drop-on-Demand system (DoD) could control the weeds with as little as 7.6 μg glyphosate or 0.15 μg iodosulfuron per plant. The results also highlight the importance of liquid characteristics for droplet stability and leaf retention properties. The common herbicide glyphosate had no effect unless mixed with suitable additives. A field trial with the robot was performed in a carrot field, and all the weeds were effectively controlled with the DoD system applying 5.3 μg of glyphosate per droplet. The robot and DoD system represent a paradigm shift to the environmental impact and health risks of weed control, while providing a valuable tool to the producers.}
+}
+
+@INPROCEEDINGS{doriya2015,
+  author={Doriya, Rajesh and Mishra, Siddharth and Gupta, Swati},
+  booktitle={International Conference on Computing, Communication \& Automation}, 
+  title={A brief survey and analysis of multi-robot communication and coordination}, 
+  year={2015},
+  volume={},
+  number={},
+  pages={1014-1021},
+  keywords={Robot kinematics;Routing;Routing protocols;Robot sensing systems;Cloud computing;Collision avoidance;Multi-robot communication;Multi-robot coordination;Cloud Computing;coordination and communication;swarm robotics;PSO;Cloud Robotics},
+  doi={10.1109/CCAA.2015.7148524}}
+
+@Inbook{kober2014,
+author="Kober, Jens
+and Peters, Jan",
+title="Reinforcement Learning in Robotics: A Survey",
+bookTitle="Learning Motor Skills: From Algorithms to Robot Experiments",
+year="2014",
+publisher="Springer International Publishing",
+address="Cham",
+pages="9--67",
+abstract="Reinforcement learning offers to robotics a framework and set of tools for the design of sophisticated and hard-to-engineer behaviors. Conversely, the challenges of robotic problems provide both inspiration, impact, and validation for developments in reinforcement learning. The relationship between disciplines has sufficient promise to be likened to that between physics and mathematics. In this article, we attempt to strengthen the links between the two research communities by providing a survey of work in reinforcement learning for behavior generation in robots. We highlight both key challenges in robot reinforcement learning as well as notable successes. We discuss how contributions tamed the complexity of the domain and study the role of algorithms, representations, and prior knowledge in achieving these successes. As a result, a particular focus of our chapter lies on the choice between model-based and model-free as well as between value function-based and policy search methods. By analyzing a simple problem in some detail we demonstrate how reinforcement learning approaches may be profitably applied, and we note throughout open questions and the tremendous potential for future research.",
+isbn="978-3-319-03194-1",
+doi="10.1007/978-3-319-03194-1_2",
+url="https://doi.org/10.1007/978-3-319-03194-1_2"
+}
+
+@article{bae2019as,
+	title        = {Multi-Robot Path Planning Method Using Reinforcement Learning},
+	author       = {Bae, Hyansu and Kim, Gidong and Kim, Jonguk and Qian, Dianwei and Lee, Sukgyu},
+	year         = 2019,
+	journal      = {Applied Sciences},
+	volume       = 9,
+	number       = 15,
+	doi          = {10.3390/app9153057},
+	issn         = {2076-3417},
+	url          = {https://www.mdpi.com/2076-3417/9/15/3057},
+	article-number = 3057,
+	abstract     = {This paper proposes a noble multi-robot path planning algorithm using Deep q learning combined with CNN (Convolution Neural Network) algorithm. In conventional path planning algorithms, robots need to search a comparatively wide area for navigation and move in a predesigned formation under a given environment. Each robot in the multi-robot system is inherently required to navigate independently with collaborating with other robots for efficient performance. In addition, the robot collaboration scheme is highly depends on the conditions of each robot, such as its position and velocity. However, the conventional method does not actively cope with variable situations since each robot has difficulty to recognize the moving robot around it as an obstacle or a cooperative robot. To compensate for these shortcomings, we apply Deep q learning to strengthen the learning algorithm combined with CNN algorithm, which is needed to analyze the situation efficiently. CNN analyzes the exact situation using image information on its environment and the robot navigates based on the situation analyzed through Deep q learning. The simulation results using the proposed algorithm shows the flexible and efficient movement of the robots comparing with conventional methods under various environments.}
+}
+
+@article{khanna2018,
+	title        = {WeedMap: A Large-Scale Semantic Weed Mapping Framework Using Aerial Multispectral Imaging and Deep Neural Network for Precision Farming},
+	author       = {Sa, Inkyu and Popović, Marija and Khanna, Raghav and Chen, Zetao and Lottes, Philipp and Liebisch, Frank and Nieto, Juan and Stachniss, Cyrill and Walter, Achim and Siegwart, Roland},
+	year         = 2018,
+	journal      = {Remote Sensing},
+	volume       = 10,
+	number       = 9,
+	doi          = {10.3390/rs10091423},
+	issn         = {2072-4292},
+	url          = {https://www.mdpi.com/2072-4292/10/9/1423},
+	article-number = 1423,
+	abstract     = {The ability to automatically monitor agricultural fields is an important capability in precision farming, enabling steps towards more sustainable agriculture. Precise, high-resolution monitoring is a key prerequisite for targeted intervention and the selective application of agro-chemicals. The main goal of this paper is developing a novel crop/weed segmentation and mapping framework that processes multispectral images obtained from an unmanned aerial vehicle (UAV) using a deep neural network (DNN). Most studies on crop/weed semantic segmentation only consider single images for processing and classification. Images taken by UAVs often cover only a few hundred square meters with either color only or color and near-infrared (NIR) channels. Although a map can be generated by processing single segmented images incrementally, this requires additional complex information fusion techniques which struggle to handle high fidelity maps due to their computational costs and problems in ensuring global consistency. Moreover, computing a single large and accurate vegetation map (e.g., crop/weed) using a DNN is non-trivial due to difficulties arising from: (1) limited ground sample distances (GSDs) in high-altitude datasets, (2) sacrificed resolution resulting from downsampling high-fidelity images, and (3) multispectral image alignment. To address these issues, we adopt a stand sliding window approach that operates on only small portions of multispectral orthomosaic maps (tiles), which are channel-wise aligned and calibrated radiometrically across the entire map. We define the tile size to be the same as that of the DNN input to avoid resolution loss. Compared to our baseline model (i.e., SegNet with 3 channel RGB (red, green, and blue) inputs) yielding an area under the curve (AUC) of [background=0.607, crop=0.681, weed=0.576], our proposed model with 9 input channels achieves [0.839, 0.863, 0.782]. Additionally, we provide an extensive analysis of 20 trained models, both qualitatively and quantitatively, in order to evaluate the effects of varying input channels and tunable network hyperparameters. Furthermore, we release a large sugar beet/weed aerial dataset with expertly guided annotations for further research in the fields of remote sensing, precision agriculture, and agricultural robotics.}
+}
+
+@article{lin2022machines,
+	title        = {A Review of Path-Planning Approaches for Multiple Mobile Robots},
+	author       = {Lin, Shiwei and Liu, Ang and Wang, Jianguo and Kong, Xiaoying},
+	year         = 2022,
+	journal      = {Machines},
+	volume       = 10,
+	number       = 9,
+	doi          = {10.3390/machines10090773},
+	issn         = {2075-1702},
+	url          = {https://www.mdpi.com/2075-1702/10/9/773},
+	article-number = 773,
+	abstract     = {Numerous path-planning studies have been conducted in past decades due to the challenges of obtaining optimal solutions. This paper reviews multi-robot path-planning approaches and decision-making strategies and presents the path-planning algorithms for various types of robots, including aerial, ground, and underwater robots. The multi-robot path-planning approaches have been classified as classical approaches, heuristic algorithms, bio-inspired techniques, and artificial intelligence approaches. Bio-inspired techniques are the most employed approaches, and artificial intelligence approaches have gained more attention recently. The decision-making strategies mainly consist of centralized and decentralized approaches. The trend of the decision-making system is to move towards a decentralized planner. Finally, the new challenge in multi-robot path planning is proposed as fault tolerance, which is important for real-time operations.}
+}
+
+@inproceedings{optuna_2019,
+    title={Optuna: A Next-generation Hyperparameter Optimization Framework},
+    author={Akiba, Takuya and Sano, Shotaro and Yanase, Toshihiko and Ohta, Takeru and Koyama, Masanori},
+    booktitle={Proceedings of the 25th {ACM} {SIGKDD} International Conference on Knowledge Discovery and Data Mining},
+    year={2019}
+}
+
+@inproceedings{henderson2018deep,
+  title={Deep reinforcement learning that matters},
+  author={Henderson, Peter and Islam, Riashat and Bachman, Philip and Pineau, Joelle and Precup, Doina and Meger, David},
+  booktitle={Proceedings of the AAAI conference on artificial intelligence},
+  volume={32},
+  year={2018}
+}
+
+% IMPALA: Scalable distributed deep-{RL}
+@inproceedings{espeholt2018impala,
+  title={IMPALA: Scalable distributed deep-{RL} with importance weighted actor-learner architectures},
+  author={Espeholt, Lasse and Soyer, Hubert and Munos, Remi and Simonyan, Karen and Mnih, Volodymyr and Ward, Tom and Doron, Yotam and Firoiu, Vlad and Harley, Tim and Dunning, Iain and others},
+  booktitle={International conference on machine learning},
+  pages={1407--1416},
+  year={2018},
+  organization={PMLR}
+}
+
+% Rainbow DQN
+@inproceedings{hessel2018rainbow, 
+  title={Rainbow: Combining improvements in deep reinforcement learning},
+  author={Hessel, Matteo and Modayil, Joseph and Van Hasselt, Hado and Schaul, Tom and Ostrovski, Georg and Dabney, Will and Horgan, Dan and Piot, Bilal and Azar, Mohammad and Silver, David},
+  booktitle={Thirty-second AAAI conference on artificial intelligence},
+  year={2018}
+}
+
+% Deep Q-Network (DQN)
+@article{mnih2015dqn, 
+  title={Human-level control through deep reinforcement learning},
+  author={Mnih, Volodymyr and Kavukcuoglu, Koray and Silver, David and Rusu, Andrei A and Veness, Joel and Bellemare, Marc G and Graves, Alex and Riedmiller, Martin and Fidjeland, Andreas K and Ostrovski, Georg and others},
+  journal={Nature},
+  volume={518},
+  number={7540},
+  pages={529--533},
+  year={2015},
+  publisher={Nature Publishing Group}
+}
+
+# Trust Region Policy Optimization (TRPO)
+@inproceedings{schulman2015trust, 
+  title={Trust region policy optimization},
+  author={Schulman, John and Levine, Sergey and Abbeel, Pieter and Jordan, Michael I and Moritz, Philipp},
+  booktitle={International Conference on Machine Learning (ICML)},
+  pages={1889--1897},
+  year={2015},
+  organization={PMLR}
+}
+
+% SAC
+@inproceedings{haarnoja2018sac, 
+  title={Soft actor-critic: Off-policy maximum entropy deep reinforcement learning with a stochastic actor},
+  author={Haarnoja, Tuomas and Zhou, Aurick and Abbeel, Pieter and Levine, Sergey},
+  booktitle={International conference on machine learning},
+  pages={1861--1870},
+  year={2018},
+  organization={PMLR}
+}
+
+@misc{levine2015,
+  doi = {10.48550/ARXIV.1504.00702},
+  url = {https://arxiv.org/abs/1504.00702},
+  author = {Levine,  Sergey and Finn,  Chelsea and Darrell,  Trevor and Abbeel,  Pieter},
+  keywords = {Machine Learning (cs.LG),  Computer Vision and Pattern Recognition (cs.CV),  Robotics (cs.RO),  FOS: Computer and information sciences,  FOS: Computer and information sciences},
+  title = {End-to-End Training of Deep Visuomotor Policies},
+  publisher = {arXiv},
+  year = {2015},
+  copyright = {arXiv.org perpetual,  non-exclusive license}
+}
+
+% Deep Deterministic Policy Gradient (DDPG)
+@inproceedings{lillicrap2015ddpg, 
+  title={Continuous control with deep reinforcement learning},
+  author={Lillicrap, Timothy P and Hunt, Jonathan J and Pritzel, Alexander and Heess, Nicolas and Erez, Tom and Tassa, Yuval and Silver, David and Wierstra, Daan},
+  booktitle={International Conference on Learning Representations (ICLR)},
+  year={2016}
+}
+
+@INPROCEEDINGS{karaman2011rrts,
+  author={Karaman, Sertac and Walter, Matthew R. and Perez, Alejandro and Frazzoli, Emilio and Teller, Seth},
+  booktitle={2011 IEEE International Conference on Robotics and Automation}, 
+  title={Anytime Motion Planning using the RRT*}, 
+  year={2011},
+  volume={},
+  number={},
+  pages={1478-1483},
+  keywords={Trajectory;Planning;Vehicles;Mobile robots;Heuristic algorithms;Vehicle dynamics},
+  doi={10.1109/ICRA.2011.5980479}}
+
+@INPROCEEDINGS{oriolo2004srt,
+  author={Oriolo, G. and Vendittelli, M. and Freda, L. and Troso, G.},
+  booktitle={IEEE International Conference on Robotics and Automation, 2004. Proceedings. ICRA '04. 2004}, 
+  title={The SRT method: randomized strategies for exploration}, 
+  year={2004},
+  volume={5},
+  number={},
+  pages={4688-4694 Vol.5},
+  keywords={Robot sensing systems;Mobile robots;Navigation;Orbital robotics;Tree data structures;Working environment noise;Space exploration;Robotic assembly;Costs;Artificial intelligence},
+  doi={10.1109/ROBOT.2004.1302457}}
+
+@INPROCEEDINGS{rodriguez2006rrt,
+  author={Rodriguez and Xinyu Tang and Jyh-Ming Lien and Amato, N.M.},
+  booktitle={Proceedings 2006 IEEE International Conference on Robotics and Automation, 2006. ICRA 2006.}, 
+  title={An obstacle-based rapidly-exploring random tree}, 
+  year={2006},
+  volume={},
+  number={},
+  pages={895-900},
+  keywords={Motion planning;Robots;Space exploration;Path planning;Joining processes;Orbital robotics;Surgery;US Department of Energy;Shape},
+  doi={10.1109/ROBOT.2006.1641823}}
+
+@INPROCEEDINGS{goto2003,
+  author={Goto, T. and Kosaka, T. and Noborio, H.},
+  booktitle={Proceedings 2003 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS 2003) (Cat. No.03CH37453)}, 
+  title={On the heuristics of A* or A algorithm in ITS and robot path-planning}, 
+  year={2003},
+  volume={2},
+  number={},
+  pages={1159-1166 vol.2},
+  keywords={Path planning;Cost function;Euclidean distance;Heuristic algorithms;Intelligent transportation systems;Intelligent robots;Roads;Orbital robotics;Robotic assembly;Manipulators},
+  doi={10.1109/IROS.2003.1248802}}
+
+@inproceedings{coppeliaSim2013,
+	title        = {CoppeliaSim (formerly V-REP): a Versatile and Scalable Robot Simulation Framework},
+	author       = {E. Rohmer and S. P. N. Singh and M. Freese},
+	year         = 2013,
+	booktitle    = {Proc. of The International Conference on Intelligent Robots and Systems (IROS)},
+	note         = {www.coppeliarobotics.com}
+}
+
+@article{silver2016go,
+	title        = {Mastering Go with deep neural networks and tree search},
+	author       = {Silver, David and Huang, Aja and Maddison, Chris and Guez, Arthur and Sifre, Laurent and van den Driessche, George and Schrittwieser, Julian and Antonoglou, Ioannis and Panneershelvam, Vinicius and Lanctot, Marc and others},
+	year         = 2016,
+	journal      = {Nature},
+	volume       = 529,
+	number       = 7587,
+	pages        = {484--489}
+}
+
+@article{silver2017mastering,
+	title        = {Mastering the game of Go without human knowledge},
+	author       = {Silver,  David and Schrittwieser,  Julian and Simonyan,  Karen and Antonoglou,  Ioannis and Huang,  Aja and Guez,  Arthur and Hubert,  Thomas and Baker,  Lucas and Lai,  Matthew and Bolton,  Adrian and Chen,  Yutian and Lillicrap,  Timothy and Hui,  Fan and Sifre,  Laurent and van den Driessche,  George and Graepel,  Thore and Hassabis,  Demis},
+	year         = 2017,
+	month        = oct,
+	journal      = {Nature},
+	publisher    = {Springer Science and Business Media LLC},
+	volume       = 550,
+	number       = 7676,
+	pages        = {354–359},
+	doi          = {10.1038/nature24270},
+	issn         = {1476-4687},
+	url          = {http://dx.doi.org/10.1038/nature24270}
+}
+
+@incollection{jugulam2016,
+	title        = {Chapter Three - Impact of Climate Change Factors on Weeds and Herbicide Efficacy},
+	author       = {Aruna Varanasi and P.V. Vara Prasad and Mithila Jugulam},
+	year         = 2016,
+	booktitle    = {Advances in Agronomy},
+	publisher    = {Academic Press},
+	series       = {Advances in Agronomy},
+	volume       = 135,
+	pages        = {107--146},
+	doi          = {https://doi.org/10.1016/bs.agron.2015.09.002},
+	issn         = {0065-2113},
+	url          = {https://www.sciencedirect.com/science/article/pii/S0065211315001297},
+	editor       = {Donald L. Sparks},
+	keywords     = {climate change, crop–weed competition, environmental factors, greenhouse gases, herbicide efficacy, weed physiology, weed management},
+	abstract     = {Rising carbon dioxide (CO2) concentrations and associated changes in global temperature and precipitation are major concerns for future weed management and crop production. This review focuses on the impacts of climate change factors on the growth of weeds and the potential variations in the efficacy of herbicides under changing climate conditions. Weeds are likely to show greater resilience and better adaptation to changes in CO2 concentrations and rising temperature in competition with crops due to their diverse gene pool and greater physiological plasticity. Weeds with C3 and C4 photosynthetic pathways may exhibit differential responses to higher CO2 levels and temperatures, which can affect the dynamics of crop–weed competition. In addition to its positive impact on weed growth, climate change factors could influence the efficacy of many herbicides, making weed management a major challenge for sustainable crop production. To enhance our understanding of the impact of climate change factors on herbicide efficacy, it is important to evaluate the effects of environmental conditions on various herbicide modes of action. Environmental factors such as CO2, light, temperature, relative humidity, and soil moisture differentially affect the uptake, translocation, and activity of different herbicide chemistries. Furthermore, interactions among these environmental factors may have unpredictable effects on herbicide activity. Existing literature suggests that climate change factors impacts vary not only within herbicide modes of action but also among herbicides belonging to same mode of action, so making generalized assumptions for each mode of action is difficult. Extensive research on the impact of climate change factors and their interactions on all commonly used herbicides is necessary to understand the implications for weed management in future climate scenarios.}
+}
+
+@misc{ZeroMQ,
+	title        = {ZeroMQ: High-Performance Asynchronous Messaging Library},
+	author       = {ZeroMQ},
+	year         = 2024,
+	note         = {Last accessed on August 20, 2024},
+	howpublished = {\url{https://zeromq.org/}}
+}
+@inproceedings{vrep2013,
+	title        = {V-REP: A versatile and scalable robot simulation framework},
+	author       = {Rohmer, Eric and Singh, Surya P. N. and Freese, Marc},
+	year         = 2013,
+	booktitle    = {2013 IEEE/RSJ International Conference on Intelligent Robots and Systems},
+	volume       = {},
+	number       = {},
+	pages        = {1321--1326},
+	doi          = {10.1109/IROS.2013.6696520},
+	keywords     = {Robots;Load modeling;Sensors;Shape;Joints;Hardware;Computational modeling}
+}
+@inproceedings{schulman2017ppo,
+	title        = {Proximal Policy Optimization Algorithms},
+	author       = {Schulman, John and Wolski, Filip and Dhariwal, Prafulla and Radford, Alec and Klimov, Oleg},
+	year         = 2017,
+	booktitle    = {Proceedings of the 34th International Conference on Machine Learning (ICML)},
+	url          = {https://arxiv.org/abs/1707.06347},
+	archiveprefix = {arXiv},
+	eprint       = {1707.06347},
+	primaryclass = {cs.LG}
+}
+
+@article{stable-baselines3,
+	title        = {Stable-Baselines3: Reliable Reinforcement Learning Implementations},
+	author       = {Antonin Raffin and Ashley Hill and Adam Gleave and Anssi Kanervisto and Maximilian Ernestus and Noah Dormann},
+	year         = 2021,
+	journal      = {Journal of Machine Learning Research},
+	volume       = 22,
+	number       = 268,
+	pages        = {1--8},
+	url          = {http://jmlr.org/papers/v22/20-1364.html}
+}
+
+% Advantage actor-critic (A2C)
+@inproceedings{mnih2016a2c,
+	title        = {Asynchronous Methods for Deep Reinforcement Learning},
+	author       = {Mnih, Volodymyr and Badia, Adri{\`a} Puigdom{\`e}nech and Mirza, Mehdi and Graves, Alex and Lillicrap, Timothy and Harley, Tim and Silver, David and Kavukcuoglu, Koray},
+	year         = 2016,
+	booktitle    = {International Conference on Machine Learning},
+	pages        = {1928--1937},
+	organization = {PMLR}
+}
+@book{halmos1974naive,
+	title        = {Naive Set Theory},
+	author       = {Halmos, Paul R.},
+	year         = 1974,
+	publisher    = {Springer},
+	address      = {New York},
+	pages        = {73--77},
+	chapter      = 17
+}
+
+@article{moore1962,
+	title        = {Machine Models of Self-Reproduction},
+	author       = {Moore, Edward F},
+	year         = 1962,
+	journal      = {Proceedings of the symposium on self-replicating systems},
+	volume       = 9,
+	pages        = {17--33}
+}
+@article{chebyshev1853,
+	title        = {Sur Les Expressions Approximatives Des Fonctions},
+	author       = {Chebyshev, Pafnuty Lvovich},
+	year         = 1853,
+	journal      = {Journal de Math{\'e}matiques Pures et Appliqu{\'e}es},
+	volume       = 18,
+	pages        = {137--144}
+}
+
+@misc{brockman2016openai,
+  author    = {Greg Brockman and Vicki Cheung and Ludwig Pettersson and Jonas Schneider and John Schulman and Jie Tang and Wojciech Zaremba},
+  title     = {OpenAI Gym},
+  year      = {2016},
+  url       = {https://arxiv.org/abs/1606.01540},
+  eprint    = {1606.01540},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG}
+}
