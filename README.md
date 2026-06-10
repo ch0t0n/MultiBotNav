@@ -9,7 +9,11 @@ cd "/home/c/choton/reinforcement_learning/corl_2026/git/MultiBotNav/running_expe
 
 ## Currently running experiments 
 ### In GPU server: 
-1. `/home/c/choton/reinforcement_learning/corl_2026/git/MultiBotNav/running_experiments/v1_wheeled.py`
+1. `/home/c/choton/reinforcement_learning/corl_2026/git/MultiBotNav/running_experiments/v6_wheeled.py`
+2. `/home/c/choton/reinforcement_learning/corl_2026/git/MultiBotNav/running_experiments/v7_wheeled.py`
+
+### June 10, 2026
+Today I'm redoing experiment to check the consistency of the results with `v6_wheeled.py` and `v7_wheeled.py`.
 
 ### May 25, 2026
 Today I developed the best environment for wheeled robots which now learns the optimal policy for every env variation. The code is in `running_experiments/v2_wheeled.py`.
