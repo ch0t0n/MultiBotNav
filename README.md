@@ -45,6 +45,12 @@ MultiBotNav/
 ├── analyze_results.py          ← aggregate NPZ + CSV into LaTeX-ready tables
 ├── plot_figures.py             ← all paper figures
 ├── sim2real.py                 ← CoppeliaSim observation-gap study (UAV only)
+├── simulation/
+│   ├── wheeled_trained_sim2.py ← Pygame demo with trained CrossQ policy
+│   └── wheeled_random_sim2.py  ← Pygame demo with random actions
+├── trained_models/             ← pre-trained wheeled checkpoints (see Simulation)
+│   └── wheeled/
+│       └── best_model_env{N}_stage2_robust_wind/best_model.zip
 ├── single_file_implementation/    ← all-in-one reference implementations
 ├── slurm/                      ← SLURM array scripts (one per step)
 └── INSTRUCTIONS.MD             ← full reproduction recipe (local + HPC)
@@ -149,7 +155,56 @@ counts, and merge commands.
 
 ---
 
-## Simulation (CoppeliaSim, UAV only)
+## Simulation
+
+### Wheeled robots (Pygame, trained policies)
+
+The `simulation/` folder provides a standalone Pygame visualizer for the wheeled
+robot environment.  It loads a trained **CrossQ** checkpoint and runs the policy
+in real time — no CoppeliaSim required.
+
+**Prerequisites:** `pygame` and `shapely` (already in `requirements.txt`).
+
+**Trained models** are expected under:
+
+```
+trained_models/wheeled/best_model_env{N}_stage2_robust_wind/best_model.zip
+```
+
+where `{N}` is the environment index (`1` … `10`).  These correspond to the
+stage-2 checkpoints produced by the wheeled two-stage curriculum (see the
+wheeled note in Quickstart).  You can also point the script at your own
+training output, e.g. `logs/.../best_model_stage2/best_model.zip`.
+
+**Run the trained-policy demo** from the repository root:
+
+```bash
+python simulation/wheeled_trained_sim2.py
+```
+
+Edit the configuration block at the top of the script before running:
+
+| Variable       | Default | Description |
+|----------------|---------|-------------|
+| `env_key`      | `'env6'`| Map to load (`env1` … `env10`) |
+| `num_robots`   | `None`  | Robot count (`2`–`5`); `None` infers from the checkpoint |
+| `weights_path` | `trained_models/wheeled/best_model_env6_stage2_robust_wind/best_model.zip` | Path to the CrossQ `.zip` |
+| `max_steps`    | `1000`  | Episode length cap |
+
+The script matches stage-2 training settings (`uncertainty_mode="wind_only"`,
+`dr_mode="wind"`), applies the same 30% obstacle shrink for `env2`–`env9` as
+`src/utils.py`, and auto-resets when an episode terminates.  Close the Pygame
+window with the X button to exit.
+
+**Random-action baseline** (same maps, no trained model):
+
+```bash
+python simulation/wheeled_random_sim2.py
+```
+
+Set `env_key` at the top of that file to switch environments.
+
+### CoppeliaSim (UAV only)
 
 Install CoppeliaSim from <https://coppeliarobotics.com/>.  The scene file
 (`simulation/sim_envs/coppeliasim_scene_for_spraying_v3.ttt`) and the
