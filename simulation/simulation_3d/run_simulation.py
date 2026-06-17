@@ -21,9 +21,9 @@ def parse_args():
     )
     parser.add_argument(
         "--backend",
-        choices=["webots", "ursina", "isaac", "headless"],
-        default="webots",
-        help="3D renderer backend (default: webots).",
+        choices=["ursina", "headless"],
+        default="ursina",
+        help="3D renderer backend (default: ursina).",
     )
     parser.add_argument(
         "--env-key",
@@ -56,7 +56,7 @@ def parse_args():
     parser.add_argument(
         "--scene-config",
         default=None,
-        help="Path to scene_config.json (3D heights, colors, crop layout).",
+        help="Path to scene_config.json (3D heights, colors, grass layout).",
     )
     parser.add_argument(
         "--robot-type",
@@ -76,21 +76,6 @@ def main():
         print(f"Warning: checkpoint not found at {weights}")
         print("Running with random policy. Train a model or pass --weights explicitly.")
         weights = None
-
-    if args.backend == "webots":
-        from backends.webots_bridge import launch_webots
-
-        num_robots = args.num_robots
-        sys.exit(
-            launch_webots(
-                env_key=args.env_key,
-                num_robots=num_robots,
-                weights=weights,
-                json_path=json_path,
-                random_policy=args.random_policy,
-                max_steps=args.max_steps,
-            )
-        )
 
     env, model, num_robots = prepare_env(
         env_key=args.env_key,
@@ -116,10 +101,6 @@ def main():
             scene_config_path=args.scene_config,
             robot_type=args.robot_type,
         )
-    elif args.backend == "isaac":
-        from backends.isaac_bridge import run_isaac_instructions
-
-        run_isaac_instructions(args.env_key, num_robots, weights)
     elif args.backend == "headless":
         from backends.headless import run_headless
 

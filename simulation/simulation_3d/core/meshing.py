@@ -64,6 +64,20 @@ def extrude_polygon_mesh(
     return vertices, triangles
 
 
+def make_lit_mesh(Mesh, vertices, triangles, *, smooth: bool = False):
+    """
+    Build an Ursina mesh with face normals so directional/ambient lights apply.
+
+    Custom vertex-only meshes default to flat shading without normals; built-in
+    primitives and OBJ models include them automatically.
+    """
+    if not vertices or not triangles:
+        return None
+    mesh = Mesh(vertices=vertices, triangles=triangles, mode="triangle")
+    mesh.generate_normals(smooth=smooth)
+    return mesh
+
+
 def merge_meshes(
     parts: list[tuple[list[tuple[float, float, float]], list[int]]],
 ) -> tuple[list[tuple[float, float, float]], list[int]]:

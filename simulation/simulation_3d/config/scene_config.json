@@ -1,13 +1,18 @@
 {
   "field": {
-    "soil_color": [0.34, 0.50, 0.19, 1.0],
-    "margin_color": [0.42, 0.30, 0.16, 1.0],
-    "margin_size": 22.0,
-    "furrows": true,
-    "furrow_color": [0.24, 0.36, 0.11, 1.0],
-    "ground_thickness": 0.2,
     "surface_y": 0.1,
-    "rotation_y_deg": 0
+    "rotation_y_deg": 0,
+    "interior_inset": 0.02
+  },
+  "grass": {
+    "texture": "grass_tintable",
+    "tint_color": [0.56, 0.70, 0.44, 1.0],
+    "tile_world_size": 14.0,
+    "patch_variation": false,
+    "tufts_enabled": false
+  },
+  "trees": {
+    "foliage_tint": [0.28, 0.46, 0.16, 1.0]
   },
   "fence": {
     "height": 5.5,
@@ -29,36 +34,16 @@
       {"height": 14.0, "label": "hedge"}
     ]
   },
-  "corn": {
-    "model": "models/corn/corn.obj",
-    "fallback_model": "models/corn/Corn_4.obj",
-    "model_height": 3.0,
-    "row_spacing": 25.0,
-    "plant_spacing": 25.0,
-    "row_inset": 0.04,
-    "stalk_height": 6,
-    "yaw_jitter_deg": 18.0,
-    "stalk_color": [0.22, 0.55, 0.18, 1.0],
-    "leaf_color": [0.35, 0.72, 0.20, 1.0]
-  },
   "goals": {
-    "trunk_model": "models/trees/leaftree_trunk_ursina.obj",
-    "foliage_model": "models/trees/leaftree_foliage_ursina.obj",
-    "model": "models/trees/leaftree_ursina.obj",
-    "fallback_model": "models/trees/leaftree.obj",
-    "model_height": 14.01,
-    "model_base_y": -0.564,
+    "tree_variant": "Tree_3",
+    "model_base_y": 0.0,
     "plant_height": 38.0,
     "scale_variation": 0.10,
     "yaw_jitter_deg": 18.0,
     "plow_duration": 1.1,
     "plow_tilt_deg": 88.0,
     "plow_sink": 0.35,
-    "fall_side_deg": 6.0,
-    "trunk_color": [0.45, 0.30, 0.15, 1.0],
-    "leaf_color": [0.18, 0.65, 0.22, 1.0],
-    "plowed_trunk_color": [0.38, 0.26, 0.14, 1.0],
-    "plowed_leaf_color": [0.28, 0.34, 0.14, 1.0]
+    "fall_side_deg": 6.0
   },
   "robots": {
     "type": "tractor_shovel"
@@ -82,6 +67,7 @@
     "tree_count": 68,
     "tree_inner_margin": 16.0,
     "tree_outer_margin": 340.0,
+    "tree_variants": ["Tree_1", "Tree_2", "Tree_3", "Tree_4", "Tree_5", "Birch_1", "Birch_2", "Pine_1", "Pine_2"],
     "cow_count": 9,
     "sheep_count": 6,
     "hay_bale_count": 10,

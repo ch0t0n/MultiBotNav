@@ -4,13 +4,12 @@ from __future__ import annotations
 
 import math
 
-from core.meshing import extrude_polygon_mesh
+from core.meshing import extrude_polygon_mesh, make_lit_mesh
 from core.scene_config import load_scene_config
 from core.visuals.asset_paths import configure_ursina_assets
-from core.visuals.crop_models import create_corn_field_entity
 from core.visuals.camera_control import StableEditorCamera
+from core.visuals.grass_field import build_grass_field
 from core.visuals.landscape import _configure_render_pipeline, build_landscape, setup_atmosphere
-from core.visuals.rural_scenery import build_crop_furrows, build_field_margin
 from core.visuals.goal_plants import create_goal_plants
 from core.visuals.robot_model import create_wheeled_robot, sync_wheeled_robot
 from core.visuals.robot_trails import draw_robot_trails
@@ -217,7 +216,6 @@ class AgriculturalScene3D:
             parent=self.scene_root,
         )
         self._build_field()
-        self._build_corn_field()
         self._build_obstacles()
         self._build_goals()
         self._build_robots()
@@ -235,43 +233,14 @@ class AgriculturalScene3D:
         self.trail_entities: list = []
 
     def _build_field(self):
-        Entity = self._Entity
-        parent = self.field_root
-        field_cfg = self.cfg["field"]
-        w, h = self.world_width, self.world_height
-        soil = tuple(field_cfg["soil_color"])
-        field_y = float(field_cfg.get("surface_y", 0.1))
-
-        from ursina.shaders import unlit_shader
-
-        Entity(
-            parent=parent,
-            model="plane",
-            scale=(w, 1, h),
-            color=_rgb(soil[0], soil[1], soil[2], soil[3]),
-            position=(0, field_y, 0),
-            shader=unlit_shader,
-            unlit=True,
-            render_queue=1,
-        )
-        build_field_margin(Entity, w, h, field_cfg, parent=parent)
-        build_crop_furrows(
-            Entity,
-            w,
-            h,
-            self.cfg["corn"],
-            field_cfg,
-            parent=parent,
-        )
-
-    def _build_corn_field(self):
-        create_corn_field_entity(
+        build_grass_field(
             self._Entity,
+            self._Mesh,
             self.world_width,
             self.world_height,
-            self.cfg["corn"],
+            self.cfg.get("grass", {}),
+            self.cfg.get("field", {}),
             parent=self.field_root,
-            field_cfg=self.cfg["field"],
         )
 
     def _build_obstacles(self):
@@ -294,9 +263,9 @@ class AgriculturalScene3D:
                 height,
                 base_y=base_y,
             )
-            if not vertices:
+            mesh = make_lit_mesh(Mesh, vertices, triangles)
+            if mesh is None:
                 continue
-            mesh = Mesh(vertices=vertices, triangles=triangles, mode="triangle")
             ent = Entity(
                 parent=self.field_root,
                 model=mesh,
@@ -306,8 +275,9 @@ class AgriculturalScene3D:
             self.obstacle_entities.append(ent)
 
     def _build_goals(self):
-        goal_cfg = self.cfg["goals"]
-        corn_cfg = self.cfg["corn"]
+        goal_cfg = dict(self.cfg["goals"])
+        if "trees" in self.cfg:
+            goal_cfg["trees"] = self.cfg["trees"]
         self.goal_plants = create_goal_plants(
             self._Entity,
             self._Vec3,
@@ -315,7 +285,6 @@ class AgriculturalScene3D:
             self.world_width,
             self.world_height,
             goal_cfg,
-            corn_cfg,
             parent=self.field_root,
         )
 

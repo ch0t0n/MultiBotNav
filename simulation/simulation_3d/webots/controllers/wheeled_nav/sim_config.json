@@ -1,8 +1,0 @@
-{
-  "env_key": "env1",
-  "num_robots": null,
-  "weights_path": null,
-  "random_policy": true,
-  "max_steps": 1000,
-  "json_path": "C:\\Users\\choto\\OneDrive - Kansas State University\\PhD Projects\\Reinforcement Learning\\Codes\\ICTAI_2026\\exp_sets\\wheeled\\wheeled_configs.json"
-}

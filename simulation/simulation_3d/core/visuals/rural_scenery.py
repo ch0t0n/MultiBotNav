@@ -53,42 +53,17 @@ def _add_tree(
     x: float,
     z: float,
     scale: float,
-    trunk_color: tuple,
-    foliage_colors: tuple,
     rng: random.Random,
+    scenery_cfg: dict,
 ):
-    trunk_h = scale * rng.uniform(0.75, 1.05)
-    trunk_w = scale * rng.uniform(0.10, 0.16)
-    trunk = Entity(
-        parent=parent,
-        model="cube",
-        position=(x, trunk_h * 0.5, z),
-        scale=(trunk_w, trunk_h, trunk_w),
-        color=_rgb(*trunk_color),
-        collider=None,
-    )
-    foliage_scale = scale * rng.uniform(1.4, 2.1)
-    foliage_y = trunk_h + foliage_scale * 0.35
-    color = foliage_colors[rng.randint(0, len(foliage_colors) - 1)]
-    crown = Entity(
-        parent=parent,
-        model="sphere",
-        position=(x, foliage_y, z),
-        scale=foliage_scale,
-        color=_rgb(*color),
-        collider=None,
-    )
-    if rng.random() < 0.35:
-        offset = scale * rng.uniform(0.25, 0.55)
-        Entity(
-            parent=parent,
-            model="sphere",
-            position=(x + offset, foliage_y - scale * 0.15, z + offset * 0.4),
-            scale=foliage_scale * 0.65,
-            color=_rgb(*color),
-            collider=None,
-        )
-    return trunk, crown
+    from core.visuals.tree_models import create_scenery_tree, scenery_variants
+
+    variants = scenery_variants(scenery_cfg)
+    if not variants:
+        return []
+    variant = variants[rng.randint(0, len(variants) - 1)]
+    root, trunk, foliage = create_scenery_tree(Entity, parent, x, z, variant, scale, rng, scenery_cfg)
+    return [root, trunk, foliage]
 
 
 def _add_hay_bale(Entity, parent, x, z, scale, color):
@@ -313,17 +288,6 @@ def build_trees(Entity, half_w, half_h, scenery_cfg, parent=None):
     count = int(scenery_cfg.get("tree_count", 72))
     inner = float(scenery_cfg.get("tree_inner_margin", 18.0))
     outer = float(scenery_cfg.get("tree_outer_margin", 320.0))
-    trunk_c = tuple(scenery_cfg.get("tree_trunk_color", (0.38, 0.26, 0.14, 1.0)))
-    foliage = tuple(
-        scenery_cfg.get(
-            "tree_foliage_colors",
-            [
-                (0.18, 0.42, 0.14, 1.0),
-                (0.22, 0.48, 0.16, 1.0),
-                (0.14, 0.36, 0.12, 1.0),
-            ],
-        )
-    )
     seed = int(scenery_cfg.get("seed", 42))
     rng = random.Random(seed + 1)
 
@@ -331,7 +295,9 @@ def build_trees(Entity, half_w, half_h, scenery_cfg, parent=None):
     for _ in range(count):
         x, z = _random_pasture_point(rng, half_w, half_h, inner, outer)
         scale = rng.uniform(10.0, 22.0)
-        entities.extend(_add_tree(Entity, parent, x, z, scale, trunk_c, foliage, rng))
+        placed = _add_tree(Entity, parent, x, z, scale, rng, scenery_cfg)
+        if placed:
+            entities.extend(placed)
     return entities
 
 
@@ -527,7 +493,9 @@ def build_rural_scenery(
     parent=None,
 ):
     """Trees, buildings, livestock, and paths outside the field."""
-    scenery_cfg = cfg.get("scenery", {})
+    scenery_cfg = dict(cfg.get("scenery", {}))
+    if "trees" not in scenery_cfg and "trees" in cfg:
+        scenery_cfg["trees"] = cfg["trees"]
     env_cfg = cfg.get("environment", {})
     half_w = world_width / 2.0
     half_h = world_height / 2.0

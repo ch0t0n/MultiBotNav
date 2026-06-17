@@ -17,7 +17,20 @@ are **CC0** (public domain) unless noted.
 Default robot type: **tractor** (set in `config/scene_config.json` or `--robot-type`).  
 Type profiles (model path, texture, yaw offset) live in `core/visuals/robot_model.py`.
 
-## Corn plants
+## Trees (goal markers and pasture scenery)
+
+| File | Source | License |
+|------|--------|---------|
+| `models/trees/quaternius/Tree_*.obj` | [LowPoly Textured Trees](https://opengameart.org/content/lowpoly-textured-trees) by Quaternius | CC0 |
+| `models/trees/quaternius/Birch_*.obj` | Quaternius stylized trees pack | CC0 |
+| `models/trees/quaternius/Pine_*.obj` | Quaternius stylized trees pack | CC0 |
+| `models/trees/Textures/*.png` | Bark and leaf atlases for the tree OBJ materials | CC0 |
+
+Goal trees and background pasture trees use these textured models (branch-style
+canopies instead of primitive spheres). Variants are listed in `goals.tree_variants`
+and `scenery.tree_variants` inside `config/scene_config.json`.
+
+## Corn plants (optional legacy assets)
 
 | File | Source | License |
 |------|--------|---------|
