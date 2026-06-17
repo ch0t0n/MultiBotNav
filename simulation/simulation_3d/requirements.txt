@@ -1,0 +1,12 @@
+# Core RL stack (match github/MultiBotNav/requirements.txt versions)
+gymnasium>=0.29.1
+stable-baselines3>=2.6.0a1
+sb3-contrib>=2.6.0a1
+numpy>=1.26.4
+shapely>=2.0.5
+
+# 3D agricultural renderer (primary backend — pip installable, cross-platform)
+ursina>=7.0.0
+
+# Optional: 2D pygame reference visualizer
+pygame>=2.6.0

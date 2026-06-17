@@ -1,0 +1,5 @@
+# Downloaded archives and extracted bulk packs (canonical files live in models/)
+*.zip
+models/robot/kenney_car-kit/
+models/robot/mars_rover/
+models/corn/nature_crops_pack/

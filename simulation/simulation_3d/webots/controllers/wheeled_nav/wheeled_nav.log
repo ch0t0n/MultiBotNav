@@ -1,0 +1,16 @@
+=== wheeled_nav controller start ===
+Python: C:\Users\choton\miniconda3\envs\rl4pag\python.exe
+SIM_ROOT: F:\Onedrive\OneDrive - Kansas State University\PhD Projects\Reinforcement Learning\Codes\ICTAI_2026\simulation_3d
+Config: env=env1 num_robots=None random=True weights=None
+Ready: robots=5 policy=random
+Episode ended | steps: 83 | reward: -1429.9 | term_cond: collision
+Episode ended | steps: 162 | reward: -289.1 | term_cond: collision
+Episode ended | steps: 75 | reward: -804.9 | term_cond: collision
+Episode ended | steps: 514 | reward: -3216.7 | term_cond: collision
+Episode ended | steps: 56 | reward: -1221.1 | term_cond: collision
+Episode ended | steps: 159 | reward: -894.1 | term_cond: collision
+Episode ended | steps: 252 | reward: -3684.0 | term_cond: collision
+Episode ended | steps: 50 | reward: -1617.3 | term_cond: collision
+Episode ended | steps: 130 | reward: -3561.7 | term_cond: collision
+Episode ended | steps: 145 | reward: -961.8 | term_cond: collision
+Episode ended | steps: 28 | reward: -1134.4 | term_cond: collision
