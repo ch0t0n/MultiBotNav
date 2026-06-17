@@ -38,11 +38,11 @@ def main():
         car_zip = os.path.join(tmp, "kenney_car-kit.zip")
         with zipfile.ZipFile(car_zip) as zf:
             zf.extractall(os.path.join(tmp, "kenney"))
-        car_obj = os.path.join(tmp, "kenney", "Models", "OBJ format", "tractor.obj")
-        car_mtl = os.path.join(tmp, "kenney", "Models", "OBJ format", "tractor.mtl")
         car_tex = os.path.join(tmp, "kenney", "Models", "OBJ format", "Textures", "colormap.png")
-        _copy(car_obj, os.path.join(MODELS, "robot", "tractor.obj"))
-        _copy(car_mtl, os.path.join(MODELS, "robot", "tractor.mtl"))
+        kenney_obj = os.path.join(tmp, "kenney", "Models", "OBJ format")
+        for stem in ("tractor", "tractor-shovel", "delivery"):
+            _copy(os.path.join(kenney_obj, f"{stem}.obj"), os.path.join(MODELS, "robot", f"{stem.replace('-', '_')}.obj"))
+            _copy(os.path.join(kenney_obj, f"{stem}.mtl"), os.path.join(MODELS, "robot", f"{stem.replace('-', '_')}.mtl"))
         _copy(car_tex, os.path.join(MODELS, "robot", "Textures", "colormap.png"))
         license_src = os.path.join(tmp, "kenney", "License.txt")
         if os.path.isfile(license_src):

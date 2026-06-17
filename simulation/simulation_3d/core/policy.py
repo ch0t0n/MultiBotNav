@@ -30,30 +30,6 @@ def resolve_num_robots(weights_path: str, num_robots: int | None) -> int:
     return inferred
 
 
-def build_env(
-    env_key: str,
-    num_robots: int | None,
-    json_path: str | None = None,
-    max_steps: int = 1000,
-    uncertainty_mode: str = "wind_only",
-    dr_mode: str = "wind",
-) -> tuple[MultiWheeled, dict]:
-    json_path = json_path or default_wheeled_json()
-    env_params = load_env_from_json(json_path, key=env_key)
-    if num_robots is not None:
-        env_params["NUM_ROBOTS"] = num_robots
-        env_params["ROBOT_INIT_CONFIGS"] = env_params["ROBOT_INIT_CONFIGS"][
-            :num_robots
-        ]
-    env = MultiWheeled(
-        env_params=env_params,
-        max_steps=max_steps,
-        uncertainty_mode=uncertainty_mode,
-        dr_mode=dr_mode,
-    )
-    return env, env_params
-
-
 def prepare_env(
     env_key: str,
     num_robots: int | None,

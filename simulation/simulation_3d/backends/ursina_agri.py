@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
 
 from core.meshing import extrude_polygon_mesh
 from core.scene_config import load_scene_config
@@ -15,11 +14,7 @@ from core.visuals.rural_scenery import build_crop_furrows, build_field_margin
 from core.visuals.goal_plants import create_goal_plants
 from core.visuals.robot_model import create_wheeled_robot, sync_wheeled_robot
 from core.visuals.robot_trails import draw_robot_trails
-from core.geometry import world_to_scene
 from core.multi_wheeled import MultiWheeled
-
-if TYPE_CHECKING:
-    from ursina import Entity
 
 
 def _rgb(r: float, g: float, b: float, a: float = 1.0):
@@ -182,7 +177,7 @@ def _setup_scene_environment(cfg: dict | None = None):
 class AgriculturalScene3D:
     """Build and update a 3D agricultural visualization from env state."""
 
-    def __init__(self, env: MultiWheeled, scene_config_path: str | None = None):
+    def __init__(self, env: MultiWheeled, scene_config_path: str | None = None, robot_type: str | None = None):
         from ursina import (
             Entity,
             Mesh,
@@ -198,6 +193,8 @@ class AgriculturalScene3D:
         self._Text = Text
         self.env = env
         self.cfg = load_scene_config(scene_config_path)
+        if robot_type:
+            self.cfg.setdefault("robots", {})["type"] = robot_type
         configure_ursina_assets()
         self.world_width = env.world_width
         self.world_height = env.world_height
@@ -336,7 +333,6 @@ class AgriculturalScene3D:
                 create_wheeled_robot(
                     self._Entity,
                     self._Vec3,
-                    i,
                     length,
                     width,
                     robot_cfg,
@@ -376,13 +372,12 @@ class AgriculturalScene3D:
         env = self.env
 
         for i, robot_ent in enumerate(self.robot_entities):
-            x, y, theta, _, delta = env.robots[i]
+            x, y, theta, _, _delta = env.robots[i]
             sync_wheeled_robot(
                 robot_ent,
                 x,
                 y,
                 theta,
-                delta,
                 self.world_width,
                 self.world_height,
                 self._Vec3,
@@ -424,6 +419,7 @@ def run_ursina_simulation(
     fps: int = 30,
     auto_reset: bool = True,
     scene_config_path: str | None = None,
+    robot_type: str | None = None,
 ):
     """Run the trained (or random) policy with Ursina 3D rendering."""
     from ursina import Button, Entity, Ursina, color, destroy, held_keys, time
@@ -434,7 +430,11 @@ def run_ursina_simulation(
 
     app = Ursina(vsync=True, size=(1280, 720))
     configure_ursina_assets()
-    scene = AgriculturalScene3D(env, scene_config_path=scene_config_path)
+    scene = AgriculturalScene3D(
+        env,
+        scene_config_path=scene_config_path,
+        robot_type=robot_type,
+    )
 
     require_start = bool(ui_cfg.get("require_start_button", True))
     state = {

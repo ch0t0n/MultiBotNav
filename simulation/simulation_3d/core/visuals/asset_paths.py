@@ -24,11 +24,6 @@ def model_relative(*parts: str) -> str:
     return "/".join(parts)
 
 
-def model_path(*parts: str) -> Path:
-    """Absolute path to a bundled model file."""
-    return Path(asset_file(*parts))
-
-
 def model_exists(*parts: str) -> bool:
     return os.path.isfile(asset_file(*parts))
 
@@ -45,20 +40,3 @@ def configure_ursina_assets() -> Path:
     folder = Path(ASSETS_ROOT).resolve()
     application.asset_folder = folder
     return folder
-
-
-def builtin_ursina_texture(stem: str) -> Path | None:
-    """Locate a built-in Ursina texture inside the installed package."""
-    from ursina import application
-
-    package = Path(application.package_folder)
-    for rel in (
-        f"textures/{stem}.jpg",
-        f"textures/{stem}.png",
-        f"assets/Textures/{stem}.jpg",
-        f"assets/Textures/{stem}.png",
-    ):
-        candidate = package / rel
-        if candidate.is_file():
-            return candidate
-    return None

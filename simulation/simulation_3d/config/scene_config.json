@@ -18,9 +18,7 @@
     "rail_color": [0.58, 0.40, 0.20, 1.0],
     "rail_height": 0.30,
     "rail_thickness": 0.20,
-    "rail_levels": [0.38, 0.72],
-    "color": [0.55, 0.38, 0.20, 1.0],
-    "thickness": 2.0
+    "rail_levels": [0.38, 0.72]
   },
   "obstacles": {
     "base_y": 0.05,
@@ -63,16 +61,7 @@
     "plowed_leaf_color": [0.28, 0.34, 0.14, 1.0]
   },
   "robots": {
-    "model": "models/robot/tractor.obj",
-    "fallback_model": "models/robot/mars_rover.obj",
-    "texture": "models/robot/Textures/colormap.png",
-    "model_length": 2.0,
-    "model_yaw_offset_deg": -90.0,
-    "ground_offset": 0.0,
-    "body_height": 4.5,
-    "cab_color": [0.15, 0.15, 0.15, 1.0],
-    "wheel_color": [0.1, 0.1, 0.1, 1.0],
-    "wheel_scale": 0.18
+    "type": "tractor_shovel"
   },
   "trails": {
     "enabled": true,

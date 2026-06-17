@@ -9,10 +9,13 @@ are **CC0** (public domain) unless noted.
 |------|--------|---------|
 | `models/robot/tractor.obj` | [Kenney Car Kit](https://kenney.nl/assets/car-kit) via [OpenGameArt](https://opengameart.org/content/car-kit) | CC0 |
 | `models/robot/Textures/colormap.png` | Kenney Car Kit | CC0 |
+| `models/robot/tractor_shovel.obj` | Kenney Car Kit | CC0 |
+| `models/robot/delivery.obj` | Kenney Car Kit | CC0 |
+
 | `models/robot/mars_rover.obj` | [Mars Rover](https://opengameart.org/content/mars-rover) by Tuomo Hijakka | CC0 |
 
-Default robot model: **tractor** (agricultural ground vehicle).  
-Fallback: **mars_rover** if tractor files are missing.
+Default robot type: **tractor** (set in `config/scene_config.json` or `--robot-type`).  
+Type profiles (model path, texture, yaw offset) live in `core/visuals/robot_model.py`.
 
 ## Corn plants
 
@@ -37,9 +40,4 @@ This fetches the OpenGameArt archives and copies the canonical files into
 
 ## Configuration
 
-Model paths and scale are set in `config/scene_config.json`:
-
-```json
-"robots": { "model": "models/robot/tractor.obj", "model_length": 2.0, ... },
-"corn":   { "model": "models/corn/Corn_4.obj", "model_height": 1.15, ... }
-```
+Model paths and scale are set in `config/scene_config.json`. Robot type is selected with `"robots": { "type": "tractor" }` or `--robot-type`.

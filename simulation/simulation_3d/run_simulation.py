@@ -58,6 +58,12 @@ def parse_args():
         default=None,
         help="Path to scene_config.json (3D heights, colors, crop layout).",
     )
+    parser.add_argument(
+        "--robot-type",
+        default=None,
+        choices=["tractor", "delivery", "tractor_shovel", "rover"],
+        help="Override robots.type in scene_config.json.",
+    )
     return parser.parse_args()
 
 
@@ -104,7 +110,11 @@ def main():
         from backends.ursina_agri import run_ursina_simulation
 
         run_ursina_simulation(
-            env, model, fps=args.fps, scene_config_path=args.scene_config
+            env,
+            model,
+            fps=args.fps,
+            scene_config_path=args.scene_config,
+            robot_type=args.robot_type,
         )
     elif args.backend == "isaac":
         from backends.isaac_bridge import run_isaac_instructions

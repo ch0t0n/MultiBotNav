@@ -66,18 +66,6 @@ def _part_colors(goal_cfg: dict, corn_cfg: dict) -> dict[str, tuple[float, float
     }
 
 
-def _plant_color(goal_cfg: dict, corn_cfg: dict) -> tuple[float, float, float, float]:
-    """Average standing color (used by callers that only need one tint)."""
-    colors = _part_colors(goal_cfg, corn_cfg)
-    trunk, leaf = colors["trunk"], colors["leaf"]
-    return (
-        (trunk[0] + leaf[0]) / 2,
-        (trunk[1] + leaf[1]) / 2,
-        (trunk[2] + leaf[2]) / 2,
-        1.0,
-    )
-
-
 def _goal_scale(goal_cfg: dict, corn_cfg: dict, index: int) -> float:
     native_h = float(goal_cfg.get("model_height", corn_cfg.get("model_height", 14.0)))
     target_h = float(goal_cfg.get("plant_height", 36.0))
@@ -85,6 +73,16 @@ def _goal_scale(goal_cfg: dict, corn_cfg: dict, index: int) -> float:
     spread = float(goal_cfg.get("scale_variation", 0.12))
     jitter = spread * math.sin(index * 2.17)
     return base * (1.0 + jitter)
+
+
+def _plant_color_from_dict(colors: dict) -> tuple[float, float, float, float]:
+    trunk, leaf = colors["trunk"], colors["leaf"]
+    return (
+        (trunk[0] + leaf[0]) / 2,
+        (trunk[1] + leaf[1]) / 2,
+        (trunk[2] + leaf[2]) / 2,
+        1.0,
+    )
 
 
 def _goal_yaw(goal_cfg: dict, index: int) -> float:
@@ -254,16 +252,6 @@ def _create_tree_assembly(
         )
 
     return assembly, trunk_mesh, foliage_mesh
-
-
-def _plant_color_from_dict(colors: dict) -> tuple[float, float, float, float]:
-    trunk, leaf = colors["trunk"], colors["leaf"]
-    return (
-        (trunk[0] + leaf[0]) / 2,
-        (trunk[1] + leaf[1]) / 2,
-        (trunk[2] + leaf[2]) / 2,
-        1.0,
-    )
 
 
 def create_goal_plants(
