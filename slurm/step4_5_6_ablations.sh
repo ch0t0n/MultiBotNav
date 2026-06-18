@@ -30,13 +30,13 @@
 #SBATCH --ntasks-per-node=4
 #SBATCH --gpus-per-node=1
 #SBATCH --mem=8G
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --partition=ksu-gen-gpu.q
 #SBATCH --gres=gpu:1
 #SBATCH --export=NONE
 
 # --- COMMAND TO EXCLUDE RTX_PRO_6000 (not supported by torch==2.4.0)
-#SBATCH --exclude=warlock[41-42]
+#SBATCH --exclude=warlock[39,41-42]
 
 EXPERIMENT=${1:-ablation_reward}
 ROBOT_TYPE=${2:-uav}
@@ -73,7 +73,7 @@ if [ "$EXPERIMENT" == "ablation_reward" ]; then
 
     echo "S4-ablation-reward | robot=$ROBOT_TYPE | cond=$condition | set=$set | seed=$seed | job=$SLURM_ARRAY_TASK_ID"
 
-    /homes/choton/miniconda3/envs/robot_env/bin/python train.py \
+    /homes/jameschapman/miniforge3/envs/robot_env/bin/python train.py \
         --algorithm   "CrossQ" \
         --robot_type  $ROBOT_TYPE \
         --set         $set \
@@ -100,7 +100,7 @@ elif [ "$EXPERIMENT" == "ablation_obs" ]; then
 
     echo "S5-ablation-obs | robot=$ROBOT_TYPE | obs=$obs_mode | set=$set | seed=$seed | job=$SLURM_ARRAY_TASK_ID"
 
-    /homes/choton/miniconda3/envs/robot_env/bin/python train.py \
+    /homes/jameschapman/miniforge3/envs/robot_env/bin/python train.py \
         --algorithm   "CrossQ" \
         --robot_type  $ROBOT_TYPE \
         --set         $set \
@@ -127,7 +127,7 @@ elif [ "$EXPERIMENT" == "ablation_uncertainty" ]; then
 
     echo "S6-ablation-uncertainty | robot=$ROBOT_TYPE | mode=$uncertainty_mode | set=$set | seed=$seed | job=$SLURM_ARRAY_TASK_ID"
 
-    /homes/choton/miniconda3/envs/robot_env/bin/python train.py \
+    /homes/jameschapman/miniforge3/envs/robot_env/bin/python train.py \
         --algorithm   "CrossQ" \
         --robot_type  $ROBOT_TYPE \
         --set         $set \
