@@ -1,16 +1,16 @@
-from .env_loader import load_env_from_json
-from .geometry import binary_list_to_decimal, get_robot_polygon, world_to_scene
+from .geometry import world_to_scene
 from .meshing import extrude_polygon_mesh, merge_meshes
-from .multi_wheeled import MultiWheeled
-from .paths import default_weights_path, default_wheeled_json, resolve_path
+from .paths import default_weights_path, default_wheeled_json, ensure_repo_on_path, resolve_path
 from .policy import infer_num_robots, prepare_env, resolve_num_robots
 from .scene_config import load_scene_config
 
+ensure_repo_on_path()
+from src.env import MultiWheeled  # noqa: E402
+from src.utils import load_wheeled_env  # noqa: E402
+
 __all__ = [
     "MultiWheeled",
-    "load_env_from_json",
-    "binary_list_to_decimal",
-    "get_robot_polygon",
+    "load_wheeled_env",
     "world_to_scene",
     "extrude_polygon_mesh",
     "merge_meshes",

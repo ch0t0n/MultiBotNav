@@ -11,7 +11,9 @@ SIM_ROOT = os.path.dirname(os.path.abspath(__file__))
 if SIM_ROOT not in sys.path:
     sys.path.insert(0, SIM_ROOT)
 
-from core.paths import default_weights_path, default_wheeled_json  # noqa: E402
+from core.paths import default_weights_path, default_wheeled_json, ensure_repo_on_path  # noqa: E402
+
+ensure_repo_on_path()
 from core.policy import prepare_env  # noqa: E402
 
 

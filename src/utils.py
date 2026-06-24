@@ -113,6 +113,55 @@ def read_uav_json(json_path, sf=1):
     return data
 
 
+def _wheeled_env_params_from_cfg(key, cfg, obstacle_scale_env2_9=0.30):
+    """Build a flat MultiWheeled env_params dict from one JSON entry."""
+    r = cfg["robots"]
+    g = cfg["goals"]
+    obs = cfg["obstacles"]
+    if key.startswith("env"):
+        env_idx = int(key.replace("env", ""))
+        if 2 <= env_idx <= 9:
+            obs = [
+                scale_polygon_about_centroid(poly, obstacle_scale_env2_9)
+                for poly in obs
+            ]
+    return {
+        "SCREEN_WIDTH": float(cfg["screen"]["width"]),
+        "SCREEN_HEIGHT": float(cfg["screen"]["height"]),
+        "ROBOT_LENGTH": float(r["length"]),
+        "ROBOT_WIDTH": float(r["width"]),
+        "MAX_SPEED": float(r["max_speed"]),
+        "MAX_STEER": float(r["max_steer"]),
+        "NUM_ROBOTS": int(r["num_robots"]),
+        "ROBOT_INIT_CONFIGS": [
+            (float(c[0]), float(c[1]), float(np.radians(c[2])))
+            for c in r["configs"]
+        ],
+        "NUM_GOALS": int(g["num_goals"]),
+        "GOAL_SIZE": float(g["goal_size"]),
+        "GOAL_POSITIONS": [tuple(p) for p in g["positions"]],
+        "NUM_OBSTACLES": len(obs),
+        "OBSTACLES": [[tuple(v) for v in poly] for poly in obs],
+    }
+
+
+def load_wheeled_env(json_path, env_key="env1"):
+    """
+    Load one wheeled-robot environment config by key (``env1`` … ``env10``).
+
+    Returns a flat dict with the keys expected by ``MultiWheeled``.  Obstacles
+    in env2–env9 are shrunk to 30 % of their original area, matching training.
+    """
+    with open(json_path, "r", encoding="utf-8") as f:
+        raw = json.load(f)
+    if env_key not in raw:
+        raise KeyError(
+            f"Environment key '{env_key}' not found in {json_path}. "
+            f"Available keys: {list(raw.keys())}"
+        )
+    return _wheeled_env_params_from_cfg(env_key, raw[env_key])
+
+
 def read_wheeled_json(json_path):
     """
     Load all wheeled-robot environment configs from a single JSON file.
@@ -142,48 +191,21 @@ def read_wheeled_json(json_path):
     Obstacles in env2–env9 are shrunk to 30 % of their original area about
     their centroid so that robots can traverse those more cluttered maps.
     """
-    # Cluttered maps (env2-env9) benefit from reduced obstacle footprints
-    # so the policy can discover feasible paths during early training.
-    obstacle_scale_env2_9 = 0.30
-
-    with open(json_path, "r") as f:
+    with open(json_path, "r", encoding="utf-8") as f:
         raw = json.load(f)
 
     configs = {}
-    for i, (key, cfg) in enumerate(sorted(raw.items(),
-                                          key=lambda kv: int(kv[0].replace("env", ""))),
-                                   start=1):
-        r   = cfg["robots"]
-        g   = cfg["goals"]
-        obs = cfg["obstacles"]
-        if key.startswith("env"):
-            env_idx = int(key.replace("env", ""))
-            if 2 <= env_idx <= 9:
-                obs = [scale_polygon_about_centroid(poly, obstacle_scale_env2_9)
-                       for poly in obs]
-        env_params = {
-            "SCREEN_WIDTH":      float(cfg["screen"]["width"]),
-            "SCREEN_HEIGHT":     float(cfg["screen"]["height"]),
-            "ROBOT_LENGTH":      float(r["length"]),
-            "ROBOT_WIDTH":       float(r["width"]),
-            "MAX_SPEED":         float(r["max_speed"]),
-            "MAX_STEER":         float(r["max_steer"]),   # stored in DEGREES; MultiWheeled converts to radians
-            "NUM_ROBOTS":        int(r["num_robots"]),
-            # theta stored in degrees in JSON; MultiWheeled expects radians
-            "ROBOT_INIT_CONFIGS": [
-                (float(c[0]), float(c[1]), float(np.radians(c[2])))
-                for c in r["configs"]
-            ],
-            "NUM_GOALS":         int(g["num_goals"]),
-            "GOAL_SIZE":         float(g["goal_size"]),
-            "GOAL_POSITIONS":    [tuple(p) for p in g["positions"]],
-            "NUM_OBSTACLES":     len(obs),
-            "OBSTACLES":         [[tuple(v) for v in poly] for poly in obs],
-        }
+    for i, (key, cfg) in enumerate(
+        sorted(raw.items(), key=lambda kv: int(kv[0].replace("env", ""))),
+        start=1,
+    ):
+        env_params = _wheeled_env_params_from_cfg(key, cfg)
         configs[f"set{i}"] = env_params
-        print(f"  Loaded wheeled config set{i} <- {key}  "
-              f"({env_params['NUM_ROBOTS']} robots, "
-              f"{int(env_params['SCREEN_WIDTH'])}x{int(env_params['SCREEN_HEIGHT'])}")
+        print(
+            f"  Loaded wheeled config set{i} <- {key}  "
+            f"({env_params['NUM_ROBOTS']} robots, "
+            f"{int(env_params['SCREEN_WIDTH'])}x{int(env_params['SCREEN_HEIGHT'])}"
+        )
 
     return configs
 

@@ -111,6 +111,21 @@ python plot_figures.py --robot_type both \
 
 ---
 
+## Wave 6 — Visual simulation (optional, after Step 1)
+
+Once default or stage-2 wheeled checkpoints exist, preview policies in 3D:
+
+```bash
+cd simulation/wheeled && pip install -r requirements.txt
+python run_simulation.py --env-key env1
+```
+
+For UAV CoppeliaSim inference, open `simulation/uav/coppeliasim_envs/uav_common_env.ttt`
+and run `simulation/uav/uav_sim_new.ipynb`.  See **Simulation** in
+[`INSTRUCTIONS.MD`](INSTRUCTIONS.MD) for details.
+
+---
+
 ## Visual dependency diagram
 
 ```

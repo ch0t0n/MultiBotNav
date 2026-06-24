@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import os
 
-from .env_loader import load_env_from_json
-from .multi_wheeled import MultiWheeled
-from .paths import default_weights_path, default_wheeled_json
+from .paths import default_weights_path, default_wheeled_json, ensure_repo_on_path
+
+ensure_repo_on_path()
+from src.env import MultiWheeled  # noqa: E402
+from src.utils import load_wheeled_env  # noqa: E402
 
 
 def infer_num_robots(observation_space) -> int:
@@ -39,7 +41,7 @@ def prepare_env(
     load_weights: bool = True,
 ) -> tuple[MultiWheeled, object | None, int]:
     json_path = json_path or default_wheeled_json()
-    env_params = load_env_from_json(json_path, key=env_key)
+    env_params = load_wheeled_env(json_path, env_key=env_key)
 
     resolved_weights = weights_path
     if load_weights and not resolved_weights:
@@ -51,11 +53,9 @@ def prepare_env(
     if num_robots is None:
         num_robots = env_params["NUM_ROBOTS"]
 
-    env_params["NUM_ROBOTS"] = num_robots
-    env_params["ROBOT_INIT_CONFIGS"] = env_params["ROBOT_INIT_CONFIGS"][:num_robots]
-
     env = MultiWheeled(
         env_params=env_params,
+        num_robots=num_robots,
         max_steps=max_steps,
         uncertainty_mode="wind_only",
         dr_mode="wind",

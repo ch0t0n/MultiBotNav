@@ -5,8 +5,11 @@ from __future__ import annotations
 import math
 
 from core.meshing import extrude_polygon_mesh, make_lit_mesh
-from core.multi_wheeled import MultiWheeled
+from core.paths import ensure_repo_on_path
 from core.scene_config import load_scene_config
+
+ensure_repo_on_path()
+from src.env import MultiWheeled  # noqa: E402
 from core.visuals.asset_paths import configure_ursina_assets
 from core.visuals.camera_control import StableEditorCamera
 from core.visuals.goal_plants import create_goal_plants

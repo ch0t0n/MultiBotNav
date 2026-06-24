@@ -42,12 +42,10 @@ Follow **Part A** to run the experiments on a local machine (this may take a
 long time).  Follow **Part B** if you have access to an HPC cluster with
 SLURM.  A **single-file reference implementation** that bundles both
 environments, the helpers, the gym registration, and the training launcher
-is available in `single_file_implementation/`.  `example_training.py` covers
-the UAV environment and a simplified wheeled variant; `v2_wheeled.py` is the
-closer reference for the production wheeled environment (modern reward shaping,
-two-stage curriculum).  Once policies are trained, see
-the **Simulation** section near the end of this document to run the trained
-UAV models inside CoppeliaSim.
+is available in `single_file_implementation/`.  `example_training.py` bundles
+both UAV and wheeled environments for quick inspection.  Once policies are
+trained, see the **Simulation** section near the end of this document to run
+trained models in the Ursina 3D wheeled demo or the CoppeliaSim UAV notebook.
 
 ---
 
@@ -769,13 +767,28 @@ sim2real.py (UAV only, after Step 1) -> Tab. 4 (tab:obs_gap)
 
 # Simulation
 
-## CoppeliaSim (UAV only)
+## Wheeled robots (Ursina 3D)
+
+After training (or using the bundled checkpoints under `trained_models/wheeled/`),
+visualize wheeled policies in 3D:
+
+```bash
+cd simulation/wheeled
+pip install -r requirements.txt
+python run_simulation.py --env-key env1
+python run_simulation.py --env-key env6 --random-policy   # no checkpoint needed
+```
+
+See [`simulation/wheeled/README.md`](simulation/wheeled/README.md) for all CLI
+flags, asset download, and coordinate mapping.  Physics match `src/env.py`
+(`MultiWheeled`); the simulator imports the production environment directly.
+
+## CoppeliaSim (UAV)
 
 First, download and install the CoppeliaSim robotics simulator from
 <https://coppeliarobotics.com/>.  Open the scene file
-`simulation/sim_envs/coppeliasim_scene_for_spraying_v3.ttt` in the
-simulator, then follow the instructions in
-`simulation/new_env_sim_v3.ipynb`.
+`simulation/uav/coppeliasim_envs/uav_common_env.ttt` in the simulator, then
+follow the instructions in `simulation/uav/uav_sim_new.ipynb`.
 
 For the sim-to-real **observation gap** experiment (Table 4 in `0_main.tex`,
 label `tab:obs_gap`) on the UAV platform, run:

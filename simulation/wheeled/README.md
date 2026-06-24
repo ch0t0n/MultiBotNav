@@ -1,8 +1,9 @@
 # MultiBotNav 3D Wheeled Simulation
 
 3D Ursina visualization of trained wheeled-robot navigation policies in an
-agricultural field setting. Physics and observations match the 2D wheeled trainer;
-only the renderer differs.
+agricultural field setting.  Physics and observations reuse the production
+`MultiWheeled` environment from `src/env.py`; only the Ursina renderer lives
+here.
 
 Environment layouts are loaded from the repo training config:
 
@@ -18,6 +19,8 @@ Environment layouts are loaded from the repo training config:
 
 ```
 MultiBotNav/
+├── src/env.py                     ← MultiWheeled (shared with training)
+├── src/utils.py                   ← load_wheeled_env()
 ├── exp_sets/wheeled/wheeled_configs.json
 ├── trained_models/wheeled/best_model_env{N}_stage2_robust_wind/best_model.zip
 └── simulation/wheeled/
@@ -27,8 +30,7 @@ MultiBotNav/
     ├── config/scene_config.json
     ├── assets/models/
     └── core/
-        ├── multi_wheeled.py
-        ├── policy.py
+        ├── policy.py              ← loads checkpoints + src MultiWheeled
         ├── ursina_scene.py
         └── visuals/
 ```

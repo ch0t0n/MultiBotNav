@@ -46,8 +46,13 @@ MultiBotNav/
 ├── plot_figures.py             ← all paper figures
 ├── sim2real.py                 ← CoppeliaSim observation-gap study (UAV only)
 ├── simulation/
-│   ├── wheeled_trained_sim2.py ← Pygame demo with trained CrossQ policy
-│   └── wheeled_random_sim2.py  ← Pygame demo with random actions
+│   ├── wheeled/                ← Ursina 3D demo (trained CrossQ policies)
+│   │   ├── run_simulation.py
+│   │   ├── requirements.txt
+│   │   └── core/               ← 3D renderer (physics from src/env.py)
+│   └── uav/                    ← CoppeliaSim inference notebook
+│       ├── uav_sim_new.ipynb
+│       └── coppeliasim_envs/uav_common_env.ttt
 ├── trained_models/             ← pre-trained wheeled checkpoints (see Simulation)
 │   └── wheeled/
 │       └── best_model_env{N}_stage2_robust_wind/best_model.zip
@@ -127,11 +132,10 @@ The single-file versions contain the logic flattened into one Python file so
 you can read the entire pipeline top-to-bottom in one place — useful for
 inspection or for running a quick smoke test on a desktop.
 
-> **Reference for the wheeled robot:** `single_file_implementation/v2_wheeled.py`
-> reflects the production wheeled environment (modern reward shaping, two-stage
-> curriculum) and is a closer reference than `example_training.py`.
-> `example_training.py` covers the UAV environment and a simplified wheeled
-> variant for initial exploration.
+> **Reference for the wheeled robot:** `single_file_implementation/example_training.py`
+> includes both UAV and wheeled environments.  The production wheeled
+> environment in `src/env.py` adds two-stage curriculum support and matches
+> the 3D Ursina simulator in `simulation/wheeled/`.
 
 ---
 
@@ -157,13 +161,29 @@ counts, and merge commands.
 
 ## Simulation
 
-### Wheeled robots (Pygame, trained policies)
+The `simulation/` folder contains visual demos for both robot platforms.  Each
+simulator reuses the same environment configs and trained checkpoints as the
+training pipeline.
 
-The `simulation/` folder provides a standalone Pygame visualizer for the wheeled
-robot environment.  It loads a trained **CrossQ** checkpoint and runs the policy
-in real time — no CoppeliaSim required.
+### Wheeled robots (Ursina 3D)
 
-**Prerequisites:** `pygame` and `shapely` (already in `requirements.txt`).
+`simulation/wheeled/` provides a standalone **Ursina** 3D visualizer for the
+wheeled robot environment.  Physics and observations match `src/env.py`
+(`MultiWheeled`); only the renderer differs.  It loads trained **CrossQ**
+checkpoints and runs the policy in real time — no CoppeliaSim required.
+
+**Prerequisites:** install the wheeled simulator dependencies:
+
+```bash
+cd simulation/wheeled
+pip install -r requirements.txt
+```
+
+Optional: fetch CC0 tree/robot models if assets are missing:
+
+```bash
+python download_assets.py
+```
 
 **Trained models** are expected under:
 
@@ -176,43 +196,45 @@ stage-2 checkpoints produced by the wheeled two-stage curriculum (see the
 wheeled note in Quickstart).  You can also point the script at your own
 training output, e.g. `logs/.../best_model_stage2/best_model.zip`.
 
-**Run the trained-policy demo** from the repository root:
+**Run with a trained policy** (random-action baseline uses `--random-policy`):
 
 ```bash
-python simulation/wheeled_trained_sim2.py
+cd simulation/wheeled
+python run_simulation.py --env-key env6
+python run_simulation.py --env-key env10 --random-policy
 ```
 
-Edit the configuration block at the top of the script before running:
+With an explicit checkpoint:
 
-| Variable       | Default | Description |
-|----------------|---------|-------------|
-| `env_key`      | `'env6'`| Map to load (`env1` … `env10`) |
-| `num_robots`   | `None`  | Robot count (`2`–`5`); `None` infers from the checkpoint |
-| `weights_path` | `trained_models/wheeled/best_model_env6_stage2_robust_wind/best_model.zip` | Path to the CrossQ `.zip` |
-| `max_steps`    | `1000`  | Episode length cap |
+```bash
+python run_simulation.py --env-key env10 \
+    --weights "../../trained_models/wheeled/best_model_env10_stage2_robust_wind/best_model.zip"
+```
 
-The script matches stage-2 training settings (`uncertainty_mode="wind_only"`,
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--env-key` | `env10` | Map to load (`env1` … `env10`) |
+| `--num-robots` | inferred | Robot count (`2`–`5`); inferred from checkpoint when omitted |
+| `--weights` | `trained_models/wheeled/best_model_env{N}_...` | Path to CrossQ `.zip` |
+| `--random-policy` | off | Sample random actions instead of a checkpoint |
+| `--max-steps` | `1000` | Episode length cap |
+| `--robot-type` | from config | `tractor`, `delivery`, `tractor_shovel`, or `rover` |
+| `--fps` | `30` | Render frame rate |
+
+The simulator matches stage-2 training settings (`uncertainty_mode="wind_only"`,
 `dr_mode="wind"`), applies the same 30% obstacle shrink for `env2`–`env9` as
-`src/utils.py`, and auto-resets when an episode terminates.  Close the Pygame
-window with the X button to exit.
+`src/utils.py`, and auto-resets when an episode terminates.  See
+[`simulation/wheeled/README.md`](simulation/wheeled/README.md) for coordinate
+mapping and asset details.
 
-**Random-action baseline** (same maps, no trained model):
+### CoppeliaSim (UAV)
 
-```bash
-python simulation/wheeled_random_sim2.py
-```
+Install CoppeliaSim from <https://coppeliarobotics.com/>.  Open the scene file
+`simulation/uav/coppeliasim_envs/uav_common_env.ttt` in the simulator, then
+follow the instructions in `simulation/uav/uav_sim_new.ipynb`.
 
-Set `env_key` at the top of that file to switch environments.
-
-### CoppeliaSim (UAV only)
-
-Install CoppeliaSim from <https://coppeliarobotics.com/>.  The scene file
-(`simulation/sim_envs/coppeliasim_scene_for_spraying_v3.ttt`) and the
-companion notebook (`simulation/new_env_sim_v3.ipynb`) are **not included
-in this repository** — they are available as a separate download from the
-paper's supplementary materials.  The Table 4 (`tab:obs_gap`) sim-to-real
-observation-gap experiment is produced by `sim2real.py` (runs without
-CoppeliaSim when `RENDER_COPPELIA = False`).
+The Table 4 (`tab:obs_gap`) sim-to-real observation-gap experiment is produced
+by `sim2real.py` (runs without CoppeliaSim when `RENDER_COPPELIA = False`).
 
 > **IMPORTANT:** Reopen the CoppeliaSim scene before each run.  Never save
 > changes to the scene file when closing.

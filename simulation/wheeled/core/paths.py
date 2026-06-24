@@ -3,11 +3,19 @@
 from __future__ import annotations
 
 import os
+import sys
 
 # simulation/wheeled/
 SIM_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # MultiBotNav repo root (two levels above SIM_ROOT)
 REPO_ROOT = os.path.normpath(os.path.join(SIM_ROOT, "..", ".."))
+
+
+def ensure_repo_on_path() -> str:
+    """Add the MultiBotNav repo root to ``sys.path`` for ``src`` imports."""
+    if REPO_ROOT not in sys.path:
+        sys.path.insert(0, REPO_ROOT)
+    return REPO_ROOT
 
 
 def resolve_path(*parts: str) -> str:
