@@ -58,7 +58,7 @@ Three evaluation groups, each gated on a different training step:
 
 **After Step 1 finishes:**
 ```bash
-python sim2real.py     # UAV obs-gap study → Tab. 4
+python sim2real.py     # UAV + wheeled obs-gap study → Tab. 4
 ```
 
 **After Steps 4 & 6 finish:**
@@ -136,7 +136,7 @@ Wave 1 ────────────────────────�
   Step 7 ──────────────────┼──► Wave 3: eval_dr, wind_sweep
                            │
 Wave 3 ───────────────────┬┘
-  After Step 1  ──────────► sim2real.py
+  After Step 1  ──────────► sim2real.py (UAV + wheeled → Tab. 4)
                 │          analyze_results.py (Tab. 2 default)
   After 4+6 eval merges──► analyze_results.py (Tab. 3 reward+unc blocks)
   After 7 eval merges ───► analyze_results.py (Tab. 3 DR block)

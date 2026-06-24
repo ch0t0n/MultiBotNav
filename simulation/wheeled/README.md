@@ -104,3 +104,24 @@ Field centered at origin: `scene_x = train_x - width/2`, `scene_z = train_y - he
 | `assets/models/trees/quaternius/` | [Quaternius Textured Trees](https://opengameart.org/content/lowpoly-textured-trees) |
 
 Robot profiles: `core/visuals/robot_model.py`. Tree variants: `config/scene_config.json`.
+
+---
+
+## Sim-to-real observation gap (wheeled)
+
+The repo-root script `sim2real.py` evaluates wheeled policies under inference-time
+sensor perturbations (GPS noise, kinematic latency, goal-map dropout) and reports
+IQM scores for Table 4 (`tab:obs_gap` in `writings/0_main.tex`).
+
+```bash
+# From repository root
+python sim2real.py --robot_type wheeled
+python sim2real.py --robot_type both
+```
+
+Default checkpoint: `trained_models/wheeled/best_model_env1_stage2_robust_wind/best_model.zip`
+(or your Step-1 log at `logs/main_default/CrossQ_wheeled_N3_env1_seed42/best_model_stage2/`).
+Override with `--wheeled_model_path`.  Output: `sim2real_wheeled.out`.
+
+This is a batch Python evaluation (no Ursina window).  Use `run_simulation.py`
+above for interactive 3D visualization of the same policies.

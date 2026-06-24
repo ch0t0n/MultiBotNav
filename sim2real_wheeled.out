@@ -1,0 +1,10 @@
+============================================================
+TABLE (WHEELED) — copy into tab:obs_gap in writings/0_main.tex
+============================================================
+  Condition                                         IQM    dIQM (%)  Alone
+  -------------------------------------------- --------  ----------  -----
+  No perturbation (baseline)                    8299.02       0.0%   ---
+  GPS noise (sigma=25.0)                       -1660.49    -120.0%   Y
+  Kinematic latency (3 steps)                   7945.75      -4.3%   Y
+  Goal-map dropout (10%)                        8168.68      -1.6%   Y
+  All combined                                   115.00     -98.6%   ---

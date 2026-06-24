@@ -760,7 +760,7 @@ Step 7 (DR, both robots, N=2-5)
 
 Step 2 -> (optional) step8_sensitivity_hp.sh (both robots) -> supplementary
 
-sim2real.py (UAV only, after Step 1) -> Tab. 4 (tab:obs_gap)
+sim2real.py (UAV + wheeled, after Step 1) -> Tab. 4 (tab:obs_gap)
 ```
 
 ---
@@ -790,18 +790,50 @@ First, download and install the CoppeliaSim robotics simulator from
 follow the instructions in `simulation/uav/uav_sim_new.ipynb`.
 
 For the sim-to-real **observation gap** experiment (Table 4 in `0_main.tex`,
-label `tab:obs_gap`) on the UAV platform, run:
+label `tab:obs_gap`) on **both** platforms, run:
 
 ```bash
+# Both UAV and wheeled (default) — no visual simulator required
 python sim2real.py
+
+# One platform only
+python sim2real.py --robot_type uav
+python sim2real.py --robot_type wheeled
 ```
 
-This loads `logs/main_default/CrossQ_uav_N3_env1_seed42/best_model/best_model.zip`
-(the default model path in `sim2real.py`) and runs 50 episodes per perturbation
-condition.  Edit `TRAINED_MODEL_PATH` inside the script if your model lives
-elsewhere.  Set `RENDER_COPPELIA = False` (the default) to run without
-CoppeliaSim; set it to `True` only when the simulator is open and the scene
-file is loaded.
+Default checkpoints (first existing path wins):
 
-> **IMPORTANT:** Reopen the CoppeliaSim scene each time before running the
-> simulation.  Never save changes to the scene file when closing.
+| Platform | Primary path | Fallback |
+|:---------|:-------------|:---------|
+| UAV | `logs/main_default/CrossQ_uav_N3_env1_seed42/best_model/best_model.zip` | `trained_models/uav/.../best_model_env1/best_model.zip` |
+| Wheeled | `logs/main_default/CrossQ_wheeled_N3_env1_seed42/best_model_stage2/best_model.zip` | `trained_models/wheeled/best_model_env1_stage2_robust_wind/best_model.zip` |
+
+Override with `--uav_model_path`, `--wheeled_model_path`, or `--model_path`
+(when running a single platform).  Robot count **N** is inferred from the
+checkpoint observation dimension (4N+1 for UAV, 5N+1 for wheeled); override
+with `--num_robots` if needed.  Each run writes `sim2real_uav.out` and/or
+`sim2real_wheeled.out` with IQM tables ready to paste into `tab:obs_gap`.
+
+**Perturbation conditions** (50 episodes each by default; same structure for
+both platforms, mapped to each observation layout):
+
+| Condition | UAV obs slice | Wheeled obs slice |
+|:----------|:--------------|:------------------|
+| GPS noise | positions `[0:2N]` (σ=5.0) | positions `[0:2N]` (σ=25.0, scaled to 500-unit field) |
+| Wind / kinematic latency | velocities `[2N:4N]`, 3 steps | kinematics `[2N:5N]` (θ, v, δ), 3 steps |
+| Coverage / goal dropout | visited `[4N]`, 10% | goal map `[5N]`, 10% |
+| All combined | all of the above | all of the above |
+
+Optional **UAV CoppeliaSim visual inspection** (one episode at a time; scene
+file must be open):
+
+```bash
+python sim2real.py --robot_type uav --render_coppelia
+```
+
+Wheeled analysis is pure Python batch evaluation (same as the default UAV
+mode).  For a 3D wheeled policy preview after training, use
+`simulation/wheeled/run_simulation.py` instead.
+
+> **IMPORTANT:** Reopen the CoppeliaSim scene each time before a visual UAV
+> run.  Never save changes to the scene file when closing.

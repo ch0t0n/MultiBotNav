@@ -44,7 +44,7 @@ MultiBotNav/
 ├── sensitivity_hp.py           ← HP sensitivity sweep
 ├── analyze_results.py          ← aggregate NPZ + CSV into LaTeX-ready tables
 ├── plot_figures.py             ← all paper figures
-├── sim2real.py                 ← CoppeliaSim observation-gap study (UAV only)
+├── sim2real.py                 ← observation-gap sim-to-real study (UAV + wheeled)
 ├── simulation/
 │   ├── wheeled/                ← Ursina 3D demo (trained CrossQ policies)
 │   │   ├── run_simulation.py
@@ -227,10 +227,20 @@ Install CoppeliaSim from <https://coppeliarobotics.com/>.  Open the scene file
 follow the instructions in `simulation/uav/uav_sim_new.ipynb`.
 
 The Table 4 (`tab:obs_gap`) sim-to-real observation-gap experiment is produced
-by `sim2real.py` (runs without CoppeliaSim when `RENDER_COPPELIA = False`).
+by `sim2real.py` for **both** UAV and wheeled robots:
 
-> **IMPORTANT:** Reopen the CoppeliaSim scene before each run.  Never save
-> changes to the scene file when closing.
+```bash
+python sim2real.py                    # both platforms (default)
+python sim2real.py --robot_type uav   # UAV only
+python sim2real.py --robot_type wheeled
+```
+
+Results land in `sim2real_uav.out` and `sim2real_wheeled.out`.  Batch runs need
+no visual simulator; optional UAV CoppeliaSim rendering:
+`python sim2real.py --robot_type uav --render_coppelia`.
+
+> **IMPORTANT:** Reopen the CoppeliaSim scene before each visual UAV run.
+> Never save changes to the scene file when closing.
 
 ---
 
