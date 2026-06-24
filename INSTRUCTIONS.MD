@@ -774,7 +774,6 @@ visualize wheeled policies in 3D:
 
 ```bash
 cd simulation/wheeled
-pip install -r requirements.txt
 python run_simulation.py --env-key env1
 python run_simulation.py --env-key env6 --random-policy   # no checkpoint needed
 ```

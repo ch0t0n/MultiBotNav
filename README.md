@@ -48,7 +48,6 @@ MultiBotNav/
 ├── simulation/
 │   ├── wheeled/                ← Ursina 3D demo (trained CrossQ policies)
 │   │   ├── run_simulation.py
-│   │   ├── requirements.txt
 │   │   └── core/               ← 3D renderer (physics from src/env.py)
 │   └── uav/                    ← CoppeliaSim inference notebook
 │       ├── uav_sim_new.ipynb
@@ -171,15 +170,9 @@ training pipeline.
 wheeled robot environment.  Physics and observations match `src/env.py`
 (`MultiWheeled`); only the renderer differs.  It loads trained **CrossQ**
 checkpoints and runs the policy in real time — no CoppeliaSim required.
+Ursina is included in the root `requirements.txt`.
 
-**Prerequisites:** install the wheeled simulator dependencies:
-
-```bash
-cd simulation/wheeled
-pip install -r requirements.txt
-```
-
-Optional: fetch CC0 tree/robot models if assets are missing:
+Optional: fetch CC0 tree/robot models if assets are missing (`cd simulation/wheeled` first):
 
 ```bash
 python download_assets.py

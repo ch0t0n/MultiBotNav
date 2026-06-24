@@ -65,5 +65,7 @@ def prepare_env(
     if load_weights and resolved_weights and os.path.isfile(resolved_weights):
         from sb3_contrib import CrossQ
 
-        model = CrossQ.load(resolved_weights, env=env)
+        # Load without env: checkpoints may use float64 obs space while
+        # src/env.py MultiWheeled declares float32; inference is unaffected.
+        model = CrossQ.load(resolved_weights)
     return env, model, num_robots

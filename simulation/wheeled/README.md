@@ -26,7 +26,6 @@ MultiBotNav/
 └── simulation/wheeled/
     ├── run_simulation.py          # Entry point (CLI)
     ├── download_assets.py         # Optional: fetch CC0 models
-    ├── requirements.txt
     ├── config/scene_config.json
     ├── assets/models/
     └── core/
@@ -39,8 +38,9 @@ MultiBotNav/
 
 ## Setup
 
+From the repository root, install dependencies (includes Ursina for this demo):
+
 ```bash
-cd simulation/wheeled
 pip install -r requirements.txt
 ```
 

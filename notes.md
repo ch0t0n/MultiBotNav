@@ -116,7 +116,7 @@ python plot_figures.py --robot_type both \
 Once default or stage-2 wheeled checkpoints exist, preview policies in 3D:
 
 ```bash
-cd simulation/wheeled && pip install -r requirements.txt
+cd simulation/wheeled
 python run_simulation.py --env-key env1
 ```
 

@@ -27,6 +27,9 @@ pyzmq==26.0.3
 cbor==1.0.0
 coppeliasim-zmqremoteapi-client==2.0.4
 
+# ===== Wheeled 3D simulation (Ursina) =====
+ursina>=7.0.0
+
 # ===== RL environment / geometry =====
 pygame==2.6.0
 shapely==2.0.5
