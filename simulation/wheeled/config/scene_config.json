@@ -1,0 +1,144 @@
+{
+  "field": {
+    "surface_y": 0.1,
+    "rotation_y_deg": 0,
+    "interior_inset": 0.02
+  },
+  "grass": {
+    "texture": "grass_tintable",
+    "tint_color": [0.56, 0.70, 0.44, 1.0],
+    "tile_world_size": 14.0,
+    "patch_variation": false,
+    "tufts_enabled": false
+  },
+  "trees": {
+    "foliage_tint": [0.28, 0.46, 0.16, 1.0]
+  },
+  "fence": {
+    "height": 5.5,
+    "base_y": 0.05,
+    "post_spacing": 11.0,
+    "post_width": 0.85,
+    "post_color": [0.48, 0.32, 0.16, 1.0],
+    "rail_color": [0.58, 0.40, 0.20, 1.0],
+    "rail_height": 0.30,
+    "rail_thickness": 0.20,
+    "rail_levels": [0.38, 0.72]
+  },
+  "obstacles": {
+    "base_y": 0.05,
+    "color": [0.50, 0.34, 0.16, 1.0],
+    "styles": [
+      {"height": 12.0, "label": "barn"},
+      {"height": 8.0, "label": "hay"},
+      {"height": 14.0, "label": "hedge"}
+    ]
+  },
+  "goals": {
+    "tree_variant": "Tree_3",
+    "model_base_y": 0.0,
+    "plant_height": 38.0,
+    "scale_variation": 0.10,
+    "yaw_jitter_deg": 18.0,
+    "plow_duration": 1.1,
+    "plow_tilt_deg": 88.0,
+    "plow_sink": 0.35,
+    "fall_side_deg": 6.0
+  },
+  "robots": {
+    "type": "tractor_shovel"
+  },
+  "trails": {
+    "enabled": true,
+    "alpha": 0.55,
+    "thickness": 2.5,
+    "height": 0.22,
+    "use_robot_colors": true,
+    "unlit": true,
+    "render_queue": 3
+  },
+  "wind": {
+    "arrow_height": 8.0,
+    "offset_x": 30.0,
+    "offset_z": 20.0
+  },
+  "scenery": {
+    "seed": 42,
+    "tree_count": 68,
+    "tree_inner_margin": 16.0,
+    "tree_outer_margin": 340.0,
+    "tree_height_min": 20.0,
+    "tree_height_max": 44.0,
+    "horizon_trees": true,
+    "horizon_tree_count": 52,
+    "horizon_tree_distance_min": 1500.0,
+    "horizon_tree_distance_max": 2700.0,
+    "horizon_tree_height_min": 60.0,
+    "horizon_tree_height_max": 100.0,
+    "tree_variants": ["Tree_1", "Tree_2", "Tree_3", "Tree_4", "Tree_5", "Birch_1", "Birch_2", "Pine_1", "Pine_2"],
+    "cow_count": 9,
+    "sheep_count": 6,
+    "hay_bale_count": 10,
+    "buildings": true,
+    "hedgerow": false,
+    "dirt_paths": true,
+    "barn_offset_x": 58.0,
+    "barn_offset_z": 42.0,
+    "house_offset_x": 52.0,
+    "house_offset_z": 38.0
+  },
+  "environment": {
+    "sky_texture": "sky_default",
+    "meadow_size": 14000.0,
+    "meadow_y": -0.4,
+    "meadow_color": [0.30, 0.46, 0.21, 1.0],
+    "meadow_texture": "grass_tintable",
+    "meadow_tile_world_size": 80.0,
+    "meadow_patch_variation": true,
+    "meadow_patch_texture": "noise",
+    "meadow_patch_tile_world_size": 200.0,
+    "meadow_patch_tint_color": [0.42, 0.58, 0.30, 0.16],
+    "clip_plane_near": 2.0,
+    "clip_plane_far": 12000.0,
+    "multisample": true,
+    "multisample_count": 4,
+    "ambient_color": [0.48, 0.50, 0.46, 1.0],
+    "sun_elevation_deg": 46.0,
+    "sun_azimuth_deg": -32.0,
+    "sun_color": [1.0, 0.94, 0.78, 1.0],
+    "show_sun_disc": true,
+    "sun_disc_distance": 6500.0,
+    "sun_disc_scale": 180.0,
+    "sun_shadows": true,
+    "hill_count": 0,
+    "hill_distance": 2600.0,
+    "hill_distance_spread": 700.0,
+    "hill_height_min": 70.0,
+    "hill_height_max": 170.0,
+    "hill_width_min": 420.0,
+    "hill_width_max": 920.0,
+    "hill_color": [0.26, 0.40, 0.22, 1.0],
+    "hill_color_far": [0.34, 0.48, 0.30, 1.0],
+    "hill_seed": 17
+  },
+  "camera": {
+    "mouse_control_enabled": true,
+    "rotation_speed": 110,
+    "pan_speed": 4.0,
+    "zoom_smoothing": 18,
+    "orthographic": false,
+    "fov": 42,
+    "elevation_deg": 30,
+    "azimuth_deg": 0,
+    "distance_scale": 2,
+    "margin": 1.12,
+    "look_at_y": 2.0
+  },
+  "ui": {
+    "show_fps": true,
+    "fps_text_scale": 0.55,
+    "require_start_button": true,
+    "start_button_text": "Start Simulation",
+    "start_hint_text": "Adjust the camera, then click Start"
+  }
+}
