@@ -20,7 +20,7 @@ def load_scene_config(path: str | None = None) -> dict:
     if not os.path.isfile(path):
         raise FileNotFoundError(
             f"Scene config not found: {path}\n"
-            "Expected config/scene_config.json in the simulation_3d folder."
+            "Expected config/scene_config.json in the simulation/wheeled folder."
         )
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)

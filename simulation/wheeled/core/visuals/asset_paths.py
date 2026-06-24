@@ -15,12 +15,12 @@ def assets_root() -> str:
 
 
 def asset_file(*parts: str) -> str:
-    """Absolute path to a file under ``simulation_3d/assets``."""
+    """Absolute path to a file under ``simulation/wheeled/assets``."""
     return os.path.join(ASSETS_ROOT, *parts)
 
 
 def model_relative(*parts: str) -> str:
-    """Model path relative to ``simulation_3d/assets`` (for Ursina Entity.model)."""
+    """Model path relative to ``simulation/wheeled/assets`` (for Ursina Entity.model)."""
     return "/".join(parts)
 
 
@@ -30,7 +30,7 @@ def model_exists(*parts: str) -> bool:
 
 def configure_ursina_assets() -> Path:
     """
-    Point Ursina's asset folder at ``simulation_3d/assets``.
+    Point Ursina's asset folder at ``simulation/wheeled/assets``.
 
     Must run after ``Ursina()`` is constructed. Ursina 7+ requires a ``Path``,
     not a plain string (otherwise ``load_model`` crashes on ``.glob()``).

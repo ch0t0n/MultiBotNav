@@ -33,12 +33,12 @@ def parse_args():
     parser.add_argument(
         "--weights",
         default=None,
-        help="Path to CrossQ best_model.zip. Default: trained_models/wheeled/...",
+        help="Path to CrossQ best_model.zip. Default: ../../trained_models/wheeled/...",
     )
     parser.add_argument(
         "--json",
         default=None,
-        help="Path to wheeled_configs.json. Default: exp_sets/wheeled/...",
+        help="Path to wheeled_configs.json. Default: ../../exp_sets/wheeled/...",
     )
     parser.add_argument("--max-steps", type=int, default=1000)
     parser.add_argument("--fps", type=int, default=30, help="Simulation render FPS.")
