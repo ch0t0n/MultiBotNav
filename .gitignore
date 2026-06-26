@@ -1,6 +1,7 @@
 log/
 logs/
 logs_james/
+writings/
 
 # Python cache
 __pycache__/

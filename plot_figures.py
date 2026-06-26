@@ -17,8 +17,11 @@ Usage:
 """
 
 import os
-import glob
 import argparse
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import lru_cache
+
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -52,14 +55,21 @@ DR_LABELS = {
 }
 
 CLIP_MIN = -10000  # reward values below this threshold are set to 0
+MAX_TIMESTEPS = int(2e6)  # crop eval curves to this many env steps (inclusive)
+DEFAULT_SEEDS = (42, 123, 9999)
+MAX_IO_WORKERS = 8
+
+# Combined learning-curves algorithm legend: vertical offset in figure coords.
+# More negative → legend moves further below the subplot grid.
+COMBINED_LEGEND_Y = -0.07
 
 plt.rcParams.update({
-    "font.size": 11,
-    "axes.titlesize": 12,
-    "axes.labelsize": 11,
-    "legend.fontsize": 9,
-    "lines.linewidth": 1.8,
-    "figure.dpi": 150,
+    "font.size": 17,
+    "axes.titlesize": 17,
+    "axes.labelsize": 17,
+    "legend.fontsize": 17,
+    "lines.linewidth": 2,
+    "figure.dpi": 200,
 })
 
 # ================================================================
@@ -68,39 +78,103 @@ plt.rcParams.update({
 
 def clip_rewards(arr: np.ndarray) -> np.ndarray:
     """Set any reward values below CLIP_MIN to 0."""
-    clipped = arr.copy()
-    clipped[clipped < CLIP_MIN] = 0
-    return clipped
+    a = np.asarray(arr)
+    return np.where(a < CLIP_MIN, 0, a)
+
+
+def _crop_to_max_timesteps(ts: np.ndarray, rewards: np.ndarray
+                           ) -> tuple[np.ndarray, np.ndarray] | None:
+    """Keep evaluation points up to MAX_TIMESTEPS (assumes sorted timesteps)."""
+    ts = np.asarray(ts)
+    rewards = np.asarray(rewards)
+    end = int(np.searchsorted(ts, MAX_TIMESTEPS, side="right"))
+    if end == 0:
+        return None
+    return ts[:end], rewards[:end]
+
+
+def _np_load(path: str):
+    """Load .npz without pickle when possible (faster and safer)."""
+    try:
+        return np.load(path, allow_pickle=False)
+    except (ValueError, OSError):
+        return np.load(path, allow_pickle=True)
 
 
 # ================================================================
 # Log loading
 # ================================================================
 
+ROBOT_COUNTS = [2, 3, 4, 5]
+_learning_curve_cache: dict[tuple, dict] = {}
+
+
+def _robot_counts(robot_type: str) -> list[int]:
+    """Number-of-robots values plotted per platform (same for UAV and wheeled)."""
+    return ROBOT_COUNTS
+
+
+@lru_cache(maxsize=None)
+def _load_seed_eval_curve(log_root: str, version_fragment: str, tag: str,
+                          robot_type: str) -> tuple[np.ndarray, np.ndarray] | None:
+    """
+    Load one run's eval curve as (timesteps, mean_ep_rewards).
+
+    UAV and wheeled ablation/DR runs:
+        .../eval_logs/evaluations.npz
+    Wheeled main runs (two-stage curriculum in train.py):
+        .../eval_logs_stage1/evaluations.npz  (concatenated with stage 2)
+        .../eval_logs_stage2/evaluations.npz
+    """
+    run_dir = os.path.join(log_root, version_fragment, tag)
+
+    if robot_type == "wheeled" and version_fragment.startswith("main_"):
+        parts: list[tuple[np.ndarray, np.ndarray]] = []
+        for sub in ("eval_logs_stage1", "eval_logs_stage2"):
+            path = os.path.join(run_dir, sub, "evaluations.npz")
+            if not os.path.exists(path):
+                continue
+            try:
+                data = _np_load(path)
+                ep_rewards = clip_rewards(data["results"].mean(axis=1))
+                parts.append((data["timesteps"], ep_rewards))
+            except Exception as e:
+                print(f"  [WARN] Could not load {path}: {e}")
+        if not parts:
+            return None
+        if len(parts) == 1:
+            return _crop_to_max_timesteps(*parts[0])
+        ts = np.concatenate([p[0] for p in parts])
+        r  = np.concatenate([p[1] for p in parts])
+        return _crop_to_max_timesteps(ts, r)
+
+    path = os.path.join(run_dir, "eval_logs", "evaluations.npz")
+    if not os.path.exists(path):
+        return None
+    try:
+        data = _np_load(path)
+        ep_rewards = clip_rewards(data["results"].mean(axis=1))
+        return _crop_to_max_timesteps(data["timesteps"], ep_rewards)
+    except Exception as e:
+        print(f"  [WARN] Could not load {path}: {e}")
+        return None
+
+
 def load_eval_npz(log_root: str, version_fragment: str,
                   algorithm: str, robot_type: str,
                   num_robots: int, env_set: int,
-                  seeds=(42, 123, 9999)):
+                  seeds: tuple[int, ...] = DEFAULT_SEEDS,
+                  return_std: bool = True):
     """
-    Load eval_logs/evaluations.npz for one (alg, robot_type, N, set), averaged
-    across all seeds.  Matches the train.py directory layout:
-        logs/{version}/{alg}_{robot_type}_N{N}_env{set}_seed{seed}/eval_logs/evaluations.npz
-    Returns (timesteps, mean_rewards, std_rewards) or None.
+    Load evaluation curves for one (alg, robot_type, N, set), averaged across
+    seeds.  Returns (timesteps, mean_rewards[, std_rewards]) or None.
     """
-    all_runs = []
-    for seed in seeds:
-        tag     = f"{algorithm}_{robot_type}_N{num_robots}_env{env_set}_seed{seed}"
-        pattern = os.path.join(log_root, version_fragment, tag,
-                               "eval_logs", "evaluations.npz")
-        matches = glob.glob(pattern)
-        for m in matches:
-            try:
-                data = np.load(m, allow_pickle=True)
-                ep_rewards = clip_rewards(data["results"].mean(axis=1))
-                timesteps  = data["timesteps"]
-                all_runs.append((timesteps, ep_rewards))
-            except Exception as e:
-                print(f"  [WARN] Could not load {m}: {e}")
+    tags = [
+        f"{algorithm}_{robot_type}_N{num_robots}_env{env_set}_seed{seed}"
+        for seed in seeds
+    ]
+    all_runs = _load_seed_curves_parallel(
+        log_root, version_fragment, tags, robot_type)
 
     if not all_runs:
         return None
@@ -108,7 +182,42 @@ def load_eval_npz(log_root: str, version_fragment: str,
     min_len = min(len(ts) for ts, _ in all_runs)
     ts_ref  = all_runs[0][0][:min_len]
     stacked = np.array([r[:min_len] for _, r in all_runs])
-    return ts_ref, stacked.mean(axis=0), stacked.std(axis=0)
+    mean_r  = stacked.mean(axis=0)
+    if return_std:
+        return ts_ref, mean_r, stacked.std(axis=0)
+    return ts_ref, mean_r
+
+
+def _load_seed_curves_parallel(log_root: str, version_fragment: str,
+                               tags: list[str], robot_type: str,
+                               max_workers: int = MAX_IO_WORKERS):
+    """Load multiple run tags in parallel; hits _load_seed_eval_curve cache."""
+    if not tags:
+        return []
+
+    workers = min(len(tags), max_workers)
+    if workers <= 1:
+        curves = []
+        for tag in tags:
+            curve = _load_seed_eval_curve(
+                log_root, version_fragment, tag, robot_type)
+            if curve is not None:
+                curves.append(curve)
+        return curves
+
+    curves = []
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {
+            pool.submit(
+                _load_seed_eval_curve, log_root, version_fragment, tag, robot_type
+            ): tag
+            for tag in tags
+        }
+        for fut in as_completed(futures):
+            curve = fut.result()
+            if curve is not None:
+                curves.append(curve)
+    return curves
 
 
 def _default_n_sets(robot_type: str) -> int:
@@ -118,7 +227,10 @@ def _default_n_sets(robot_type: str) -> int:
 
 def load_learning_curves_for_n(log_root: str, version_fragment: str,
                                 robot_type: str,
-                                num_robots: int, n_sets: int | None = None):
+                                num_robots: int, n_sets: int | None = None,
+                                algorithms: list[str] | None = None,
+                                seeds: tuple[int, ...] = DEFAULT_SEEDS,
+                                max_workers: int = MAX_IO_WORKERS):
     """
     Aggregate learning curves across all env sets (1–n_sets) and seeds.
     Returns dict: algorithm → (timesteps, mean_rewards, std_rewards)
@@ -127,18 +239,55 @@ def load_learning_curves_for_n(log_root: str, version_fragment: str,
     """
     if n_sets is None:
         n_sets = _default_n_sets(robot_type)
+    algs = algorithms or ALG_ORDER
+
+    load_tasks: list[tuple[str, int, str]] = []
+    for alg in algs:
+        for env_set in range(1, n_sets + 1):
+            for seed in seeds:
+                load_tasks.append((
+                    alg,
+                    env_set,
+                    f"{alg}_{robot_type}_N{num_robots}_env{env_set}_seed{seed}",
+                ))
+
+    by_alg_set: dict[tuple[str, int], list[tuple[np.ndarray, np.ndarray]]] = (
+        defaultdict(list)
+    )
+    workers = min(len(load_tasks), max_workers)
+    if workers <= 1:
+        for alg, env_set, tag in load_tasks:
+            curve = _load_seed_eval_curve(
+                log_root, version_fragment, tag, robot_type)
+            if curve is not None:
+                by_alg_set[(alg, env_set)].append(curve)
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futures = {
+                pool.submit(
+                    _load_seed_eval_curve,
+                    log_root, version_fragment, tag, robot_type,
+                ): (alg, env_set)
+                for alg, env_set, tag in load_tasks
+            }
+            for fut in as_completed(futures):
+                alg, env_set = futures[fut]
+                curve = fut.result()
+                if curve is not None:
+                    by_alg_set[(alg, env_set)].append(curve)
+
     curves = {}
-    for alg in ALG_ORDER:
-        all_runs_ts = []
-        all_runs_r  = []
-        for s in range(1, n_sets + 1):
-            result = load_eval_npz(log_root, version_fragment, alg,
-                                   robot_type, num_robots, s)
-            if result is None:
+    for alg in algs:
+        all_runs_ts: list[np.ndarray] = []
+        all_runs_r: list[np.ndarray] = []
+        for env_set in range(1, n_sets + 1):
+            runs = by_alg_set.get((alg, env_set))
+            if not runs:
                 continue
-            ts, mean_r, _ = result
-            all_runs_ts.append(ts)
-            all_runs_r.append(mean_r)
+            min_len = min(len(ts) for ts, _ in runs)
+            stacked = np.array([r[:min_len] for _, r in runs])
+            all_runs_ts.append(runs[0][0][:min_len])
+            all_runs_r.append(stacked.mean(axis=0))
 
         if not all_runs_r:
             continue
@@ -149,6 +298,37 @@ def load_learning_curves_for_n(log_root: str, version_fragment: str,
         curves[alg] = (ts_ref, stacked.mean(axis=0), stacked.std(axis=0))
 
     return curves
+
+
+def get_learning_curves(log_root: str, version_fragment: str,
+                        robot_type: str, num_robots: int,
+                        n_sets: int | None = None,
+                        algorithms: list[str] | None = None):
+    """Return cached learning curves for one (version, robot, N) config."""
+    alg_key = tuple(algorithms) if algorithms else None
+    key = (log_root, version_fragment, robot_type, num_robots, n_sets, alg_key)
+    if key not in _learning_curve_cache:
+        _learning_curve_cache[key] = load_learning_curves_for_n(
+            log_root, version_fragment, robot_type, num_robots,
+            n_sets=n_sets, algorithms=algorithms,
+        )
+    return _learning_curve_cache[key]
+
+
+def preload_main_learning_curves(log_root: str, robot_type: str) -> dict:
+    """Preload all main default/tuned curves used by learning-curve figures."""
+    bank: dict[tuple[str, int], dict] = {}
+    for version_fragment in ("main_default", "main_tuned"):
+        for num_robots in ROBOT_COUNTS:
+            bank[(version_fragment, num_robots)] = get_learning_curves(
+                log_root, version_fragment, robot_type, num_robots)
+    return bank
+
+
+def clear_caches():
+    """Drop in-memory curve and seed caches between robot types."""
+    _learning_curve_cache.clear()
+    _load_seed_eval_curve.cache_clear()
 
 
 # ================================================================
@@ -173,7 +353,7 @@ def _draw_curves_on_ax(ax, curves, N, hp_label=None):
     ax.tick_params(labelsize=9)
 
     # --- Add reference line at +1500 ---
-    ax.axhline(y=1500, color="black", linestyle="--", linewidth=1.5)
+    ax.axhline(y=2500, color="black", linestyle="--", linewidth=1.5)
     # ax.axhspan(1450, 1550, color="black", alpha=0.08)
 
 
@@ -183,13 +363,19 @@ def _draw_curves_on_ax(ax, curves, N, hp_label=None):
 
 def plot_learning_curves(log_root: str, version_fragment: str,
                          hp_label: str, figures_dir: str,
-                         robot_type: str = "uav"):
+                         robot_type: str = "uav",
+                         curve_bank: dict | None = None):
     """
-    Produce a 1×K figure of learning curves (one panel per N).
-    For UAV: K=4 (N=2..5). For wheeled: K=1 (N defined by env config; pass 3).
+    Produce a 1×K figure of learning curves (one panel per N), K=4 (N=2..5).
     """
-    robot_counts = [2, 3, 4, 5] if robot_type == "uav" else [3]
+    robot_counts = _robot_counts(robot_type)
     n_panels = len(robot_counts)
+
+    def _curves_for(N: int) -> dict:
+        if curve_bank is not None:
+            return curve_bank[(version_fragment, N)]
+        return get_learning_curves(log_root, version_fragment, robot_type, N)
+
     fig, axes = plt.subplots(1, n_panels, figsize=(4 * n_panels, 4),
                              sharey=False, squeeze=False)
     axes = axes[0]
@@ -198,19 +384,16 @@ def plot_learning_curves(log_root: str, version_fragment: str,
                  fontsize=13, y=1.02)
 
     for ax, N in zip(axes, robot_counts):
-        curves = load_learning_curves_for_n(log_root, version_fragment,
-                                            robot_type, N)
-        _draw_curves_on_ax(ax, curves, N)
+        _draw_curves_on_ax(ax, _curves_for(N), N)
         if N == robot_counts[0]:
             ax.set_ylabel("Mean Episodic Reward")
 
     # Single legend
     handles = [mpatches.Patch(color=ALG_COLORS[a], label=a) for a in ALG_ORDER]
     fig.legend(handles=handles, loc="lower center",
-               ncol=len(ALG_ORDER), bbox_to_anchor=(0.5, -0.06), fontsize=9)
+               ncol=len(ALG_ORDER), bbox_to_anchor=(0.5, -0.06))
 
     plt.tight_layout()
-    os.makedirs(figures_dir, exist_ok=True)
     out_path = os.path.join(figures_dir,
                             f"{hp_label}_{robot_type}_learning_curves.png")
     plt.savefig(out_path, bbox_inches="tight")
@@ -220,9 +403,7 @@ def plot_learning_curves(log_root: str, version_fragment: str,
     # Also save individual files to match \includegraphics in tex
     for N in robot_counts:
         fig2, ax2 = plt.subplots(figsize=(5, 4))
-        curves = load_learning_curves_for_n(log_root, version_fragment,
-                                            robot_type, N)
-        _draw_curves_on_ax(ax2, curves, N, hp_label)
+        _draw_curves_on_ax(ax2, _curves_for(N), N, hp_label)
         ax2.set_ylabel("Mean Episodic Reward")
         ax2.legend(fontsize=8)
         plt.tight_layout()
@@ -243,7 +424,7 @@ def plot_scalability(results_dir: str, figures_dir: str,
     Reads main_tuned_summary_<robot>.csv and plots IQM and mean episode
     length vs number of robots for selected algorithms (TRPO, CrossQ, PPO).
 
-    For UAV the x-axis spans N=2..5; for wheeled there is only N=3.
+    X-axis spans N=2..5 for both robot platforms.
     """
     # Prefer the robot-tagged file; fall back to the legacy unsuffixed name
     csv_path = os.path.join(results_dir, f"main_tuned_summary_{robot_type}.csv")
@@ -257,8 +438,7 @@ def plot_scalability(results_dir: str, figures_dir: str,
 
     df = pd.read_csv(csv_path)
 
-    # Robot-specific x-axis ticks
-    robot_counts = [2, 3, 4, 5] if robot_type == "uav" else [3]
+    robot_counts = _robot_counts(robot_type)
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 4))
     fig.suptitle(f"Scalability ({robot_type.upper()}): IQM and Episode Length "
@@ -292,10 +472,9 @@ def plot_scalability(results_dir: str, figures_dir: str,
         ax2.grid(True, alpha=0.3)
     else:
         ax2.text(0.5, 0.5, "mean_ep_length not available\n(run evaluate.py with --n_eval_eps 50)",
-                 ha="center", va="center", transform=ax2.transAxes, fontsize=9)
+                 ha="center", va="center", transform=ax2.transAxes)
 
     plt.tight_layout()
-    os.makedirs(figures_dir, exist_ok=True)
     out_path = os.path.join(figures_dir, f"scalability_{robot_type}.png")
     plt.savefig(out_path, bbox_inches="tight")
     plt.close()
@@ -354,7 +533,6 @@ def plot_wind_sensitivity(results_dir: str, log_root: str, figures_dir: str,
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    os.makedirs(figures_dir, exist_ok=True)
     out_path = os.path.join(figures_dir, f"wind_sensitivity_{robot_type}.png")
     plt.savefig(out_path, bbox_inches="tight")
     plt.close()
@@ -372,36 +550,22 @@ def plot_dr_curves(log_root: str, figures_dir: str, robot_type: str = "uav",
     """
     fig, ax = plt.subplots(figsize=(6, 4))
 
-    n_sets = _default_n_sets(robot_type)
-
     for dr_mode, label in DR_LABELS.items():
         version_fragment = f"dr_{dr_mode}"
-        # Average across all sets
-        all_runs = []
-        for s in range(1, n_sets + 1):
-            result = load_eval_npz(log_root, version_fragment, "CrossQ",
-                                   robot_type, N, s)
-            if result is None:
-                continue
-            ts, mean_r, _ = result
-            all_runs.append((ts, mean_r))
-
-        if not all_runs:
+        curves = get_learning_curves(
+            log_root, version_fragment, robot_type, N, algorithms=["CrossQ"])
+        if "CrossQ" not in curves:
             print(f"  [WARN] No DR logs found for mode={dr_mode}")
             continue
 
-        min_len = min(len(r) for _, r in all_runs)
-        stacked = np.array([r[:min_len] for _, r in all_runs])
-        ts_ref  = all_runs[0][0][:min_len] / 1e6
-        mean_r  = stacked.mean(axis=0)
-        std_r   = stacked.std(axis=0)
-
-        ax.plot(ts_ref, mean_r, label=label, color=DR_COLORS[dr_mode])
-        ax.fill_between(ts_ref, mean_r - std_r, mean_r + std_r,
+        ts, mean_r, std_r = curves["CrossQ"]
+        ts_m = ts / 1e6
+        ax.plot(ts_m, mean_r, label=label, color=DR_COLORS[dr_mode])
+        ax.fill_between(ts_m, mean_r - std_r, mean_r + std_r,
                         alpha=0.15, color=DR_COLORS[dr_mode])
 
     # --- Add reference line at +1500 ---
-    ax.axhline(y=1500, color="black", linestyle="--", linewidth=1.5)
+    ax.axhline(y=2500, color="black", linestyle="--", linewidth=1.5)
     ax.set_xlabel("Timesteps (×10⁶)")
     ax.set_ylabel("Mean Episodic Reward")
     ax.set_title(f"Domain Randomization Training Curves "
@@ -410,7 +574,6 @@ def plot_dr_curves(log_root: str, figures_dir: str, robot_type: str = "uav",
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    os.makedirs(figures_dir, exist_ok=True)
     out_path = os.path.join(figures_dir, f"dr_curves_{robot_type}.png")
     plt.savefig(out_path, bbox_inches="tight")
     plt.close()
@@ -422,45 +585,48 @@ def plot_dr_curves(log_root: str, figures_dir: str, robot_type: str = "uav",
 # ================================================================
 
 def plot_combined_learning_curves(log_root: str, figures_dir: str,
-                                  robot_type: str = "uav"):
+                                  robot_type: str = "uav",
+                                  curve_bank: dict | None = None):
     """
-    2×K grid: row 1 = default HPs, row 2 = random/tuned HPs.
-    For UAV: K=4 (N=2..5). For wheeled: K=1 (N=3).
+    2×K grid: row 1 = default HPs, row 2 = random/tuned HPs (K=4, N=2..5).
     Saved as figures/combined_learning_curves_<robot_type>.png.
     """
-    robot_counts = [2, 3, 4, 5] if robot_type == "uav" else [3]
+    robot_counts = _robot_counts(robot_type)
     n_panels = len(robot_counts)
     rows = [
         ("main_default", "Default HPs"),
         ("main_tuned",   "Tuned HPs"),
     ]
 
+    def _curves_for(version_fragment: str, N: int) -> dict:
+        if curve_bank is not None:
+            return curve_bank[(version_fragment, N)]
+        return get_learning_curves(log_root, version_fragment, robot_type, N)
+
     fig, axes = plt.subplots(2, n_panels, figsize=(4 * n_panels, 8),
-                             sharey=False, squeeze=False)
-    fig.suptitle(f"Learning Curves ({robot_type.upper()}) — "
-                 f"Default (top) vs Tuned (bottom) Hyperparameters",
-                 fontsize=13, y=1.01)
+                             sharey=False, squeeze=False,
+                             constrained_layout=True)
+    # fig.suptitle(f"Learning Curves ({robot_type.upper()}) — "
+    #              f"Default (top) vs Tuned (bottom) Hyperparameters",
+    #              fontsize=13, y=1.01)
 
     for row_idx, (version_fragment, row_label) in enumerate(rows):
         for col_idx, N in enumerate(robot_counts):
             ax = axes[row_idx][col_idx]
-            curves = load_learning_curves_for_n(log_root, version_fragment,
-                                                robot_type, N)
-            _draw_curves_on_ax(ax, curves, N)
+            _draw_curves_on_ax(ax, _curves_for(version_fragment, N), N)
             # Y-axis label on the leftmost column only
             if col_idx == 0:
                 ax.set_ylabel(f"{row_label}\nMean Episodic Reward")
 
-    # Shared legend below the figure
+    # Shared legend below the figure (constrained_layout reserves space)
     handles = [mpatches.Patch(color=ALG_COLORS[a], label=a) for a in ALG_ORDER]
-    fig.legend(handles=handles, loc="lower center",
-               ncol=len(ALG_ORDER), bbox_to_anchor=(0.5, -0.03), fontsize=9)
+    fig.legend(handles=handles, loc="outside lower center",
+               ncol=len(ALG_ORDER),
+               bbox_to_anchor=(0.5, COMBINED_LEGEND_Y))
 
-    plt.tight_layout()
-    os.makedirs(figures_dir, exist_ok=True)
     out_path = os.path.join(figures_dir,
                             f"combined_learning_curves_{robot_type}.png")
-    plt.savefig(out_path, bbox_inches="tight")
+    fig.savefig(out_path, bbox_inches="tight")
     plt.close()
     print(f"  Saved {out_path}")
 
@@ -485,18 +651,25 @@ def parse_args():
 def _run_for(robot_type, args):
     print(f"\n========== Generating figures for robot_type = {robot_type} ==========")
 
+    curve_bank = None
     if not args.skip_curves:
+        print("  Preloading learning-curve data ...")
+        curve_bank = preload_main_learning_curves(args.log_root, robot_type)
+
         print("\n-- Figure 1: Learning curves (default HPs) ---------------------")
         plot_learning_curves(args.log_root, "main_default",
-                             "default", args.figures_dir, robot_type=robot_type)
+                             "default", args.figures_dir, robot_type=robot_type,
+                             curve_bank=curve_bank)
 
         print("\n-- Figure 2: Learning curves (tuned HPs) -----------------------")
         plot_learning_curves(args.log_root, "main_tuned",
-                             "random", args.figures_dir, robot_type=robot_type)
+                             "random", args.figures_dir, robot_type=robot_type,
+                             curve_bank=curve_bank)
 
         print("\n-- Figure 6: Combined learning curves (default + tuned) --------")
         plot_combined_learning_curves(args.log_root, args.figures_dir,
-                                      robot_type=robot_type)
+                                      robot_type=robot_type,
+                                      curve_bank=curve_bank)
 
     print("\n-- Figure 3: Scalability ---------------------------------------")
     plot_scalability(args.results_dir, args.figures_dir, robot_type=robot_type)
@@ -507,6 +680,8 @@ def _run_for(robot_type, args):
 
     print("\n-- Figure 5: DR training curves --------------------------------")
     plot_dr_curves(args.log_root, args.figures_dir, robot_type=robot_type)
+
+    clear_caches()
 
 
 def main():
